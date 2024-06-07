@@ -1,0 +1,92 @@
+[tool.poetry]
+name = "repairchain"
+version = "0.2.1"
+description = "automated vulnerability repair via LLMs, search, and static analysis"
+authors = [
+    "Chris Timperley <ctimperley@cmu.edu>",
+    "Ruben Martins <rubenm@cs.cmu.edu>",
+    "Claire Le Goues <clegoues@cs.cmu.edu>"
+]
+license = "Apache-2.0"
+repository = "https://github.com/ChrisTimperley/RepairChain"
+readme = "README.md"
+classifiers = [
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+]
+
+[tool.poetry.scripts]
+kaskara = 'repairchain.cli:cli'
+
+[tool.poetry.dependencies]
+python = ">=3.11,<4"
+sourcelocation = "^1.1.5"
+
+[tool.poetry.group.dev]
+optional = true
+
+[tool.poetry.group.dev.dependencies]
+mypy = ">=1.10.0"
+pytest = "^7.4.3"
+python = "^3.11"
+ruff = ">=0.4.4"
+
+[tool.mypy]
+ignore_missing_imports = false
+strict = true
+implicit_reexport = true
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+src = ["src"]
+
+[tool.ruff.lint]
+select = [
+    "ALL",  # includes all rules (including new ones)
+]
+extend-ignore = [
+    "ANN101",   # missing type annotation for 'self' in method
+    "ANN102",   # missing type annotation for 'cls' in classmethod
+    "B024",     # use of abstract base class without abstract methods
+    "D100",     # missing docstring in public module
+    "D101",     # missing docstring in public class
+    "D102",     # missing docstring in public method
+    "D103",     # missing docstring in public function
+    "D104",     # missing docstring in public package
+    "D105",     # missing docstring in magic method
+    "D203",     # one-blank-line-before-class
+    "D213",     # multi-line-summary-second-line
+    "D401",     # first line of docstring should be in imperative mood
+    "D413",     # missing blank line after last section
+    "FIX001",   # unresolved FIXME
+    "FIX002",   # TODO found
+    "TD001",    # invalid TODO tag: `FIXME`
+    "TD002",    # missing author in TODO
+    "TD003",    # missing issue link on line following TODO
+    "TD004",    # missing colon in TODO
+    "TRY003",   # avoid specifying long messages outside the exception class
+    "S101",     # use of assertions
+    "SLF001",   # private member accessed
+    "T201",     # use of print
+    "D204",     # 1 blank line required after class docstring
+    "C901",     # function is too complex (cyclomatic complexity)
+    "PLR0912",  # too many branches
+    "PGH003",   # use specific rule codes when ignoring type issues
+    "FBT001",   # boolean typed positional argument in function definition
+    "ARG001",   # unused function argument
+    "PLR0913",  # too many arguments in function definition
+    "PLR0911",  # too many return statements
+    "PTH118",   # `os.path.join()` should be replaced by `Path` with `/` operator
+    "S604",     # function call with `shell=True` parameter identified, security issue
+    "S602",     # subprocess call with shell=True identified, security issue
+    "D107",     # missing docstring in `__init__`
+    "N818",     # exception name should be named with an Error suffix
+    "PTH117",   # `os.path.isabs()` should be replaced by `Path.is_absolute()`
+]
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
