@@ -26,6 +26,7 @@ sourcelocation = "^1.1.5"
 pydantic = "^2.7.3"
 loguru = "^0.7.2"
 gitpython = "^3.1.43"
+click = "^8.1.7"
 
 [tool.poetry.group.dev]
 optional = true
