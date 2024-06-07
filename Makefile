@@ -1,6 +1,9 @@
-.PHONY: all check install lint
+.PHONY: all check docker fix install lint
 
 all: install check
+
+docker:
+	docker build -t christimperley/repairchain .
 
 lint:
 	poetry run ruff check src
