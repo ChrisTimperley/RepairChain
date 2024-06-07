@@ -24,6 +24,7 @@ kaskara = 'repairchain.cli:cli'
 python = ">=3.11,<4"
 sourcelocation = "^1.1.5"
 pydantic = "^2.7.3"
+loguru = "^0.7.2"
 
 [tool.poetry.group.dev]
 optional = true
