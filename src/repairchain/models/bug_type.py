@@ -7,3 +7,4 @@ import enum
 
 class BugType(str, enum.Enum):
     USE_AFTER_FREE = "use-after-free"
+    OTHER = "other"
