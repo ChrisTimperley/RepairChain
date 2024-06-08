@@ -694,14 +694,18 @@ files = [
 
 [[package]]
 name = "sourcelocation"
-version = "1.1.7"
+version = "1.1.8"
 description = "Simple data structures for representing source code locations"
 optional = false
-python-versions = ">=3.9"
-files = [
-    {file = "sourcelocation-1.1.7-py3-none-any.whl", hash = "sha256:62e0824276c6785c9380034919f8c4ca356e023d3363a47d204759b44cf43ee4"},
-    {file = "sourcelocation-1.1.7.tar.gz", hash = "sha256:1548a5014c0eb84594bf3c20c8466fbcb1a5bfa70cbe650e1625cc8cc3d94286"},
-]
+python-versions = ">= 3.9"
+files = []
+develop = false
+
+[package.source]
+type = "git"
+url = "https://github.com/ChrisTimperley/sourcelocation.py.git"
+reference = "4a5cf8a6cbad9c62888a5b00ddc3d2f8fc4ee1c8"
+resolved_reference = "4a5cf8a6cbad9c62888a5b00ddc3d2f8fc4ee1c8"
 
 [[package]]
 name = "typing-extensions"
@@ -748,4 +752,4 @@ dev = ["black (>=19.3b0)", "pytest (>=4.6.2)"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.11,<4"
-content-hash = "504dc79b61caf5ca132b1cc3ea89678005dc9e806ddcfb546a15c8708d1442bf"
+content-hash = "0bd53f55c231a3a01b203f2832d8cc0af4d9cbe482f9ad7a82e78091e4eff9d5"
