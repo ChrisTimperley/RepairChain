@@ -7,11 +7,13 @@ from repairchain.actions.commit_to_diff import commit_to_diff
 if t.TYPE_CHECKING:
     import git
 
+    from repairchain.models.diff import Diff
+
 
 def minimize_diff(
     repo: git.Repo,
     triggering_commit: git.Commit,
-) -> None:
+) -> Diff:
     triggering_diff = commit_to_diff(triggering_commit)
 
     # - turn on/off hunks
