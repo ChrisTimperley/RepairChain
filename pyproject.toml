@@ -22,6 +22,7 @@ kaskara = 'repairchain.cli:cli'
 
 [tool.poetry.dependencies]
 python = ">=3.11,<4"
+kaskara = { git = "https://github.com/ChrisTimperley/Kaskara.git", rev = "f8f49db12f04e5c4f482a1ea94b767b701710afe" }
 sourcelocation = "^1.1.7"
 pydantic = "^2.7.3"
 loguru = "^0.7.2"
