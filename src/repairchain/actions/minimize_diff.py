@@ -2,24 +2,24 @@ from __future__ import annotations
 
 import typing as t
 
-import git
+from repairchain.actions.commit_to_diff import commit_to_diff
 
 if t.TYPE_CHECKING:
-    from pathlib import Path
+    import git
 
 
-def minimize_changes(
-    repo_path: Path,
-    triggering_commit_hash: str,
+def minimize_diff(
+    repo: git.Repo,
+    triggering_commit: git.Commit,
 ) -> None:
-    repo = git.Repo(repo_path)
-    commit = repo.commit(triggering_commit_hash)
-    # NOTE assumption that this wasn't triggered by a merge commit (revisit and relax?)
-    triggering_diff_index = commit.diff(commit.parents[0])
-    print(triggering_diff_index)
+    triggering_diff = commit_to_diff(triggering_commit)
 
-    # NOTE we probably want to ignore "rename" and "changed in the type" diffs
-    # and restrict ourselves to "added", "deleted", and "modified" diffs
+    # - turn on/off hunks
+    # - what is fewest number of hunks that still trigger the bug?
+    #   - is this sound?
+    # - do delta debugging on a bitvector
+    # - transform bitvector into a Diff using Diff.from_file_hunks
+    hunks = list(triggering_diff.file_hunks)
+    _num_hunks = len(hunks)
 
-    # TODO steal Diff/Hunk data structure from Darjeeling
     raise NotImplementedError
