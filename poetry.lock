@@ -349,13 +349,13 @@ files = [
 
 [[package]]
 name = "sourcelocation"
-version = "1.1.6"
+version = "1.1.7"
 description = "Simple data structures for representing source code locations"
 optional = false
 python-versions = ">=3.9"
 files = [
-    {file = "sourcelocation-1.1.6-py3-none-any.whl", hash = "sha256:a4f77aae5270e7b3cc695adcd3e97674288f459fb819a9551167d56d3554292b"},
-    {file = "sourcelocation-1.1.6.tar.gz", hash = "sha256:6ba4512a85e3fd4416b50f7cb052dffb3fbda58955f20b081ac689a148a8ebcd"},
+    {file = "sourcelocation-1.1.7-py3-none-any.whl", hash = "sha256:62e0824276c6785c9380034919f8c4ca356e023d3363a47d204759b44cf43ee4"},
+    {file = "sourcelocation-1.1.7.tar.gz", hash = "sha256:1548a5014c0eb84594bf3c20c8466fbcb1a5bfa70cbe650e1625cc8cc3d94286"},
 ]
 
 [[package]]
@@ -386,4 +386,4 @@ dev = ["black (>=19.3b0)", "pytest (>=4.6.2)"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.11,<4"
-content-hash = "ac2e25e4931457f1340e262b8adb052a2c4371598cb2c1a4b0d973f0433f476a"
+content-hash = "2f1a9f20808d087e13b43fa6d77813ac79942968ba70347bb925da8a2ef36e22"
