@@ -6,6 +6,8 @@ from dataclasses import dataclass
 
 import git
 
+from repairchain.models.sanitizer_report import SanitizerReport
+
 if t.TYPE_CHECKING:
     from pathlib import Path
 
@@ -24,6 +26,7 @@ class Project:
     triggering_commit: git.Commit
     regression_test_command: str
     crash_command: str
+    sanitizer_report: SanitizerReport
 
     @classmethod
     def build(
@@ -38,6 +41,7 @@ class Project:
         project_kind = ProjectKind(kind)
         repository = git.Repo(repository_path)
         commit = repository.commit(triggering_commit_sha)
+        sanitizer_report = SanitizerReport(sanitizer="ASAN")  # FIXME: placeholder
         return cls(
             kind=project_kind,
             image=image,
@@ -45,4 +49,5 @@ class Project:
             triggering_commit=commit,
             regression_test_command=regression_test_command,
             crash_command=crash_command,
+            sanitizer_report=sanitizer_report,
         )
