@@ -1,4 +1,4 @@
-.PHONY: all check docker fix install lint
+.PHONY: all check docker fix install lint test
 
 all: install check
 
@@ -8,6 +8,9 @@ docker:
 lint:
 	poetry run ruff check src
 	poetry run mypy src
+
+test:
+	poetry run pytest
 
 fix:
 	poetry run ruff check --fix src
