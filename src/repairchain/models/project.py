@@ -22,6 +22,8 @@ class Project:
     image: str
     repository: git.Repo
     triggering_commit: git.Commit
+    regression_test_command: str
+    crash_command: str
 
     @classmethod
     def build(
@@ -30,6 +32,8 @@ class Project:
         image: str,
         repository_path: Path,
         triggering_commit_sha: str,
+        regression_test_command: str,
+        crash_command: str,
     ) -> t.Self:
         project_kind = ProjectKind(kind)
         repository = git.Repo(repository_path)
@@ -39,4 +43,6 @@ class Project:
             image=image,
             repository=repository,
             triggering_commit=commit,
+            regression_test_command=regression_test_command,
+            crash_command=crash_command,
         )
