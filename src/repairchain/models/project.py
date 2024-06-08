@@ -19,6 +19,7 @@ class ProjectKind(str, enum.Enum):
 @dataclass
 class Project:
     kind: ProjectKind
+    image: str
     repository: git.Repo
     triggering_commit: git.Commit
 
@@ -26,6 +27,7 @@ class Project:
     def build(
         cls,
         kind: str,
+        image: str,
         repository_path: Path,
         triggering_commit_sha: str,
     ) -> t.Self:
@@ -34,6 +36,7 @@ class Project:
         commit = repository.commit(triggering_commit_sha)
         return cls(
             kind=project_kind,
+            image=image,
             repository=repository,
             triggering_commit=commit,
         )
