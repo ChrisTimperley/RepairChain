@@ -18,4 +18,11 @@ fix:
 install:
 	poetry install --with dev
 
+bundle:
+	poetry run pyinstaller \
+		src/repairchain/__main__.py \
+		--noconfirm \
+		--onefile \
+		--name repairchain
+
 check: lint test
