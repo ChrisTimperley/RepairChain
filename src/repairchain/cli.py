@@ -2,4 +2,4 @@ from __future__ import annotations
 
 
 def cli() -> None:
-    raise NotImplementedError
+    print("it looks like PyInstaller works! let's make some repairs...")
