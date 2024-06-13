@@ -21,7 +21,7 @@ classifiers = [
 kaskara = 'repairchain.cli:cli'
 
 [tool.poetry.dependencies]
-python = ">=3.11,<4"
+python = ">=3.11,<3.13"
 kaskara = { git = "https://github.com/ChrisTimperley/Kaskara.git", rev = "f8f49db12f04e5c4f482a1ea94b767b701710afe" }
 sourcelocation = { git = "https://github.com/ChrisTimperley/sourcelocation.py.git", rev = "4a5cf8a6cbad9c62888a5b00ddc3d2f8fc4ee1c8" }
 pydantic = "^2.7.3"
@@ -37,6 +37,7 @@ mypy = ">=1.10.0"
 pytest = "^7.4.3"
 python = "^3.11"
 ruff = ">=0.4.4"
+pyinstaller = "^6.8.0"
 
 [tool.mypy]
 ignore_missing_imports = false
