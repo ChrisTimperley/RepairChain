@@ -5,8 +5,9 @@ __all__ = ("PatchGenerationStrategy",)
 import abc
 import typing as t
 
-from repairchain.models.diagnosis import Diagnosis
-from repairchain.models.diff import Diff
+if t.TYPE_CHECKING:
+    from repairchain.models.diagnosis import Diagnosis
+    from repairchain.models.diff import Diff
 
 
 class PatchGenerationStrategy(abc.ABC):
