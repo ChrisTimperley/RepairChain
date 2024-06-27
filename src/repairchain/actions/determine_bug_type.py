@@ -4,8 +4,9 @@ __all__ = ("determine_bug_type",)
 
 import typing as t
 
+from repairchain.models.bug_type import BugType
+
 if t.TYPE_CHECKING:
-    from repairchain.models.bug_type import BugType
     from repairchain.models.sanitizer_report import SanitizerReport
 
 
