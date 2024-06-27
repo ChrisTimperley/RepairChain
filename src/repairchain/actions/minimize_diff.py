@@ -40,25 +40,43 @@ def minimize_diff(
     # - transform bitvector into a Diff using Diff.from_file_hunks
     hunks = list(triggering_diff.file_hunks)
 
-    inputs = set(range(0,len(hunks)))
+    c_fail = set(range(0,len(hunks)))
+    c_pass = set([])
     granularity = 2
+    offset = 0 
 
-    assert test(inputs) == PatchOutcome.FAILED 
+    assert test(c_fail) == PatchOutcome.FAILED 
 
-    while granularity >= 1:
-        subsets = split(list(inputs), granularity)
-        reduced = False
+    # Main loop
+    while True:
+        delta = c_fail - c_pass
+        if len(delta) < granularity:
+            return c_fail
+        deltas = split(list(delta), granularity)
 
-        for subset in subsets:
-            complement = inputs.difference(set(subset))
-            if test(complement) == PatchOutcome.FAILED:
-                inputs = complement
-                reduced = True
+        reduction_found = False
+        j = 0
+
+        while j < granularity:
+            i = (j + offset) % granularity
+            next_c_pass = c_pass | deltas[i]
+            next_c_fail = c_fail - deltas[i]
+
+            if granularity == 2 and test(next_c_pass) == PatchOutcome.FAILED:
+                c_fail = next_c_pass
+                offset = i  # was offset = 0 in original dd()
+                reduction_found = True
                 break
+            elif test(next_c_fail) == PatchOutcome.FAILED:
+                c_fail = next_c_fail
+                granularity = max(granularity - 1, 2)
+                offset = i
+                reduction_found = True
+                break
+            else:
+                j += 1  # choose next subset
 
-        if not reduced:
-            if granularity == 1:
-                break  # Cannot reduce further, minimal failure-inducing input found
-            granularity = max(granularity // 2, 1)
-    
-    return inputs
+        if not reduction_found:
+            if granularity >= len(delta):
+                return c_fail
+            granularity = min(granularity * 2, len(delta))
