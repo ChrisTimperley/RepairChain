@@ -28,7 +28,9 @@ Below is an example of a JSON input file that is provided to RepairChain as inpu
   "image": "foo/bar",
   "repository-path": "/some/absolute/path",
   "triggering-commit": "636b62f",
+  "sanitizer-report-file": "/work/asan.txt",
   "commands": {
+    "build": "LOCAL_USER=$(id -u) /usr/local/sbin/container_scripts/cmd_harness.sh build",
     "regression-test": "/usr/local/sbin/container_scripts/cp_tests",
     "crash": "/usr/local/sbin/container_scripts/cp_pov /some_blob /some-binary"
   }
