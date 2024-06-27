@@ -36,3 +36,26 @@ Below is an example of a JSON input file that is provided to RepairChain as inpu
   }
 }
 ```
+
+## Output Format
+
+RepairChain writes all acceptable patches that it finds to a specified output directory.
+Each patch is written as a unified diff (the same format that is expected by DARPA).
+Below is an example of such a patch.
+
+```diff
+diff --git a/mock_vp.c b/mock_vp.c
+index 9dc6bf0..72678be 100644
+--- a/mock_vp.c
++++ b/mock_vp.c
+@@ -10,7 +10,8 @@ func_a(){
+         printf("input item:");
+         buff = &items[i][0];
+         i++;
+-        fgets(buff, 40, stdin);
++        fgets(buff, 9, stdin);
++        if (i==3){buff[0]= 0;}
+         buff[strcspn(buff, "\n")] = 0;
+     }while(strlen(buff)!=0);
+     i--;
+```
