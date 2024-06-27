@@ -5,15 +5,17 @@ all: install check
 docker:
 	docker build -t christimperley/repairchain .
 
-lint:
-	poetry run ruff check src
+type:
 	poetry run mypy src
+
+lint:
+	poetry run ruff check --preview src
 
 test:
 	poetry run pytest
 
 fix:
-	poetry run ruff check --fix src
+	poetry run ruff check --preview --fix src
 
 install:
 	poetry install --with dev
@@ -25,4 +27,4 @@ bundle:
 		--onefile \
 		--name repairchain
 
-check: lint test
+check: lint type test

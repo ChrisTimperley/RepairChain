@@ -18,7 +18,7 @@ classifiers = [
 ]
 
 [tool.poetry.scripts]
-kaskara = 'repairchain.cli:cli'
+repairchain = 'repairchain.cli:cli'
 
 [tool.poetry.dependencies]
 python = ">=3.11,<3.13"
@@ -28,6 +28,7 @@ pydantic = "^2.7.3"
 loguru = "^0.7.2"
 gitpython = "^3.1.43"
 click = "^8.1.7"
+openai = "^1.35.5"
 
 [tool.poetry.group.dev]
 optional = true
@@ -46,14 +47,21 @@ implicit_reexport = true
 
 [tool.ruff]
 line-length = 120
+indent-width = 4
 target-version = "py312"
 src = ["src"]
 
+[tool.ruff.format]
+docstring-code-line-length = 200
+quote-style = "double"
+
 [tool.ruff.lint]
 select = [
+    "E271",
     "ALL",  # includes all rules (including new ones)
 ]
 extend-ignore = [
+    "CPY001",   # missing copyright notice at top of file
     "ANN101",   # missing type annotation for 'self' in method
     "ANN102",   # missing type annotation for 'cls' in classmethod
     "B024",     # use of abstract base class without abstract methods

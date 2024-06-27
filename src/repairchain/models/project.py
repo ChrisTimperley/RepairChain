@@ -11,7 +11,7 @@ import git
 from repairchain.models.sanitizer_report import SanitizerReport
 
 
-class ProjectKind(str, enum.Enum):
+class ProjectKind(enum.StrEnum):
     C = "c"
     KERNEL = "kernel"
     JAVA = "java"
@@ -56,6 +56,7 @@ class Project:
     @classmethod
     def build(
         cls,
+        *,
         kind: str,
         image: str,
         repository_path: Path,

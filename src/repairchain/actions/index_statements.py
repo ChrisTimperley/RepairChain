@@ -7,6 +7,7 @@ import typing as t
 if t.TYPE_CHECKING:
     import git
     import kaskara.functions
+    import kaskara.statements
 
     from repairchain.models.project import Project
 
@@ -17,7 +18,7 @@ def index_statements(
     version: git.Commit | None = None,
     restrict_to_files: list[str] | None = None,
     restrict_to_functions: list[kaskara.functions.Function] | None = None,
-) -> kaskara.functions.ProgramFunctions:
+) -> kaskara.statements.ProgramStatements:
     """Produces an index of the statements in a given project.
 
     If `version` is provided, statements are indexed at that version,
