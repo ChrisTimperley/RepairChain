@@ -10,6 +10,7 @@ if t.TYPE_CHECKING:
 
 
 def map_functions(
+    *,
     project: Project,
     functions: list[kaskara.functions.Function],
     from_version: git.Commit,
