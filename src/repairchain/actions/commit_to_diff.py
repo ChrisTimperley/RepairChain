@@ -2,8 +2,8 @@ from __future__ import annotations
 
 __all__ = (
     "commit_to_diff",
-    "get_commit",
     "commit_to_files",
+    "get_commit",
 )
 
 import difflib
@@ -47,8 +47,8 @@ def commit_to_diff(commit: git.Commit) -> Diff:
         unified_diff_lines = list(difflib.unified_diff(
             a_data,
             b_data,
-            fromfile=diff.a_path if diff.a_path else "/dev/null",
-            tofile=diff.b_path if diff.b_path else "/dev/null",
+            fromfile=diff.a_path or "/dev/null",
+            tofile=diff.b_path or "/dev/null",
             lineterm="",
         ))
         file_diff = FileDiff.read_next(unified_diff_lines)
@@ -64,10 +64,9 @@ def get_file_contents_at_commit(commit: git.Commit, file_path: str) -> str:
     return content
 
 
-def commit_to_files(commit: git.Commit, diff: Diff) -> dict[str,str]:
+def commit_to_files(commit: git.Commit, diff: Diff) -> dict[str, str]:
     files = diff.files
-    files_output: dict[str,str] = {}
+    files_output: dict[str, str] = {}
     for f in files:
         files_output[f] = get_file_contents_at_commit(commit, f)
     return files_output
-

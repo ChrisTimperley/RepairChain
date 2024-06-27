@@ -5,7 +5,7 @@ __all__ = ("BugType",)
 import enum
 
 
-class BugType(str, enum.Enum):
+class BugType(enum.StrEnum):
     CODE_INJECTION = "code-injection"
     COMMAND_INJECTION = "command-injection"
     DESERIALIZATION_OF_UNTRUSTED_DATA = "deserialization-of-untrusted-data"

@@ -5,7 +5,7 @@ __all__ = ("PatchOutcome",)
 import enum
 
 
-class PatchOutcome(str, enum.Enum):
+class PatchOutcome(enum.StrEnum):
     """Reports the outcome of evaluating a single candidate patch.
 
     FAILED_TO_BUILD indicates that the patch did not compile; all other statuses imply that the patch compiled.
