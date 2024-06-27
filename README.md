@@ -2,7 +2,7 @@
 
 AIxCC: automated vulnerability repair via LLMs, search, and static analysis
 
-## Input Format
+## Usage
 
 RepairChain exposes a simple command-line interface with a single verb, `repair`, which accepts the path to a configuration file as its sole positional argument, along with a mandatory option `--save-to-dir`, which specifies the absolute path of the directory to which acceptable patches should be written as unified diffs.
 
