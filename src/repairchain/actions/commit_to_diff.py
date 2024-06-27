@@ -1,40 +1,30 @@
 from __future__ import annotations
 
-from pathlib import Path
-
-__all__ = ("commit_to_diff","clone_repository","get_commit","commit_to_files")
+__all__ = (
+    "commit_to_diff",
+    "get_commit",
+    "commit_to_files",
+)
 
 import difflib
 import typing as t
 
-import git
-
 from repairchain.models.diff import Diff, FileDiff
 
-# NOTE why is the import being done with this check?
 if t.TYPE_CHECKING:
     import git
 
-# NOTE we may want to clone the repository only once; can we use the /tmp directory?
-# FIXME we may want to ensure that we have permissions to clone the repository and/or add key
-def clone_repository(repo_url: str, clone_dir: str ="/tmp/repo") -> git.Repo:
-     # Create a Path object from the clone_dir string
-    clone_dir_path = Path(clone_dir)
-
-    # Clone the repository if it doesn't exist
-    if not clone_dir_path.exists():
-        return git.Repo.clone_from(repo_url, clone_dir_path)
-
-    return git.Repo(clone_dir_path)
 
 def get_commit(repo: git.Repo, commit_hash: str) -> git.Commit:
     # Get the commit object
     return repo.commit(commit_hash)
 
+
 def commit_to_diff(commit: git.Commit) -> Diff:
     """Obtains a diff for a given commit."""
     # NOTE assumption that this wasn't triggered by a merge commit (revisit and relax?)
     diff_index = commit.parents[0].diff(commit) if commit.parents else None
+    assert diff_index is not None
 
     file_diffs: list[FileDiff] = []
 
@@ -66,13 +56,13 @@ def commit_to_diff(commit: git.Commit) -> Diff:
 
     return Diff(file_diffs=file_diffs)
 
-# Function to get file contents at a specific commit
-def get_file_contents_at_commit(commit: git.Commit, file_path: str) -> str:
-    # Get the blob object for the file
-    blob = commit.tree / file_path
 
-    # Read the contents of the file
-    return blob.data_stream.read().decode("utf-8")
+def get_file_contents_at_commit(commit: git.Commit, file_path: str) -> str:
+    """Obtains the contents of a file at a specific commit."""
+    blob = commit.tree / file_path
+    content: str = blob.data_stream.read().decode("utf-8")
+    return content
+
 
 def commit_to_files(commit: git.Commit, diff: Diff) -> dict[str,str]:
     files = diff.files

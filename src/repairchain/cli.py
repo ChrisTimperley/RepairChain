@@ -3,27 +3,28 @@ from __future__ import annotations
 from pathlib import Path
 
 import click
+import git
 from loguru import logger
 
 from repairchain.actions import commit_to_diff
 from repairchain.models.project import Project
 from repairchain.repairchain import run
 from repairchain.strategies.llms.context import create_context
-from repairchain.strategies.llms.yolo import yolo
+from repairchain.strategies.llms.yolo import yolo as do_yolo
 
-LOG_LEVELS = [
+LOG_LEVELS = (
     "TRACE",
     "DEBUG",
     "INFO",
     "WARNING",
     "ERROR",
     "CRITICAL",
-]
+)
 
 
 @click.group()
 def cli() -> None:
-    print("it looks like PyInstaller works! let's make some repairs...")
+    pass
 
 
 @cli.command()
@@ -72,11 +73,17 @@ def repair(
         save_patches_to_dir=save_to_dir,
     )
 
-#NOTE: this is just an example to be changed
-def cli(repo_url: str, commit_hash: str) -> None:
-    repo = commit_to_diff.clone_repository(repo_url)
+
+@cli.command()
+@click.argument(
+    "repo_dir",
+    type=click.Path(exists=True, path_type=Path, file_okay=False, dir_okay=True),
+)
+@click.argument("commit_hash", type=str)
+def yolo(repo_dir: Path, commit_hash: str) -> None:
+    repo = git.Repo(repo_dir)
     commit = commit_to_diff.get_commit(repo, commit_hash)
     diff = commit_to_diff.commit_to_diff(commit)
     files = commit_to_diff.commit_to_files(commit, diff)
     prompt = create_context(files, diff)
-    yolo(prompt)
+    do_yolo(prompt)
