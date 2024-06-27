@@ -5,9 +5,11 @@ all: install check
 docker:
 	docker build -t christimperley/repairchain .
 
+type:
+	poetry run mypy src
+
 lint:
 	poetry run ruff check src
-	poetry run mypy src
 
 test:
 	poetry run pytest
@@ -25,4 +27,4 @@ bundle:
 		--onefile \
 		--name repairchain
 
-check: lint test
+check: lint type test
