@@ -10,4 +10,8 @@ if t.TYPE_CHECKING:
 
 
 def determine_bug_type(report: SanitizerReport) -> BugType:
+    report_text = report.contents
+    if " global-buffer-overflow " in report_text:
+        return BugType.OUT_OF_BOUNDS_WRITE
+
     raise NotImplementedError
