@@ -56,6 +56,7 @@ class Project:
     @classmethod
     def build(
         cls,
+        *,
         kind: str,
         image: str,
         repository_path: Path,
