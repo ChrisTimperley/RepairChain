@@ -8,6 +8,6 @@
   "commands": {
     "build": "LOCAL_USER=$(id -u) /usr/local/sbin/container_scripts/cmd_harness.sh build",
     "regression-test": "/usr/local/sbin/container_scripts/cp_tests",
-    "crash": "/usr/local/sbin/container_scripts/cp_pov /workspace/payload /out/"
+    "crash": "/usr/local/sbin/container_scripts/cp_pov /workspace/payload filein_harness"
   }
 }
