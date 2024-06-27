@@ -1,0 +1,13 @@
+{
+  "project-kind": "c",
+  "image": "repairchain/mock-cp",
+  "repository-path": "./mock-cp-src/src/samples",
+  "triggering-commit": "11dafa9a5babc127357d710ee090eb4c0c05154f",
+  "sanitizer-report-filename": "./sanitizer.txt",
+  "pov-payload-filename": "./mock-cp-src/exemplar_only/cpv_1/blobs/sample_solve.bin",
+  "commands": {
+    "build": "LOCAL_USER=$(id -u) /usr/local/sbin/container_scripts/cmd_harness.sh build",
+    "regression-test": "/usr/local/sbin/container_scripts/cp_tests",
+    "crash": "/usr/local/sbin/container_scripts/cp_pov /work/repair/blobs/sample_solve.bin filein_harness"
+  }
+}

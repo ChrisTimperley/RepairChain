@@ -28,11 +28,35 @@ Below is an example of a JSON input file that is provided to RepairChain as inpu
   "image": "foo/bar",
   "repository-path": "/some/absolute/path",
   "triggering-commit": "636b62f",
-  "sanitizer-report-file": "/work/asan.txt",
+  "sanitizer-report-filename": "/work/asan.txt",
+  "pov-payload-filename": "./mock-cp-src/exemplar_only/cpv_1/blobs/sample_solve.bin",
   "commands": {
     "build": "LOCAL_USER=$(id -u) /usr/local/sbin/container_scripts/cmd_harness.sh build",
     "regression-test": "/usr/local/sbin/container_scripts/cp_tests",
     "crash": "/usr/local/sbin/container_scripts/cp_pov /some_blob /some-binary"
   }
 }
+```
+
+## Output Format
+
+RepairChain writes all acceptable patches that it finds to a specified output directory.
+Each patch is written as a unified diff (the same format that is expected by DARPA).
+Below is an example of such a patch.
+
+```diff
+diff --git a/mock_vp.c b/mock_vp.c
+index 9dc6bf0..72678be 100644
+--- a/mock_vp.c
++++ b/mock_vp.c
+@@ -10,7 +10,8 @@ func_a(){
+         printf("input item:");
+         buff = &items[i][0];
+         i++;
+-        fgets(buff, 40, stdin);
++        fgets(buff, 9, stdin);
++        if (i==3){buff[0]= 0;}
+         buff[strcspn(buff, "\n")] = 0;
+     }while(strlen(buff)!=0);
+     i--;
 ```

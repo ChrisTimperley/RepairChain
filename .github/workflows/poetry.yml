@@ -29,5 +29,7 @@ jobs:
       run: make install
     - name: Lint
       run: make lint
+    - name: Type Check
+      run: make type
     - name: Test
       run: make test
