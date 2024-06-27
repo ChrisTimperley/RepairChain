@@ -51,6 +51,8 @@ class Project:
         crash_command = commands_dict["crash"]
         build_command = commands_dict["build"]
 
+        sanitizer_report_path = Path(dict_["sanitizer-report-file"])
+
         return cls.build(
             build_command=build_command,
             crash_command=crash_command,
@@ -58,6 +60,7 @@ class Project:
             kind=kind,
             regression_test_command=regression_test_command,
             repository_path=repository_path,
+            sanitizer_report_path=sanitizer_report_path,
             triggering_commit_sha=triggering_commit_sha,
         )
 
@@ -72,12 +75,13 @@ class Project:
         build_command: str,
         regression_test_command: str,
         crash_command: str,
+        sanitizer_report_path: Path,
     ) -> t.Self:
         project_kind = ProjectKind(kind)
         repository = git.Repo(repository_path)
         head = repository.head.commit
         commit = repository.commit(triggering_commit_sha)
-        sanitizer_report = SanitizerReport(sanitizer="ASAN")  # FIXME: placeholder
+        sanitizer_report = SanitizerReport.load(sanitizer_report_path)
         return cls(
             build_command=build_command,
             crash_command=crash_command,

@@ -14,9 +14,10 @@ class SanitizerReport:
     sanitizer: str  # FIXME: use an enum (is this even possible given the most recent DARPA example?)
 
     @classmethod
-    def load(cls, path: Path) -> SanitizerReport:
+    def load(cls, path: Path) -> t.Self:
         if not path.exists():
             message = f"sanitizer report not found at {path}"
             raise FileNotFoundError(message)
 
-        raise NotImplementedError
+        # FIXME this is a placeholder for now
+        return cls(sanitizer="ASAN")
