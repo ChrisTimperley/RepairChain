@@ -47,11 +47,17 @@ implicit_reexport = true
 
 [tool.ruff]
 line-length = 120
+indent-width = 4
 target-version = "py312"
 src = ["src"]
 
+[tool.ruff.format]
+docstring-code-line-length = 200
+quote-style = "double"
+
 [tool.ruff.lint]
 select = [
+    "E271",
     "ALL",  # includes all rules (including new ones)
 ]
 extend-ignore = [
