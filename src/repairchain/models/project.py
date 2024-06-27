@@ -24,6 +24,7 @@ class Project:
     repository: git.Repo
     head: git.Commit
     triggering_commit: git.Commit
+    build_command: str
     regression_test_command: str
     crash_command: str
     sanitizer_report: SanitizerReport
@@ -42,15 +43,22 @@ class Project:
         image = dict_["image"]
         repository_path = Path(dict_["repository-path"])
         triggering_commit_sha = dict_["triggering-commit"]
-        regression_test_command = dict_["regression-test-command"]
-        crash_command = dict_["crash"]
+
+        commands_dict = dict_["commands"]
+        assert isinstance(commands_dict, dict)
+
+        regression_test_command = commands_dict["regression-test"]
+        crash_command = commands_dict["crash"]
+        build_command = commands_dict["build"]
+
         return cls.build(
-            kind=kind,
+            build_command=build_command,
+            crash_command=crash_command,
             image=image,
+            kind=kind,
+            regression_test_command=regression_test_command,
             repository_path=repository_path,
             triggering_commit_sha=triggering_commit_sha,
-            regression_test_command=regression_test_command,
-            crash_command=crash_command,
         )
 
     @classmethod
@@ -61,6 +69,7 @@ class Project:
         image: str,
         repository_path: Path,
         triggering_commit_sha: str,
+        build_command: str,
         regression_test_command: str,
         crash_command: str,
     ) -> t.Self:
@@ -70,12 +79,13 @@ class Project:
         commit = repository.commit(triggering_commit_sha)
         sanitizer_report = SanitizerReport(sanitizer="ASAN")  # FIXME: placeholder
         return cls(
-            kind=project_kind,
-            image=image,
-            repository=repository,
-            head=head,
-            triggering_commit=commit,
-            regression_test_command=regression_test_command,
+            build_command=build_command,
             crash_command=crash_command,
+            head=head,
+            image=image,
+            kind=project_kind,
+            regression_test_command=regression_test_command,
+            repository=repository,
             sanitizer_report=sanitizer_report,
+            triggering_commit=commit,
         )
