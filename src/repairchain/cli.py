@@ -64,14 +64,13 @@ def repair(
     )
 
     logger.info(f"loading project: {filename}")
-    project = Project.load(filename)
-    logger.info(f"loaded project: {project}")
-
-    run(
-        project=project,
-        stop_early=stop_early,
-        save_patches_to_dir=save_to_dir,
-    )
+    with Project.load(filename) as project:
+        logger.info(f"loaded project: {project}")
+        run(
+            project=project,
+            stop_early=stop_early,
+            save_patches_to_dir=save_to_dir,
+        )
 
 
 @cli.command()

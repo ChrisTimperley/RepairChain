@@ -1,11 +1,14 @@
 from __future__ import annotations
 
+import contextlib
 import enum
 import json
+import os
 import typing as t
 from dataclasses import dataclass
 from pathlib import Path
 
+import dockerblade
 import git
 
 from repairchain.models.sanitizer_report import SanitizerReport
@@ -19,6 +22,7 @@ class ProjectKind(enum.StrEnum):
 
 @dataclass
 class Project:
+    docker_daemon: dockerblade.DockerDaemon
     kind: ProjectKind
     image: str
     repository: git.Repo
@@ -30,15 +34,18 @@ class Project:
     sanitizer_report: SanitizerReport
 
     @classmethod
-    def load(cls, path: str | Path) -> t.Self:
+    @contextlib.contextmanager
+    def load(cls, path: str | Path) -> t.Iterator[t.Self]:
         if isinstance(path, str):
             path = Path(path)
         with path.open("r") as file:
             dict_ = json.load(file)
-        return cls.from_dict(dict_)
+        with cls.from_dict(dict_) as project:
+            yield project
 
     @classmethod
-    def from_dict(cls, dict_: dict[str, t.Any]) -> t.Self:
+    @contextlib.contextmanager
+    def from_dict(cls, dict_: dict[str, t.Any]) -> t.Iterator[t.Self]:
         kind = ProjectKind(dict_["project-kind"])
         image = dict_["image"]
         repository_path = Path(dict_["repository-path"])
@@ -53,7 +60,7 @@ class Project:
 
         sanitizer_report_path = Path(dict_["sanitizer-report-filename"])
 
-        return cls.build(
+        with cls.build(
             build_command=build_command,
             crash_command=crash_command,
             image=image,
@@ -62,9 +69,11 @@ class Project:
             repository_path=repository_path,
             sanitizer_report_path=sanitizer_report_path,
             triggering_commit_sha=triggering_commit_sha,
-        )
+        ) as project:
+            yield project
 
     @classmethod
+    @contextlib.contextmanager
     def build(
         cls,
         *,
@@ -76,20 +85,28 @@ class Project:
         regression_test_command: str,
         crash_command: str,
         sanitizer_report_path: Path,
-    ) -> t.Self:
+        docker_url: str | None = None,
+    ) -> t.Iterator[t.Self]:
+        if docker_url is None:
+            docker_url = os.environ.get("DOCKER_HOST")
+
         project_kind = ProjectKind(kind)
         repository = git.Repo(repository_path)
         head = repository.head.commit
         commit = repository.commit(triggering_commit_sha)
         sanitizer_report = SanitizerReport.load(sanitizer_report_path)
-        return cls(
-            build_command=build_command,
-            crash_command=crash_command,
-            head=head,
-            image=image,
-            kind=project_kind,
-            regression_test_command=regression_test_command,
-            repository=repository,
-            sanitizer_report=sanitizer_report,
-            triggering_commit=commit,
-        )
+
+        with dockerblade.DockerDaemon(url=docker_url) as docker_daemon:
+            project = cls(
+                docker_daemon=docker_daemon,
+                build_command=build_command,
+                crash_command=crash_command,
+                head=head,
+                image=image,
+                kind=project_kind,
+                regression_test_command=regression_test_command,
+                repository=repository,
+                sanitizer_report=sanitizer_report,
+                triggering_commit=commit,
+            )
+            yield project
