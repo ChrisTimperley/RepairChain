@@ -1,15 +1,14 @@
 from __future__ import annotations
 
 import enum
+import json
 import typing as t
 from dataclasses import dataclass
+from pathlib import Path
 
 import git
 
 from repairchain.models.sanitizer_report import SanitizerReport
-
-if t.TYPE_CHECKING:
-    from pathlib import Path
 
 
 class ProjectKind(str, enum.Enum):
@@ -28,6 +27,31 @@ class Project:
     regression_test_command: str
     crash_command: str
     sanitizer_report: SanitizerReport
+
+    @classmethod
+    def load(cls, path: str | Path) -> t.Self:
+        if isinstance(path, str):
+            path = Path(path)
+        with path.open("r") as file:
+            dict_ = json.load(file)
+        return cls.from_dict(dict_)
+
+    @classmethod
+    def from_dict(cls, dict_: dict[str, t.Any]) -> t.Self:
+        kind = ProjectKind(dict_["project-kind"])
+        image = dict_["image"]
+        repository_path = Path(dict_["repository-path"])
+        triggering_commit_sha = dict_["triggering-commit"]
+        regression_test_command = dict_["regression-test-command"]
+        crash_command = dict_["crash"]
+        return cls.build(
+            kind=kind,
+            image=image,
+            repository_path=repository_path,
+            triggering_commit_sha=triggering_commit_sha,
+            regression_test_command=regression_test_command,
+            crash_command=crash_command,
+        )
 
     @classmethod
     def build(
