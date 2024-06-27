@@ -1,0 +1,3 @@
+[submodule "examples/mock-cp"]
+	path = examples/mock-cp
+	url = git@github.com:VERSATIL-GrammaTech/mock-cp
