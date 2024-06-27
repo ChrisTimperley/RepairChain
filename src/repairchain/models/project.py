@@ -51,7 +51,7 @@ class Project:
         crash_command = commands_dict["crash"]
         build_command = commands_dict["build"]
 
-        sanitizer_report_path = Path(dict_["sanitizer-report-file"])
+        sanitizer_report_path = Path(dict_["sanitizer-report-filename"])
 
         return cls.build(
             build_command=build_command,
