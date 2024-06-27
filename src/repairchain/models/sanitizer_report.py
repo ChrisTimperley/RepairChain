@@ -11,7 +11,16 @@ if t.TYPE_CHECKING:
 
 @dataclass
 class SanitizerReport:
+    contents: str
     sanitizer: str  # FIXME: use an enum (is this even possible given the most recent DARPA example?)
+
+    @classmethod
+    def from_report_text(cls, text: str) -> t.Self:
+        # FIXME this is a placeholder for now
+        return cls(
+            contents=text,
+            sanitizer="ASAN",
+        )
 
     @classmethod
     def load(cls, path: Path) -> t.Self:
@@ -19,5 +28,5 @@ class SanitizerReport:
             message = f"sanitizer report not found at {path}"
             raise FileNotFoundError(message)
 
-        # FIXME this is a placeholder for now
-        return cls(sanitizer="ASAN")
+        contents = path.read_text()
+        return cls.from_report_text(contents)
