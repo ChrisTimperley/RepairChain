@@ -27,7 +27,7 @@ def diagnose(project: Project) -> Diagnosis:
     crash_version_implicated_files = implicated_diff.files
     logger.info(
         f"implicated files ({len(crash_version_implicated_files)})"
-        f": {', '.join(crash_version_implicated_files)}"
+        f": {', '.join(crash_version_implicated_files)}",
     )
     crash_version_function_index = index_functions(
         project=project,
@@ -38,11 +38,18 @@ def diagnose(project: Project) -> Diagnosis:
         implicated_diff,
         crash_version_function_index,
     )
-    print(crash_version_implicated_functions)
+    logger.info(
+        f"implicated functions ({len(crash_version_implicated_functions)})"
+        f": {', '.join(function.name for function in crash_version_implicated_functions)}",
+    )
 
+    # FIXME there's an assumption here that these files haven't moved!
+    # work on relaxing this assumption
+    current_version_implicated_files = crash_version_implicated_files
     current_version_function_index = index_functions(
         project=project,
         version=project.head,
+        restrict_to_files=current_version_implicated_files,
     )
     current_version_implicated_functions = map_functions(
         project=project,
