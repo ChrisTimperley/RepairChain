@@ -113,7 +113,7 @@ class Project:
         repository = git.Repo(local_repository_path)
         head = repository.head.commit
         commit = repository.commit(triggering_commit_sha)
-        sanitizer_report = SanitizerReport.load(sanitizer_report_path)
+        sanitizer_report = SanitizerReport.load(sanitizer_report_path, project_kind == ProjectKind.JAVA)
 
         with dockerblade.DockerDaemon(url=docker_url) as docker_daemon:
             project = cls(
