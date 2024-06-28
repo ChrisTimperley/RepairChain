@@ -11,7 +11,11 @@ from pathlib import Path
 import dockerblade
 import git
 
+from repairchain.models.container import ProjectContainer
 from repairchain.models.sanitizer_report import SanitizerReport
+
+if t.TYPE_CHECKING:
+    from repairchain.models.diff import Diff
 
 
 class ProjectKind(enum.StrEnum):
@@ -128,3 +132,16 @@ class Project:
     @property
     def local_repository_path(self) -> Path:
         return Path(self.repository.working_dir)
+
+    def provision(
+        self,
+        *,
+        version: git.Commit | None = None,
+        diff: Diff | None = None,
+    ) -> t.Iterator[ProjectContainer]:
+        with ProjectContainer.provision(
+            project=self,
+            version=version,
+            diff=diff,
+        ) as container:
+            yield container
