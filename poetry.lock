@@ -426,8 +426,8 @@ sourcelocation = "^1.1.5"
 [package.source]
 type = "git"
 url = "https://github.com/ChrisTimperley/Kaskara.git"
-reference = "db15c2e3b62cae7ca1da0ce1cb91af41927e1905"
-resolved_reference = "db15c2e3b62cae7ca1da0ce1cb91af41927e1905"
+reference = "c93830d3a50293a80c223f24579caebeb1d2fd8c"
+resolved_reference = "c93830d3a50293a80c223f24579caebeb1d2fd8c"
 
 [[package]]
 name = "loguru"
@@ -1017,4 +1017,4 @@ dev = ["black (>=19.3b0)", "pytest (>=4.6.2)"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.11,<3.13"
-content-hash = "e88d519f3b65b1e1202cd7d28095a27ee9065822ff8361f65c991817b09ffcbc"
+content-hash = "4a5669316cafaedfd654bd7ee48c352ad3125c33fa0c1eabe4ceeac6212fef14"
