@@ -19,6 +19,7 @@ class ProjectContainer:
     project: Project
     _dockerblade: dockerblade.Container
     _shell: dockerblade.Shell
+    _filesystem: dockerblade.FileSystem
 
     @classmethod
     @contextlib.contextmanager
@@ -45,10 +46,12 @@ class ProjectContainer:
             command="/bin/sh",
         ) as dockerblade_container:
             shell = dockerblade_container.shell()
+            filesystem = dockerblade_container.filesystem()
             container = cls(
                 project=project,
                 _dockerblade=dockerblade_container,
                 _shell=shell,
+                _filesystem=filesystem,
             )
             if version:
                 container.checkout(version=version, clean_before=True)
@@ -71,7 +74,9 @@ class ProjectContainer:
         )
 
     def patch(self, patch: Diff) -> None:
-        raise NotImplementedError
+        container_patch_filename = self._filesystem.mktemp(suffix=".diff")
+        patch_contents = str(patch)
+        self._filesystem.put(container_patch_filename, patch_contents)
 
     def checkout(
         self,
