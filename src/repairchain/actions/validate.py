@@ -25,7 +25,8 @@ def validate_patch(
     """Applies a given patch to a specific version of a project and returns the outcome."""
     try:
         with project.provision(version=commit, diff=diff) as container:
-            # TODO run PoV
+            if not container.run_pov():
+                return PatchOutcome.FAILED
 
             if not container.run_regression_tests():
                 return PatchOutcome.FAILED
