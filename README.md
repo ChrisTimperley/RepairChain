@@ -8,6 +8,7 @@ To install the project, you will need to invoke the following:
 
 ```shell
 make install
+poetry run kaskara clang install
 ```
 
 After running the above, you will need to create a file `.openapi.key` at the root of the repository, which should contain your OpenAPI access key.
