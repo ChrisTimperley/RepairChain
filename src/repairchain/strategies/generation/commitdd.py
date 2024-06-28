@@ -6,7 +6,7 @@ from sourcelocation import FileHunk
 from sourcelocation.diff import ContextLine, DeletedLine, HunkLine, InsertedLine
 
 from repairchain.actions.commit_to_diff import commit_to_diff, commit_to_files
-from repairchain.actions.minimize_diff import DiffMinimizer
+from repairchain.actions.minimize_diff import DiffMinimizer, MinimizeForSuccess
 from repairchain.strategies.generation.base import PatchGenerationStrategy
 
 if t.TYPE_CHECKING:
@@ -22,15 +22,42 @@ class CommitDD(PatchGenerationStrategy):
 
     def run(self) -> list[Diff]:
         project = self.diagnosis.project
+        commit = project.triggering_commit
+        repo = project.repository
 
-        minimizer = DiffMinimizer(project, commit_to_diff(project.triggering_commit))
+        sha = commit.binsha
+        reverse_diff = project.repository.git.diff(sha, sha + "^", R=True)
+
+        minimizer = MinimizeForSuccess(project, reverse_diff)
+        minimized = minimizer.minimize_diff(reverse_diff)
+
         # OK the problem is, we have the slice of the undone commit we need, now we need it to apply
         # to the program at the current commit
-        # OK I need each file at head
+        # start by figuring out where we're starting...
+        primary_branch = project.repository.active_branch.name
+
+        # branch from the broken commit...
         commit_sha = project.triggering_commit.binsha  # Replace with the actual commit SHA
         new_branch_name = "branch-" + str(commit_sha) # Replace with your desired new branch name
-        project.repository.git.branch(new_branch_name, project.triggering_commit)
-        project.repository.git.checkout(new_branch_name)
 
-        # for d in minimizer.minimize_diff():
-        #    for fd in d.file_diffs:
+        repo.git.branch(new_branch_name, project.triggering_commit)
+        repo.git.checkout(new_branch_name)
+
+        # make a commit with the minimized undo
+        diffstr = str(minimized)
+        repo.git.apply(diffstr)
+        repo.git.add(A=True)
+        repo.git.index.commit("undo what we did")
+
+        repo.git.rebase(primary_branch)
+
+        # sure hope that worked
+        # FIXME: error handling
+
+        # now, get the head commit, which should undo the badness, turn that into a diff
+        undoing_diff = commit_to_diff(project.repository.active_branch.commit)
+        repo.git.checkout(primary_branch)
+
+        #  close the branch I made, for tidiness
+        repo.git.branch("-D", new_branch_name)
+        return undoing_diff
