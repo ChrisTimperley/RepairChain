@@ -2,6 +2,16 @@
 
 AIxCC: automated vulnerability repair via LLMs, search, and static analysis
 
+## Installation
+
+To install the project, you will need to invoke the following:
+
+```shell
+make install
+```
+
+After running the above, you will need to create a file `.openapi.key` at the root of the repository, which should contain your OpenAPI access key.
+
 ## Usage
 
 RepairChain exposes a simple command-line interface with a single verb, `repair`, which accepts the path to a configuration file as its sole positional argument, along with a mandatory option `--save-to-dir`, which specifies the absolute path of the directory to which acceptable patches should be written as unified diffs.
