@@ -9,7 +9,7 @@ from loguru import logger
 from repairchain.actions import commit_to_diff
 from repairchain.models.project import Project
 from repairchain.repairchain import run
-from repairchain.strategies.llms.context import create_context
+from repairchain.strategies.llms.context import create_context_all_files_git_diff
 from repairchain.strategies.llms.yolo import yolo as do_yolo
 
 LOG_LEVELS = (
@@ -64,14 +64,13 @@ def repair(
     )
 
     logger.info(f"loading project: {filename}")
-    project = Project.load(filename)
-    logger.info(f"loaded project: {project}")
-
-    run(
-        project=project,
-        stop_early=stop_early,
-        save_patches_to_dir=save_to_dir,
-    )
+    with Project.load(filename) as project:
+        logger.info(f"loaded project: {project}")
+        run(
+            project=project,
+            stop_early=stop_early,
+            save_patches_to_dir=save_to_dir,
+        )
 
 
 @cli.command()
@@ -85,5 +84,5 @@ def yolo(repo_dir: Path, commit_hash: str) -> None:
     commit = commit_to_diff.get_commit(repo, commit_hash)
     diff = commit_to_diff.commit_to_diff(commit)
     files = commit_to_diff.commit_to_files(commit, diff)
-    prompt = create_context(files, diff)
+    prompt = create_context_all_files_git_diff(files, diff)
     do_yolo(prompt)

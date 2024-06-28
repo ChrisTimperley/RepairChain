@@ -1,34 +1,52 @@
 from __future__ import annotations
 
-__all__ = ("create_context",)
+__all__ = ("create_context_all_files_git_diff",)
 
 import typing as t
 
 if t.TYPE_CHECKING:
     from repairchain.models.diff import Diff
 
-CONTEXT_TEMPLATE = """The following code has a memory vulnerability in one of the files:
+CONTEXT_TEMPLATE = """The following Git commit introduce a memory vulnerability:
+BEGIN GIT COMMIT
+{diff}
+END GIT COMMIT
+The source code of the files modified by this Git commit is the following:
 BEGIN CODE
 {code_context}
 END CODE
-This code was modified with the following git commit:
-{diff}
-I want a patch for this program with the following properties:
+BEGIN INSTRUCTIONS
+Only one of the files is buggy.
+Please fix the buggy file and return a modified version of the code with the following properties:
 - The repair is minimal
 - Do not add comments
 - Keep the same functionality of the code
-- Do not simplify the code
-Use as format the following:
-BEGIN GIT DIFF PATCH
-<patch>
-END GIT DIFF PATCH
+- Do not modify the code unless it is to fix the bug
+- Only modify the buggy file
+- The modified code should only contain the buggy function
+- Keep the same indentation as the original file
+- Return 10 potential bug fixes. These can cover different functions
+Use as format the following for each bug fix:
+BEGIN BUG FIX
+<number>
+BEGIN MODIFIED FILENAME
+<filemame>
+END MODIFIED FILENAME
+BEGIN MODIFIED FUNCTION NAME
+<function>
+END MODIFIED FUNCTION NAME
+BEGIN MODIFIED CODE
+<code>
+END MODIFIED CODE
 BEGIN DESCRIPTION
 <description>
 END DESCRIPTION
+END BUG FIX
+END INSTRUCTIONS
 """
 
 
-def create_context(files: dict[str, str], diff: Diff) -> str:
+def create_context_all_files_git_diff(files: dict[str, str], diff: Diff) -> str:
     code_context = "\n".join(
         f"BEGIN FILE: {filename}\n{contents}\nEND FILE"
         for filename, contents in files.items()

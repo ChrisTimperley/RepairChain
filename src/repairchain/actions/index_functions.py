@@ -4,6 +4,8 @@ __all__ = ("index_functions",)
 
 import typing as t
 
+from repairchain.indexer import KaskaraIndexer
+
 if t.TYPE_CHECKING:
     import git
     import kaskara.functions
@@ -11,15 +13,19 @@ if t.TYPE_CHECKING:
     from repairchain.models.project import Project
 
 
-# NOTE we should only bother indexing implicated files
 def index_functions(
     project: Project,
     *,
     version: git.Commit | None = None,
+    restrict_to_files: list[str] | None = None,
 ) -> kaskara.functions.ProgramFunctions:
-    """Produces an index of the functions in a given project.
+    if restrict_to_files is None:
+        restrict_to_files = []
 
-    If `version` is provided, the functions are indexed at that version,
-    otherwise, the functions are indexed at the current version (i.e., HEAD).
-    """
-    raise NotImplementedError
+    with KaskaraIndexer.build(
+        project=project,
+        version=version,
+        restrict_to_files=restrict_to_files,
+    ) as indexer:
+        analysis = indexer.run()
+        return analysis.functions

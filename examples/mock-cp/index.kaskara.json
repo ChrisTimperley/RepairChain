@@ -1,0 +1,1106 @@
+{
+  "project": {
+    "image": "repairchain/mock-cp",
+    "directory": "/src",
+    "files": [
+      "/src/samples/mock_vp.c"
+    ],
+    "ignore-errors": true
+  },
+  "loops": {
+    "covered_by_loop_bodies": []
+  },
+  "functions": {
+    "functions": [
+      {
+        "name": "func_a",
+        "location": "samples/mock_vp.c@7:0::18:1",
+        "body": "samples/mock_vp.c@7:13::18:1",
+        "return-type": "void",
+        "global": true,
+        "pure": false
+      },
+      {
+        "name": "func_b",
+        "location": "samples/mock_vp.c@20:0::28:1",
+        "body": "samples/mock_vp.c@20:13::28:1",
+        "return-type": "void",
+        "global": true,
+        "pure": false
+      },
+      {
+        "name": "main",
+        "location": "samples/mock_vp.c@31:0::40:1",
+        "body": "samples/mock_vp.c@32:0::40:1",
+        "return-type": "int",
+        "global": true,
+        "pure": false
+      }
+    ]
+  },
+  "statements": {
+    "statements": [
+      {
+        "content": "char* buff;\n",
+        "canonical": "char *buff;\n",
+        "kind": "DeclStmt",
+        "location": "samples/mock_vp.c@8:4::8:16",
+        "reads": [],
+        "writes": [
+          "buff"
+        ],
+        "visible": [
+          "items",
+          "stderr",
+          "sys_nerr",
+          "opterr",
+          "__environ",
+          "sys_errlist",
+          "stdout",
+          "optarg",
+          "stdin",
+          "optind",
+          "optopt"
+        ],
+        "decls": [
+          "buff"
+        ],
+        "live_before": [
+          "items",
+          "stderr",
+          "sys_nerr",
+          "opterr",
+          "__environ",
+          "sys_errlist",
+          "stdout",
+          "optarg",
+          "stdin",
+          "optind",
+          "optopt"
+        ],
+        "live_after": [
+          "items",
+          "stderr",
+          "sys_nerr",
+          "opterr",
+          "__environ",
+          "sys_errlist",
+          "stdout",
+          "optarg",
+          "stdin",
+          "optind",
+          "optopt"
+        ],
+        "requires_syntax": []
+      },
+      {
+        "content": "int i = 0;\n",
+        "canonical": "int i = 0;\n",
+        "kind": "DeclStmt",
+        "location": "samples/mock_vp.c@9:4::9:15",
+        "reads": [],
+        "writes": [
+          "i"
+        ],
+        "visible": [
+          "items",
+          "stderr",
+          "sys_nerr",
+          "opterr",
+          "__environ",
+          "sys_errlist",
+          "i",
+          "stdout",
+          "optarg",
+          "stdin",
+          "optind",
+          "optopt",
+          "buff"
+        ],
+        "decls": [
+          "i"
+        ],
+        "live_before": [
+          "items",
+          "stderr",
+          "sys_nerr",
+          "opterr",
+          "__environ",
+          "sys_errlist",
+          "stdout",
+          "optarg",
+          "stdin",
+          "optind",
+          "optopt"
+        ],
+        "live_after": [
+          "items",
+          "stderr",
+          "sys_nerr",
+          "opterr",
+          "__environ",
+          "sys_errlist",
+          "stdout",
+          "optarg",
+          "stdin",
+          "optind",
+          "optopt"
+        ],
+        "requires_syntax": []
+      },
+      {
+        "content": "do{\n        printf(\"input item:\");\n        buff = &items[i][0];\n        i++;\n        fgets(buff, 40, stdin);\n        buff[strcspn(buff, \"\\n\")] = 0;\n    }while(strlen(buff)!=0);",
+        "canonical": "do {\nprintf(\"input item:\");\nbuff = &items[i][0];\ni++;\nfgets(buff, 40, stdin);\nbuff[strcspn(buff, \"\\n\")] = 0;\n} while (strlen(buff) != 0);\n",
+        "kind": "DoStmt",
+        "location": "samples/mock_vp.c@10:4::16:28",
+        "reads": [
+          "items",
+          "stdin",
+          "i",
+          "buff"
+        ],
+        "writes": [
+          "buff"
+        ],
+        "visible": [
+          "items",
+          "stderr",
+          "sys_nerr",
+          "opterr",
+          "__environ",
+          "sys_errlist",
+          "i",
+          "stdout",
+          "optarg",
+          "stdin",
+          "optind",
+          "optopt",
+          "buff"
+        ],
+        "decls": [],
+        "live_before": [
+          "items",
+          "stderr",
+          "sys_nerr",
+          "opterr",
+          "__environ",
+          "sys_errlist",
+          "stdout",
+          "optarg",
+          "stdin",
+          "optind",
+          "optopt"
+        ],
+        "live_after": [
+          "items",
+          "stderr",
+          "sys_nerr",
+          "opterr",
+          "__environ",
+          "sys_errlist",
+          "stdout",
+          "optarg",
+          "stdin",
+          "optind",
+          "optopt"
+        ],
+        "requires_syntax": []
+      },
+      {
+        "content": "printf(\"input item:\");",
+        "canonical": "printf(\"input item:\");",
+        "kind": "CallExpr",
+        "location": "samples/mock_vp.c@11:8::11:30",
+        "reads": [],
+        "writes": [],
+        "visible": [
+          "items",
+          "stderr",
+          "sys_nerr",
+          "opterr",
+          "__environ",
+          "sys_errlist",
+          "i",
+          "stdout",
+          "optarg",
+          "stdin",
+          "optind",
+          "optopt",
+          "buff"
+        ],
+        "decls": [],
+        "live_before": [
+          "items",
+          "stderr",
+          "sys_nerr",
+          "opterr",
+          "__environ",
+          "sys_errlist",
+          "stdout",
+          "optarg",
+          "stdin",
+          "optind",
+          "optopt"
+        ],
+        "live_after": [
+          "items",
+          "stderr",
+          "sys_nerr",
+          "opterr",
+          "__environ",
+          "sys_errlist",
+          "stdout",
+          "optarg",
+          "stdin",
+          "optind",
+          "optopt"
+        ],
+        "requires_syntax": []
+      },
+      {
+        "content": "buff = &items[i][0];",
+        "canonical": "buff = &items[i][0];",
+        "kind": "BinaryOperator",
+        "location": "samples/mock_vp.c@12:8::12:28",
+        "reads": [
+          "items",
+          "i",
+          "buff"
+        ],
+        "writes": [
+          "buff"
+        ],
+        "visible": [
+          "items",
+          "stderr",
+          "sys_nerr",
+          "opterr",
+          "__environ",
+          "sys_errlist",
+          "i",
+          "stdout",
+          "optarg",
+          "stdin",
+          "optind",
+          "optopt",
+          "buff"
+        ],
+        "decls": [],
+        "live_before": [
+          "items",
+          "stderr",
+          "sys_nerr",
+          "opterr",
+          "__environ",
+          "sys_errlist",
+          "stdout",
+          "optarg",
+          "stdin",
+          "optind",
+          "optopt"
+        ],
+        "live_after": [
+          "items",
+          "stderr",
+          "sys_nerr",
+          "opterr",
+          "__environ",
+          "sys_errlist",
+          "stdout",
+          "optarg",
+          "stdin",
+          "optind",
+          "optopt"
+        ],
+        "requires_syntax": []
+      },
+      {
+        "content": "i++;",
+        "canonical": "i++;",
+        "kind": "UnaryOperator",
+        "location": "samples/mock_vp.c@13:8::13:12",
+        "reads": [
+          "i"
+        ],
+        "writes": [],
+        "visible": [
+          "items",
+          "stderr",
+          "sys_nerr",
+          "opterr",
+          "__environ",
+          "sys_errlist",
+          "i",
+          "stdout",
+          "optarg",
+          "stdin",
+          "optind",
+          "optopt",
+          "buff"
+        ],
+        "decls": [],
+        "live_before": [
+          "items",
+          "stderr",
+          "sys_nerr",
+          "opterr",
+          "__environ",
+          "sys_errlist",
+          "stdout",
+          "optarg",
+          "stdin",
+          "optind",
+          "optopt"
+        ],
+        "live_after": [
+          "items",
+          "stderr",
+          "sys_nerr",
+          "opterr",
+          "__environ",
+          "sys_errlist",
+          "stdout",
+          "optarg",
+          "stdin",
+          "optind",
+          "optopt"
+        ],
+        "requires_syntax": []
+      },
+      {
+        "content": "fgets(buff, 40, stdin);",
+        "canonical": "fgets(buff, 40, stdin);",
+        "kind": "CallExpr",
+        "location": "samples/mock_vp.c@14:8::14:31",
+        "reads": [
+          "stdin",
+          "buff"
+        ],
+        "writes": [],
+        "visible": [
+          "items",
+          "stderr",
+          "sys_nerr",
+          "opterr",
+          "__environ",
+          "sys_errlist",
+          "i",
+          "stdout",
+          "optarg",
+          "stdin",
+          "optind",
+          "optopt",
+          "buff"
+        ],
+        "decls": [],
+        "live_before": [
+          "items",
+          "stderr",
+          "sys_nerr",
+          "opterr",
+          "__environ",
+          "sys_errlist",
+          "stdout",
+          "optarg",
+          "stdin",
+          "optind",
+          "optopt"
+        ],
+        "live_after": [
+          "items",
+          "stderr",
+          "sys_nerr",
+          "opterr",
+          "__environ",
+          "sys_errlist",
+          "stdout",
+          "optarg",
+          "stdin",
+          "optind",
+          "optopt"
+        ],
+        "requires_syntax": []
+      },
+      {
+        "content": "buff[strcspn(buff, \"\\n\")] = 0;",
+        "canonical": "buff[strcspn(buff, \"\\n\")] = 0;",
+        "kind": "BinaryOperator",
+        "location": "samples/mock_vp.c@15:8::15:38",
+        "reads": [
+          "buff"
+        ],
+        "writes": [],
+        "visible": [
+          "items",
+          "stderr",
+          "sys_nerr",
+          "opterr",
+          "__environ",
+          "sys_errlist",
+          "i",
+          "stdout",
+          "optarg",
+          "stdin",
+          "optind",
+          "optopt",
+          "buff"
+        ],
+        "decls": [],
+        "live_before": [
+          "items",
+          "stderr",
+          "sys_nerr",
+          "opterr",
+          "__environ",
+          "sys_errlist",
+          "stdout",
+          "optarg",
+          "stdin",
+          "optind",
+          "optopt"
+        ],
+        "live_after": [
+          "items",
+          "stderr",
+          "sys_nerr",
+          "opterr",
+          "__environ",
+          "sys_errlist",
+          "stdout",
+          "optarg",
+          "stdin",
+          "optind",
+          "optopt"
+        ],
+        "requires_syntax": []
+      },
+      {
+        "content": "strlen(buff)!=0)",
+        "canonical": "strlen(buff) != 0;",
+        "kind": "BinaryOperator",
+        "location": "samples/mock_vp.c@16:11::16:27",
+        "reads": [
+          "buff"
+        ],
+        "writes": [],
+        "visible": [
+          "items",
+          "stderr",
+          "sys_nerr",
+          "opterr",
+          "__environ",
+          "sys_errlist",
+          "i",
+          "stdout",
+          "optarg",
+          "stdin",
+          "optind",
+          "optopt",
+          "buff"
+        ],
+        "decls": [],
+        "live_before": [
+          "items",
+          "stderr",
+          "sys_nerr",
+          "opterr",
+          "__environ",
+          "sys_errlist",
+          "stdout",
+          "optarg",
+          "stdin",
+          "optind",
+          "optopt"
+        ],
+        "live_after": [
+          "items",
+          "stderr",
+          "sys_nerr",
+          "opterr",
+          "__environ",
+          "sys_errlist",
+          "stdout",
+          "optarg",
+          "stdin",
+          "optind",
+          "optopt"
+        ],
+        "requires_syntax": []
+      },
+      {
+        "content": "i--;",
+        "canonical": "i--;",
+        "kind": "UnaryOperator",
+        "location": "samples/mock_vp.c@17:4::17:8",
+        "reads": [
+          "i"
+        ],
+        "writes": [],
+        "visible": [
+          "items",
+          "stderr",
+          "sys_nerr",
+          "opterr",
+          "__environ",
+          "sys_errlist",
+          "i",
+          "stdout",
+          "optarg",
+          "stdin",
+          "optind",
+          "optopt",
+          "buff"
+        ],
+        "decls": [],
+        "live_before": [
+          "items",
+          "stderr",
+          "sys_nerr",
+          "opterr",
+          "__environ",
+          "sys_errlist",
+          "stdout",
+          "optarg",
+          "stdin",
+          "optind",
+          "optopt"
+        ],
+        "live_after": [
+          "items",
+          "stderr",
+          "sys_nerr",
+          "opterr",
+          "__environ",
+          "sys_errlist",
+          "stdout",
+          "optarg",
+          "stdin",
+          "optind",
+          "optopt"
+        ],
+        "requires_syntax": []
+      },
+      {
+        "content": "char *buff;\n",
+        "canonical": "char *buff;\n",
+        "kind": "DeclStmt",
+        "location": "samples/mock_vp.c@21:4::21:16",
+        "reads": [],
+        "writes": [
+          "buff"
+        ],
+        "visible": [
+          "items",
+          "stderr",
+          "sys_nerr",
+          "opterr",
+          "__environ",
+          "stdout",
+          "sys_errlist",
+          "optarg",
+          "stdin",
+          "optind",
+          "optopt"
+        ],
+        "decls": [
+          "buff"
+        ],
+        "live_before": [
+          "items",
+          "stderr",
+          "sys_nerr",
+          "opterr",
+          "__environ",
+          "stdout",
+          "sys_errlist",
+          "optarg",
+          "stdin",
+          "optind",
+          "optopt"
+        ],
+        "live_after": [
+          "items",
+          "stderr",
+          "sys_nerr",
+          "opterr",
+          "__environ",
+          "stdout",
+          "sys_errlist",
+          "optarg",
+          "stdin",
+          "optind",
+          "optopt"
+        ],
+        "requires_syntax": []
+      },
+      {
+        "content": "printf(\"done adding items\\n\");",
+        "canonical": "printf(\"done adding items\\n\");",
+        "kind": "CallExpr",
+        "location": "samples/mock_vp.c@22:4::22:34",
+        "reads": [],
+        "writes": [],
+        "visible": [
+          "items",
+          "stderr",
+          "sys_nerr",
+          "opterr",
+          "__environ",
+          "stdout",
+          "sys_errlist",
+          "optarg",
+          "stdin",
+          "optind",
+          "optopt",
+          "j",
+          "buff"
+        ],
+        "decls": [],
+        "live_before": [
+          "items",
+          "stderr",
+          "sys_nerr",
+          "opterr",
+          "__environ",
+          "stdout",
+          "sys_errlist",
+          "optarg",
+          "stdin",
+          "optind",
+          "optopt"
+        ],
+        "live_after": [
+          "items",
+          "stderr",
+          "sys_nerr",
+          "opterr",
+          "__environ",
+          "stdout",
+          "sys_errlist",
+          "optarg",
+          "stdin",
+          "optind",
+          "optopt"
+        ],
+        "requires_syntax": []
+      },
+      {
+        "content": "int j;\n",
+        "canonical": "int j;\n",
+        "kind": "DeclStmt",
+        "location": "samples/mock_vp.c@23:4::23:11",
+        "reads": [],
+        "writes": [
+          "j"
+        ],
+        "visible": [
+          "items",
+          "stderr",
+          "sys_nerr",
+          "opterr",
+          "__environ",
+          "stdout",
+          "sys_errlist",
+          "optarg",
+          "stdin",
+          "optind",
+          "optopt",
+          "j",
+          "buff"
+        ],
+        "decls": [
+          "j"
+        ],
+        "live_before": [
+          "items",
+          "stderr",
+          "sys_nerr",
+          "opterr",
+          "__environ",
+          "stdout",
+          "sys_errlist",
+          "optarg",
+          "stdin",
+          "optind",
+          "optopt"
+        ],
+        "live_after": [
+          "items",
+          "stderr",
+          "sys_nerr",
+          "opterr",
+          "__environ",
+          "stdout",
+          "sys_errlist",
+          "optarg",
+          "stdin",
+          "optind",
+          "optopt"
+        ],
+        "requires_syntax": []
+      },
+      {
+        "content": "printf(\"display item #:\");",
+        "canonical": "printf(\"display item #:\");",
+        "kind": "CallExpr",
+        "location": "samples/mock_vp.c@24:4::24:30",
+        "reads": [],
+        "writes": [],
+        "visible": [
+          "items",
+          "stderr",
+          "sys_nerr",
+          "opterr",
+          "__environ",
+          "stdout",
+          "sys_errlist",
+          "optarg",
+          "stdin",
+          "optind",
+          "optopt",
+          "j",
+          "buff"
+        ],
+        "decls": [],
+        "live_before": [
+          "items",
+          "stderr",
+          "sys_nerr",
+          "opterr",
+          "__environ",
+          "stdout",
+          "sys_errlist",
+          "optarg",
+          "stdin",
+          "optind",
+          "optopt"
+        ],
+        "live_after": [
+          "items",
+          "stderr",
+          "sys_nerr",
+          "opterr",
+          "__environ",
+          "stdout",
+          "sys_errlist",
+          "optarg",
+          "stdin",
+          "optind",
+          "optopt"
+        ],
+        "requires_syntax": []
+      },
+      {
+        "content": "scanf(\"%d\", &j);",
+        "canonical": "scanf(\"%d\", &j);",
+        "kind": "CallExpr",
+        "location": "samples/mock_vp.c@25:4::25:20",
+        "reads": [
+          "j"
+        ],
+        "writes": [],
+        "visible": [
+          "items",
+          "stderr",
+          "sys_nerr",
+          "opterr",
+          "__environ",
+          "stdout",
+          "sys_errlist",
+          "optarg",
+          "stdin",
+          "optind",
+          "optopt",
+          "j",
+          "buff"
+        ],
+        "decls": [],
+        "live_before": [
+          "items",
+          "stderr",
+          "sys_nerr",
+          "opterr",
+          "__environ",
+          "stdout",
+          "sys_errlist",
+          "optarg",
+          "stdin",
+          "optind",
+          "optopt"
+        ],
+        "live_after": [
+          "items",
+          "stderr",
+          "sys_nerr",
+          "opterr",
+          "__environ",
+          "stdout",
+          "sys_errlist",
+          "optarg",
+          "stdin",
+          "optind",
+          "optopt"
+        ],
+        "requires_syntax": []
+      },
+      {
+        "content": "buff = &items[j][0];",
+        "canonical": "buff = &items[j][0];",
+        "kind": "BinaryOperator",
+        "location": "samples/mock_vp.c@26:4::26:24",
+        "reads": [
+          "items",
+          "j",
+          "buff"
+        ],
+        "writes": [
+          "buff"
+        ],
+        "visible": [
+          "items",
+          "stderr",
+          "sys_nerr",
+          "opterr",
+          "__environ",
+          "stdout",
+          "sys_errlist",
+          "optarg",
+          "stdin",
+          "optind",
+          "optopt",
+          "j",
+          "buff"
+        ],
+        "decls": [],
+        "live_before": [
+          "items",
+          "stderr",
+          "sys_nerr",
+          "opterr",
+          "__environ",
+          "stdout",
+          "sys_errlist",
+          "optarg",
+          "stdin",
+          "optind",
+          "optopt"
+        ],
+        "live_after": [
+          "items",
+          "stderr",
+          "sys_nerr",
+          "opterr",
+          "__environ",
+          "stdout",
+          "sys_errlist",
+          "optarg",
+          "stdin",
+          "optind",
+          "optopt"
+        ],
+        "requires_syntax": []
+      },
+      {
+        "content": "printf(\"item %d: %s\\n\", j, buff);",
+        "canonical": "printf(\"item %d: %s\\n\", j, buff);",
+        "kind": "CallExpr",
+        "location": "samples/mock_vp.c@27:4::27:37",
+        "reads": [
+          "j",
+          "buff"
+        ],
+        "writes": [],
+        "visible": [
+          "items",
+          "stderr",
+          "sys_nerr",
+          "opterr",
+          "__environ",
+          "stdout",
+          "sys_errlist",
+          "optarg",
+          "stdin",
+          "optind",
+          "optopt",
+          "j",
+          "buff"
+        ],
+        "decls": [],
+        "live_before": [
+          "items",
+          "stderr",
+          "sys_nerr",
+          "opterr",
+          "__environ",
+          "stdout",
+          "sys_errlist",
+          "optarg",
+          "stdin",
+          "optind",
+          "optopt"
+        ],
+        "live_after": [
+          "items",
+          "stderr",
+          "sys_nerr",
+          "opterr",
+          "__environ",
+          "stdout",
+          "sys_errlist",
+          "optarg",
+          "stdin",
+          "optind",
+          "optopt"
+        ],
+        "requires_syntax": []
+      },
+      {
+        "content": "func_a();",
+        "canonical": "func_a();",
+        "kind": "CallExpr",
+        "location": "samples/mock_vp.c@34:4::34:13",
+        "reads": [],
+        "writes": [],
+        "visible": [
+          "items",
+          "stderr",
+          "sys_nerr",
+          "opterr",
+          "__environ",
+          "stdout",
+          "sys_errlist",
+          "optarg",
+          "stdin",
+          "optind",
+          "optopt"
+        ],
+        "decls": [],
+        "live_before": [
+          "items",
+          "stderr",
+          "sys_nerr",
+          "opterr",
+          "__environ",
+          "stdout",
+          "sys_errlist",
+          "optarg",
+          "stdin",
+          "optind",
+          "optopt"
+        ],
+        "live_after": [
+          "items",
+          "stderr",
+          "sys_nerr",
+          "opterr",
+          "__environ",
+          "stdout",
+          "sys_errlist",
+          "optarg",
+          "stdin",
+          "optind",
+          "optopt"
+        ],
+        "requires_syntax": []
+      },
+      {
+        "content": "func_b();",
+        "canonical": "func_b();",
+        "kind": "CallExpr",
+        "location": "samples/mock_vp.c@36:4::36:13",
+        "reads": [],
+        "writes": [],
+        "visible": [
+          "items",
+          "stderr",
+          "sys_nerr",
+          "opterr",
+          "__environ",
+          "stdout",
+          "sys_errlist",
+          "optarg",
+          "stdin",
+          "optind",
+          "optopt"
+        ],
+        "decls": [],
+        "live_before": [
+          "items",
+          "stderr",
+          "sys_nerr",
+          "opterr",
+          "__environ",
+          "stdout",
+          "sys_errlist",
+          "optarg",
+          "stdin",
+          "optind",
+          "optopt"
+        ],
+        "live_after": [
+          "items",
+          "stderr",
+          "sys_nerr",
+          "opterr",
+          "__environ",
+          "stdout",
+          "sys_errlist",
+          "optarg",
+          "stdin",
+          "optind",
+          "optopt"
+        ],
+        "requires_syntax": []
+      },
+      {
+        "content": "return 0;",
+        "canonical": "return 0;",
+        "kind": "ReturnStmt",
+        "location": "samples/mock_vp.c@39:4::39:13",
+        "reads": [],
+        "writes": [],
+        "visible": [
+          "items",
+          "stderr",
+          "sys_nerr",
+          "opterr",
+          "__environ",
+          "stdout",
+          "sys_errlist",
+          "optarg",
+          "stdin",
+          "optind",
+          "optopt"
+        ],
+        "decls": [],
+        "live_before": [
+          "items",
+          "stderr",
+          "sys_nerr",
+          "opterr",
+          "__environ",
+          "stdout",
+          "sys_errlist",
+          "optarg",
+          "stdin",
+          "optind",
+          "optopt"
+        ],
+        "live_after": [
+          "items",
+          "stderr",
+          "sys_nerr",
+          "opterr",
+          "__environ",
+          "stdout",
+          "sys_errlist",
+          "optarg",
+          "stdin",
+          "optind",
+          "optopt"
+        ],
+        "requires_syntax": []
+      }
+    ]
+  }
+}
