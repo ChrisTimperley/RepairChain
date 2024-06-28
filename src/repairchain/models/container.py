@@ -42,6 +42,7 @@ class ProjectContainer:
         """
         with project.docker_daemon.provision(
             image=project.image,
+            command="/bin/sh",
         ) as dockerblade_container:
             shell = dockerblade_container.shell()
             container = cls(
