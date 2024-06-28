@@ -23,7 +23,7 @@ def split(c, n):
 
 
 def test(patch : set) -> PatchOutcome:
-    if (3 in patch or 0 in patch): 
+    if (3 in patch and 0 in patch): 
         return PatchOutcome.FAILED
     return PatchOutcome.PASSED
 
@@ -39,44 +39,23 @@ def minimize_diff(
     # - do delta debugging on a bitvector
     # - transform bitvector into a Diff using Diff.from_file_hunks
     hunks = list(triggering_diff.file_hunks)
-
     c_fail = set(range(0,len(hunks)))
-    c_pass = set([])
-    granularity = 2
-    offset = 0 
 
     assert test(c_fail) == PatchOutcome.FAILED 
 
+    granularity = 2
     # Main loop
-    while True:
-        delta = c_fail - c_pass
-        if len(delta) < granularity:
-            return c_fail
-        deltas = split(list(delta), granularity)
-
-        reduction_found = False
-        j = 0
-
-        while j < granularity:
-            i = (j + offset) % granularity
-            next_c_pass = c_pass | deltas[i]
-            next_c_fail = c_fail - deltas[i]
-
-            if granularity == 2 and test(next_c_pass) == PatchOutcome.FAILED:
-                c_fail = next_c_pass
-                offset = i  # was offset = 0 in original dd()
-                reduction_found = True
-                break
-            elif test(next_c_fail) == PatchOutcome.FAILED:
-                c_fail = next_c_fail
+    while granularity >= 1:
+        subsets = split(list(c_fail), granularity) # split into granularity pieces
+        reduced = False
+        for subset in subsets:
+            complement = c_fail - set(subset) # drop the subset we're testing 
+            if test(complement) == PatchOutcome.FAILED:
+                c_fail = complement # we can throw away the subset we tested
                 granularity = max(granularity - 1, 2)
-                offset = i
-                reduction_found = True
-                break
-            else:
-                j += 1  # choose next subset
-
-        if not reduction_found:
-            if granularity >= len(delta):
+                reduced = True
+        if not reduced:
+            if granularity >= len(c_fail): 
                 return c_fail
-            granularity = min(granularity * 2, len(delta))
+            granularity = min(granularity * 2, len(c_fail))
+    return c_fail
