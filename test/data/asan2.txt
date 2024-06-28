@@ -1,0 +1,24 @@
+Running: /work/tmp_blob
+../samples/mock_vp.c:26:13: runtime error: index 501 out of bounds for type 'char[3][10]'
+SUMMARY: UndefinedBehaviorSanitizer: undefined-behavior ../samples/mock_vp.c:26:13 in 
+AddressSanitizer:DEADLYSIGNAL
+=================================================================
+==14==ERROR: AddressSanitizer: SEGV on unknown address 0x55b7a5d5fd32 (pc 0x55b7a534c4c0 bp 0x7ffc01ba1910 sp 0x7ffc01ba1098 T0)
+==14==The signal is caused by a READ memory access.
+    #0 0x55b7a534c4c0 in __sanitizer::internal_strlen(char const*) /src/llvm-project/compiler-rt/lib/sanitizer_common/sanitizer_libc.cpp:176:10
+    #1 0x55b7a52bd8b1 in printf_common(void*, char const*, __va_list_tag*) /src/llvm-project/compiler-rt/lib/asan/../sanitizer_common/sanitizer_common_interceptors_format.inc:561:17
+    #2 0x55b7a52bf4da in vprintf /src/llvm-project/compiler-rt/lib/asan/../sanitizer_common/sanitizer_common_interceptors.inc:1641:1
+    #3 0x55b7a52bf4da in printf /src/llvm-project/compiler-rt/lib/asan/../sanitizer_common/sanitizer_common_interceptors.inc:1699:1
+    #4 0x55b7a537213d in func_b (/out/filein_harness+0x1a713d)
+    #5 0x55b7a5372776 in LLVMFuzzerTestOneInput (/out/filein_harness+0x1a7776)
+    #6 0x55b7a5226490 in fuzzer::Fuzzer::ExecuteCallback(unsigned char const*, unsigned long) /src/llvm-project/compiler-rt/lib/fuzzer/FuzzerLoop.cpp:614:13
+    #7 0x55b7a5210c24 in fuzzer::RunOneTest(fuzzer::Fuzzer*, char const*, unsigned long) /src/llvm-project/compiler-rt/lib/fuzzer/FuzzerDriver.cpp:327:6
+    #8 0x55b7a52166ba in fuzzer::FuzzerDriver(int*, char***, int (*)(unsigned char const*, unsigned long)) /src/llvm-project/compiler-rt/lib/fuzzer/FuzzerDriver.cpp:862:9
+    #9 0x55b7a5242ab2 in main /src/llvm-project/compiler-rt/lib/fuzzer/FuzzerMain.cpp:20:10
+    #10 0x7fd5b0fd9082 in __libc_start_main (/lib/x86_64-linux-gnu/libc.so.6+0x24082) (BuildId: 0702430aef5fa3dda43986563e9ffcc47efbd75e)
+    #11 0x55b7a52076fd in _start (/out/filein_harness+0x3c6fd)
+
+AddressSanitizer can not provide additional info.
+SUMMARY: AddressSanitizer: SEGV /src/llvm-project/compiler-rt/lib/sanitizer_common/sanitizer_libc.cpp:176:10 in __sanitizer::internal_strlen(char const*)
+==14==ABORTING
+libfuzzer exit=1
