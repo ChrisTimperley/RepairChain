@@ -4,6 +4,8 @@ __all__ = ("validate", "validate_patch")
 
 import typing as t
 
+from loguru import logger
+
 from repairchain.errors import BuildFailure
 from repairchain.models.patch_outcome import PatchOutcome
 
@@ -54,6 +56,7 @@ def validate(
             diff=candidate,
             commit=commit,
         )
+        logger.info(f"patch outcome: {outcome}")
         if outcome == PatchOutcome.PASSED:
             repairs.append(candidate)
             if stop_early:

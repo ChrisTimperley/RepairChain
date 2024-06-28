@@ -36,8 +36,9 @@ class Project:
     build_command: str
     clean_command: str
     regression_test_command: str
-    crash_command: str
+    crash_command_template: str
     sanitizer_report: SanitizerReport
+    pov_payload: bytes
 
     @classmethod
     @contextlib.contextmanager
@@ -62,11 +63,13 @@ class Project:
 
         triggering_commit_sha = dict_["triggering-commit"]
 
+        pov_payload_path = Path(dict_["pov-payload-filename"])
+
         commands_dict = dict_["commands"]
         assert isinstance(commands_dict, dict)
 
         regression_test_command = commands_dict["regression-test"]
-        crash_command = commands_dict["crash"]
+        crash_command_template = commands_dict["crash-template"]
         build_command = commands_dict["build"]
         clean_command = commands_dict["clean"]
 
@@ -74,7 +77,7 @@ class Project:
 
         with cls.build(
             build_command=build_command,
-            crash_command=crash_command,
+            crash_command_template=crash_command_template,
             clean_command=clean_command,
             image=image,
             kind=kind,
@@ -83,6 +86,7 @@ class Project:
             docker_repository_path=docker_repository_path,
             sanitizer_report_path=sanitizer_report_path,
             triggering_commit_sha=triggering_commit_sha,
+            pov_payload_path=pov_payload_path,
         ) as project:
             yield project
 
@@ -99,16 +103,21 @@ class Project:
         build_command: str,
         clean_command: str,
         regression_test_command: str,
-        crash_command: str,
+        crash_command_template: str,
         sanitizer_report_path: Path,
+        pov_payload_path: Path,
         docker_url: str | None = None,
     ) -> t.Iterator[t.Self]:
         assert local_repository_path.is_dir()
         assert docker_repository_path.is_absolute()
         assert sanitizer_report_path.is_file()
+        assert pov_payload_path.is_file()
+        assert "__PAYLOAD_FILE__" in crash_command_template
 
         if docker_url is None:
             docker_url = os.environ.get("DOCKER_HOST")
+
+        pov_payload = pov_payload_path.read_bytes()
 
         project_kind = ProjectKind(kind)
         repository = git.Repo(local_repository_path)
@@ -120,7 +129,7 @@ class Project:
             project = cls(
                 docker_daemon=docker_daemon,
                 build_command=build_command,
-                crash_command=crash_command,
+                crash_command_template=crash_command_template,
                 clean_command=clean_command,
                 docker_repository_path=docker_repository_path,
                 head=head,
@@ -130,6 +139,7 @@ class Project:
                 repository=repository,
                 sanitizer_report=sanitizer_report,
                 triggering_commit=commit,
+                pov_payload=pov_payload,
             )
             yield project
 

@@ -12,6 +12,6 @@
     "build": "LOCAL_USER=$(id -u) /usr/local/sbin/container_scripts/cmd_harness.sh build",
     "clean": "git clean -xdf",
     "regression-test": "/usr/local/sbin/container_scripts/cp_tests",
-    "crash": "/usr/local/sbin/container_scripts/cp_pov /work/repair/blobs/sample_solve.bin filein_harness"
+    "crash-template": "/usr/local/sbin/container_scripts/cp_pov __PAYLOAD_FILE__ filein_harness"
   }
 }

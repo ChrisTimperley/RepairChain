@@ -12,6 +12,14 @@ make install
 
 After running the above, you will need to create a file `.openapi.key` at the root of the repository, which should contain your OpenAPI access key.
 
+## Examples
+
+To run an end-to-end example of RepairChain, run the following:
+
+```shell
+poetry run examples/mock-cp/repair.sh
+```
+
 ## Usage
 
 RepairChain exposes a simple command-line interface with a single verb, `repair`, which accepts the path to a configuration file as its sole positional argument, along with a mandatory option `--save-to-dir`, which specifies the absolute path of the directory to which acceptable patches should be written as unified diffs.
@@ -47,10 +55,9 @@ Below is an example of a JSON input file that is provided to RepairChain as inpu
     "build": "LOCAL_USER=$(id -u) /usr/local/sbin/container_scripts/cmd_harness.sh build",
     "clean": "git clean -xdf",
     "regression-test": "/usr/local/sbin/container_scripts/cp_tests",
-    "crash": "/usr/local/sbin/container_scripts/cp_pov /work/repair/blobs/sample_solve.bin filein_harness"
+    "crash-template": "/usr/local/sbin/container_scripts/cp_pov __PAYLOAD_FILE__ filein_harness"
   }
 }
-
 ```
 
 ## Output Format

@@ -126,3 +126,35 @@ class ProjectContainer:
         except dockerblade.exceptions.CalledProcessError:
             return False
         return True
+
+    def run_pov(self, payload: bytes | None = None) -> bool:
+        """Runs the PoV and checks if no sanitizers are encountered.
+
+        Arguments:
+        ---------
+        payload: bytes | None
+            The payload to use for the PoV.
+            If :code:`None` is given, the provided PoV for the project is used instead.
+
+        Returns:
+        -------
+        bool
+            :code:`True` if no sanitizers are encountered, :code:`False` otherwise.
+        """
+        if payload is None:
+            payload = self.project.pov_payload
+
+        container_payload_filename = self._filesystem.mktemp(suffix=".payload")
+        self._filesystem.put(container_payload_filename, payload)
+
+        crash_command_template = self.project.crash_command_template
+        crash_command = crash_command_template.replace(
+            "__PAYLOAD_FILE__",
+            container_payload_filename,
+        )
+
+        try:
+            self._shell.check_call(crash_command)
+        except dockerblade.exceptions.CalledProcessError:
+            return False
+        return True
