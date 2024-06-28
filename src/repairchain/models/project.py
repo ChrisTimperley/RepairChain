@@ -103,6 +103,9 @@ class Project:
         sanitizer_report_path: Path,
         docker_url: str | None = None,
     ) -> t.Iterator[t.Self]:
+        assert local_repository_path.is_dir()
+        assert docker_repository_path.is_absolute()
+
         if docker_url is None:
             docker_url = os.environ.get("DOCKER_HOST")
 
@@ -133,6 +136,7 @@ class Project:
     def local_repository_path(self) -> Path:
         return Path(self.repository.working_dir)
 
+    @contextlib.contextmanager
     def provision(
         self,
         *,
