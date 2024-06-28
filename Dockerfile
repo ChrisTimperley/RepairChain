@@ -57,8 +57,6 @@ RUN make install \
  && mkdir -p "${INSTALL_TO}/bin" \
  && mv ./dist/repairchain "${INSTALL_TO}/bin"
 
-# TODO copy Kaskara portable installation into image due to restrictions of the competition
-
 FROM ${BASE_IMAGE} as runtime
 ARG DEBIAN_FRONTEND=noninteractive
 ENV LANG C.UTF-8
