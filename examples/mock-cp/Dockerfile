@@ -20,3 +20,6 @@ RUN cd /src \
 # later on, we will either need to bake the payload into the image or use
 # volume mounting (via /work)
 COPY ./mock-cp-src/exemplar_only/cpv_1/blobs/sample_solve.bin /work/repair/blobs/sample_solve.bin
+
+# we also need to bake kaskara-clang into the image
+COPY --from=christimperley/kaskara:cpp /opt/kaskara /opt/kaskara
