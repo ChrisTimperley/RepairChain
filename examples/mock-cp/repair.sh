@@ -6,10 +6,10 @@ pushd "${HERE_DIR}" &> /dev/null
 
 EXAMPLES_DIR="${HERE_DIR}/.."
 PROJECT_DIR="${EXAMPLES_DIR}/.."
-OPENAPI_KEY_FILE="${PROJECT_DIR}/.openapi.key"
+OPENAI_KEY_FILE="${PROJECT_DIR}/.openapi.key"
 LITELLM_CONFIG_FILE="${PROJECT_DIR}/litellm.local.yml"
 
-export OPENAPI_API_KEY="$(cat "${OPENAPI_KEY_FILE}")"
+export OPENAI_API_KEY="$(cat "${OPENAI_KEY_FILE}")"
 
 cleanup() {
   kill -9 ${LITELLM_PID}
@@ -21,7 +21,7 @@ if ! command -v litellm &> /dev/null; then
 fi
 
 # launch LiteLLM server here
-litellm -c local_litellm_config.yaml &
+poetry run litellm -c $LITELLM_CONFIG_FILE &
 LITELLM_PID=$!
 trap cleanup SIGINT SIGTERM EXIT
 
