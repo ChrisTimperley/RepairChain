@@ -15,7 +15,7 @@ class RepairChainError(abc.ABC, Exception):
 class BuildFailure(RepairChainError):
     """Indicates that a build failed."""
     message: str
-    exit_code: int
+    returncode: int
 
     def __str__(self) -> str:
-        return f"build failed with exit code {self.exit_code}: {self.message}"
+        return f"build failed with retcode {self.returncode}: {self.message}"
