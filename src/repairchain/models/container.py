@@ -57,6 +57,10 @@ class ProjectContainer:
                 container.build()
             yield container
 
+    @property
+    def id_(self) -> str:
+        return self._dockerblade.id
+
     def clean(self) -> None:
         """Runs the equivalent of `make clean` inside the container."""
         project = self.project
