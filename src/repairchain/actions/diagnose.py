@@ -22,8 +22,9 @@ def diagnose(project: Project) -> Diagnosis:
     logger.info(f"determined bug type: {bug_type}")
 
     triggering_commit = project.triggering_commit
-    implicated_diff = commit_to_diff(triggering_commit)
+    # FIXME: need to minimize diff first
 
+    implicated_diff = commit_to_diff(triggering_commit)
     crash_version_implicated_files = implicated_diff.files
     logger.info(
         f"implicated files in crash version ({len(crash_version_implicated_files)})"
