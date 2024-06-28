@@ -22,6 +22,7 @@ repairchain = 'repairchain.cli:cli'
 
 [tool.poetry.dependencies]
 python = ">=3.11,<3.13"
+dockerblade = { git = "https://github.com/ChrisTimperley/Dockerblade.git", rev = "a7552bc3005f2fd9d55eea326a4f6be91e4d2b40" }
 kaskara = { git = "https://github.com/ChrisTimperley/Kaskara.git", rev = "c93830d3a50293a80c223f24579caebeb1d2fd8c" }
 sourcelocation = { git = "https://github.com/ChrisTimperley/sourcelocation.py.git", rev = "4a5cf8a6cbad9c62888a5b00ddc3d2f8fc4ee1c8" }
 pydantic = "^2.7.3"

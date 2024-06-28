@@ -263,19 +263,23 @@ name = "dockerblade"
 version = "0.6.2"
 description = "Interact with Docker containers via Python-like APIs"
 optional = false
-python-versions = "<4,>=3.11"
-files = [
-    {file = "dockerblade-0.6.2-py3-none-any.whl", hash = "sha256:c572a40335ad18030277089199ec4e5fb132eec467f35ceb649889d14ed907ea"},
-    {file = "dockerblade-0.6.2.tar.gz", hash = "sha256:8f1a67ece283ffb096503c5ede5960eb5ee1962a70145a9932b80beaa7d6194e"},
-]
+python-versions = ">=3.11,<4"
+files = []
+develop = false
 
 [package.dependencies]
 attrs = ">=19.2.0"
-docker = ">=7.0,<8.0"
+docker = "^7.0"
 loguru = ">=0.5"
-mslex = ">=1.2,<2.0"
-psutil = ">=5.7,<6.0"
+mslex = "^1.2"
+psutil = "^5.7"
 requests = "2.31.0"
+
+[package.source]
+type = "git"
+url = "https://github.com/ChrisTimperley/Dockerblade.git"
+reference = "a7552bc3005f2fd9d55eea326a4f6be91e4d2b40"
+resolved_reference = "a7552bc3005f2fd9d55eea326a4f6be91e4d2b40"
 
 [[package]]
 name = "gitdb"
@@ -531,13 +535,13 @@ files = [
 
 [[package]]
 name = "openai"
-version = "1.35.6"
+version = "1.35.7"
 description = "The official Python library for the openai API"
 optional = false
 python-versions = ">=3.7.1"
 files = [
-    {file = "openai-1.35.6-py3-none-any.whl", hash = "sha256:c2bfa599445a2d6010adc7954476c2dc64e1aa8dad02ef29e0f31b9a887c1d02"},
-    {file = "openai-1.35.6.tar.gz", hash = "sha256:c5958617048a2d777d2b96050fd69ae6721bdffbf59967698694223cc092abd9"},
+    {file = "openai-1.35.7-py3-none-any.whl", hash = "sha256:3d1e0b0aac9b0db69a972d36dc7efa7563f8e8d65550b27a48f2a0c2ec207e80"},
+    {file = "openai-1.35.7.tar.gz", hash = "sha256:009bfa1504c9c7ef64d87be55936d142325656bbc6d98c68b669d6472e4beb09"},
 ]
 
 [package.dependencies]
@@ -1017,4 +1021,4 @@ dev = ["black (>=19.3b0)", "pytest (>=4.6.2)"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.11,<3.13"
-content-hash = "4a5669316cafaedfd654bd7ee48c352ad3125c33fa0c1eabe4ceeac6212fef14"
+content-hash = "bab5678190814f712af93572e696d276ac79cb9dba26500affa161515b73d8c1"
