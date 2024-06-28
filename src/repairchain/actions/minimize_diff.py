@@ -2,6 +2,9 @@ from __future__ import annotations
 
 import typing as t
 
+from sourcelocation import FileHunk
+
+from repairchain.actions.validate import validate
 from repairchain.models.patch_outcome import PatchOutcome
 from repairchain.models.project import Project
 
@@ -13,9 +16,18 @@ if t.TYPE_CHECKING:
 class DiffMinimizer:
 
     triggering_diff: Diff
+    hunks: list[FileHunk]
+    project: Project
 
-    def __init__(self, triggering_diff: Diff) -> DiffMinimizer.t:
+    dumb_test: bool = False
+
+    def __init__(self, project: Project, triggering_diff: Diff) -> DiffMinimizer.t:
         self.triggering_diff = triggering_diff
+        self.project = project
+        self.hunks = list(self.triggering_diff.file_hunks)
+
+    def do_dumb_test(self) -> None:
+        self.dumb_test = True
 
     @staticmethod
     def split(c: frozenset[int], n: int) -> list[list[int]]:
@@ -28,11 +40,19 @@ class DiffMinimizer:
             start += len(subset)
         return subsets
 
-    # this is just for testing; need to connect to actual validation.
-    def _test(self, patch: set) -> PatchOutcome:
-        if (3 in patch and 0 in patch):  # noqa: PLR2004
-            return PatchOutcome.FAILED
-        return PatchOutcome.PASSED
+    def _patch_to_real_diff(self, patch: frozenset[int]) -> Diff:
+        filehunks = [self.hunks[index] for index in patch]
+        return Diff.from_file_hunks(filehunks)
+
+    def _test(self, patch: frozenset[int]) -> PatchOutcome:
+        if self.dumb_test:  # clg apologizes
+            if (3 in patch and 0 in patch):  # noqa: PLR2004
+                return PatchOutcome.FAILED
+            return PatchOutcome.PASSED
+
+        asdiff = self._patch_to_real_diff(patch)
+        validated = validate(self.project, [asdiff], stop_early=True)
+        return len(validated) > 0
 
     def _test_with_cache(self, cache: dict[list[int], PatchOutcome], subset: list[int]) -> PatchOutcome:
         if subset in cache:
@@ -42,7 +62,6 @@ class DiffMinimizer:
         return outcome
 
     def minimize_diff(self) -> Diff:
-
         test_cache = {}
         hunks = list(self.triggering_diff.file_hunks)
         c_fail = frozenset(range(len(hunks)))
