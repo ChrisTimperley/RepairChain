@@ -6,11 +6,11 @@ from repairchain.actions.commit_to_diff import commit_to_diff
 
 # from repairchain.actions.minimize_diff import MinimizeForSuccess, SimpleTestDiffMinimizerSuccess
 from repairchain.actions.minimize_diff import SimpleTestDiffMinimizerSuccess
+from repairchain.models.diff import Diff
 from repairchain.strategies.generation.base import PatchGenerationStrategy
 
 if t.TYPE_CHECKING:
     from repairchain.models.diagnosis import Diagnosis
-    from repairchain.models.diff import Diff
 
 
 class CommitDD(PatchGenerationStrategy):
@@ -24,9 +24,9 @@ class CommitDD(PatchGenerationStrategy):
         commit = project.triggering_commit
         repo = project.repository
 
-        sha = commit.binsha
-        reverse_diff = project.repository.git.diff(sha, sha + "^", R=True)
-
+        sha = commit.hexsha
+        reverse_diff_str = project.repository.git.diff(sha, sha + "^", R=True, unified=True)
+        reverse_diff = Diff.from_unidiff(reverse_diff_str)
         # FIXME: this is for testing
         # minimizer = MinimizeForSuccess(project, reverse_diff)
         minimizer = SimpleTestDiffMinimizerSuccess(project, reverse_diff)
@@ -38,7 +38,7 @@ class CommitDD(PatchGenerationStrategy):
         primary_branch = project.repository.active_branch.name
 
         # branch from the broken commit...
-        commit_sha = project.triggering_commit.binsha  # Replace with the actual commit SHA
+        commit_sha = project.triggering_commit.hexsha  # Replace with the actual commit SHA
         new_branch_name = "branch-" + str(commit_sha)  # Replace with your desired new branch name
 
         repo.git.branch(new_branch_name, project.triggering_commit)
