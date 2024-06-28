@@ -1,7 +1,7 @@
 from __future__ import annotations
-from abc import ABC, abstractmethod
 
 import typing as t
+from abc import ABC, abstractmethod
 
 from repairchain.actions.validate import validate
 from repairchain.models.diff import Diff
@@ -77,7 +77,7 @@ class DiffMinimizer(ABC):
         return c_fail
 
 
-class SimpleTestDiffMinimizer(DiffMinimizer):
+class SimpleTestDiffMinimizerFail(DiffMinimizer):
 
     def test(self, patch: frozenset[int]) -> PatchOutcome:
         if (3 in patch and 0 in patch):  # noqa: PLR2004
@@ -85,7 +85,15 @@ class SimpleTestDiffMinimizer(DiffMinimizer):
         return PatchOutcome.PASSED
 
 
-class TestForFailure(DiffMinimizer):
+class SimpleTestDiffMinimizerSuccess(DiffMinimizer):
+
+    def test(self, patch: frozenset[int]) -> PatchOutcome:
+        if (3 in patch and 0 in patch):  # noqa: PLR2004
+            return PatchOutcome.FAILED
+        return PatchOutcome.PASSED
+
+
+class MinimizeForFailure(DiffMinimizer):
 
     def test(self, patch: frozenset[int]) -> PatchOutcome:
         asdiff = self._patch_to_real_diff(patch)
@@ -93,7 +101,7 @@ class TestForFailure(DiffMinimizer):
         return len(validated) > 0
 
 
-class TestForSuccess(DiffMinimizer):
+class MinimizeForSuccess(DiffMinimizer):
 
     def test(self, patch: frozenset[int]) -> PatchOutcome:
         asdiff = self._patch_to_real_diff(patch)

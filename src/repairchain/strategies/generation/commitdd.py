@@ -2,11 +2,10 @@ from __future__ import annotations
 
 import typing as t
 
-from sourcelocation import FileHunk
-from sourcelocation.diff import ContextLine, DeletedLine, HunkLine, InsertedLine
+from repairchain.actions.commit_to_diff import commit_to_diff
 
-from repairchain.actions.commit_to_diff import commit_to_diff, commit_to_files
-from repairchain.actions.minimize_diff import DiffMinimizer, MinimizeForSuccess
+# from repairchain.actions.minimize_diff import MinimizeForSuccess, SimpleTestDiffMinimizerSuccess
+from repairchain.actions.minimize_diff import SimpleTestDiffMinimizerSuccess
 from repairchain.strategies.generation.base import PatchGenerationStrategy
 
 if t.TYPE_CHECKING:
@@ -28,7 +27,9 @@ class CommitDD(PatchGenerationStrategy):
         sha = commit.binsha
         reverse_diff = project.repository.git.diff(sha, sha + "^", R=True)
 
-        minimizer = MinimizeForSuccess(project, reverse_diff)
+        # FIXME: this is for testing
+        # minimizer = MinimizeForSuccess(project, reverse_diff)
+        minimizer = SimpleTestDiffMinimizerSuccess(project, reverse_diff)
         minimized = minimizer.minimize_diff(reverse_diff)
 
         # OK the problem is, we have the slice of the undone commit we need, now we need it to apply
@@ -38,7 +39,7 @@ class CommitDD(PatchGenerationStrategy):
 
         # branch from the broken commit...
         commit_sha = project.triggering_commit.binsha  # Replace with the actual commit SHA
-        new_branch_name = "branch-" + str(commit_sha) # Replace with your desired new branch name
+        new_branch_name = "branch-" + str(commit_sha)  # Replace with your desired new branch name
 
         repo.git.branch(new_branch_name, project.triggering_commit)
         repo.git.checkout(new_branch_name)
@@ -52,7 +53,7 @@ class CommitDD(PatchGenerationStrategy):
         repo.git.rebase(primary_branch)
 
         # sure hope that worked
-        # FIXME: error handling
+        # FIXME: add error handling
 
         # now, get the head commit, which should undo the badness, turn that into a diff
         undoing_diff = commit_to_diff(project.repository.active_branch.commit)
