@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import typing as t
 
+import git
+
 from repairchain.actions.commit_to_diff import commit_to_diff
 
 # from repairchain.actions.minimize_diff import MinimizeForSuccess, SimpleTestDiffMinimizerSuccess
@@ -19,6 +21,11 @@ class CommitDD(PatchGenerationStrategy):
     def build(self, diagnosis: Diagnosis) -> t.Self:
         self.diagnosis = diagnosis
 
+    def _cleanup_branch(self, repo: git.Repo, primary_branch: str, branch_name: str) -> None:
+        assert branch_name in repo.branches
+        repo.git.checkout(primary_branch)
+        repo.git.branch("-D", branch_name)
+
     def run(self) -> list[Diff]:
         project = self.diagnosis.project
         commit = project.triggering_commit
@@ -30,7 +37,7 @@ class CommitDD(PatchGenerationStrategy):
         # FIXME: this is for testing
         # minimizer = MinimizeForSuccess(project, reverse_diff)
         minimizer = SimpleTestDiffMinimizerSuccess(project, reverse_diff)
-        minimized = minimizer.minimize_diff(reverse_diff)
+        minimized = minimizer.minimize_diff()
 
         # OK the problem is, we have the slice of the undone commit we need, now we need it to apply
         # to the program at the current commit
@@ -39,7 +46,9 @@ class CommitDD(PatchGenerationStrategy):
 
         # branch from the broken commit...
         commit_sha = project.triggering_commit.hexsha  # Replace with the actual commit SHA
-        new_branch_name = "branch-" + str(commit_sha)  # Replace with your desired new branch name
+        new_branch_name = "branch-" + str(commit_sha[:8])  # Replace with your desired new branch name
+        if new_branch_name in repo.branches:
+            self._cleanup_branch(repo, primary_branch, new_branch_name)
 
         repo.git.branch(new_branch_name, project.triggering_commit)
         repo.git.checkout(new_branch_name)
@@ -57,8 +66,5 @@ class CommitDD(PatchGenerationStrategy):
 
         # now, get the head commit, which should undo the badness, turn that into a diff
         undoing_diff = commit_to_diff(project.repository.active_branch.commit)
-        repo.git.checkout(primary_branch)
-
-        #  close the branch I made, for tidiness
-        repo.git.branch("-D", new_branch_name)
+        self._cleanup_branch(repo, primary_branch, new_branch_name)
         return undoing_diff
