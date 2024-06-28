@@ -24,9 +24,15 @@ def diagnose(project: Project) -> Diagnosis:
     triggering_commit = project.triggering_commit
     implicated_diff = commit_to_diff(triggering_commit)
 
+    crash_version_implicated_files = implicated_diff.files
+    logger.info(
+        f"implicated files ({len(crash_version_implicated_files)})"
+        f": {', '.join(crash_version_implicated_files)}"
+    )
     crash_version_function_index = index_functions(
         project=project,
         version=project.triggering_commit,
+        restrict_to_files=crash_version_implicated_files,
     )
     crash_version_implicated_functions = diff_to_functions(
         implicated_diff,
