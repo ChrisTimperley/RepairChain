@@ -40,6 +40,7 @@ pytest = "^7.4.3"
 python = "^3.11"
 ruff = ">=0.4.4"
 pyinstaller = "^6.8.0"
+litellm = {extras = ["proxy"], version = "^1.40.29"}
 
 [tool.mypy]
 ignore_missing_imports = false
