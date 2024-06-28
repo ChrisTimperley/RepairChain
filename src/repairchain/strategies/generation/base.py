@@ -11,8 +11,8 @@ if t.TYPE_CHECKING:
 
 
 class PatchGenerationStrategy(abc.ABC):
-    @abc.abstractmethod
     @classmethod
+    @abc.abstractmethod
     def build(cls, diagnosis: Diagnosis) -> t.Self:
         raise NotImplementedError
 
