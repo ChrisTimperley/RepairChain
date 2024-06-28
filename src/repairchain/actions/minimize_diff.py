@@ -21,7 +21,7 @@ def split(c, n):
         start = start + len(subset)
     return subsets
 
-
+# this is just for testing; need to connect to actual validation.
 def test(patch : set) -> PatchOutcome:
     if (3 in patch and 0 in patch): 
         return PatchOutcome.FAILED
