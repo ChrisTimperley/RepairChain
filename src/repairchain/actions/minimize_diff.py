@@ -44,6 +44,10 @@ class DiffMinimizer(ABC):
     def test(self, patch: frozenset[int]) -> PatchOutcome:
         pass
 
+    def min_to_patch(self, patch: frozenset[int]):  # noqa: ANN201
+        return [self.hunks[i] for i in patch]
+        # FIXME: think about whether I can annotate that type
+
     def _test_with_cache(self, cache: dict[list[int], PatchOutcome], subset: list[int]) -> PatchOutcome:
         if subset in cache:
             return cache[subset]
@@ -53,14 +57,14 @@ class DiffMinimizer(ABC):
 
     def minimize_diff(self) -> Diff:
         test_cache = {}
-        hunks = list(self.triggering_diff.file_hunks)
-        c_fail = frozenset(range(len(hunks)))
+        c_fail = frozenset(range(len(self.hunks)))
 
-        assert self._test_with_cache(test_cache, c_fail) == PatchOutcome.FAILED
+#  FIXME: check, not sure this makes sense with alternative strategies
+#        assert self._test_with_cache(test_cache, c_fail) == PatchOutcome.FAILED
 
         granularity = 2
 
-    # Main loop
+        # Main loop
         while granularity >= 1:
             subsets = DiffMinimizer.split(list(c_fail), granularity)
             reduced = False
@@ -74,10 +78,13 @@ class DiffMinimizer(ABC):
             if not reduced and granularity >= len(c_fail):
                 return c_fail
             granularity = min(granularity * 2, len(c_fail))
-        return c_fail
+        return self.min_to_patch(c_fail)
 
 
 class SimpleTestDiffMinimizerFail(DiffMinimizer):
+
+    def min_to_patch(self, c_fail: frozenset[int]) -> frozenset[int]:
+        return c_fail
 
     def test(self, patch: frozenset[int]) -> PatchOutcome:
         if (3 in patch and 0 in patch):  # noqa: PLR2004
@@ -86,7 +93,9 @@ class SimpleTestDiffMinimizerFail(DiffMinimizer):
 
 
 class SimpleTestDiffMinimizerSuccess(DiffMinimizer):
-
+    def min_to_patch(self, c_fail: frozenset[int]) -> frozenset[int]:
+        return c_fail
+    
     def test(self, patch: frozenset[int]) -> PatchOutcome:
         if (3 in patch and 0 in patch):  # noqa: PLR2004
             return PatchOutcome.FAILED
