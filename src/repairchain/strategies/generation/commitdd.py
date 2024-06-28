@@ -1,8 +1,9 @@
 from __future__ import annotations
 
-import abc
 import typing as t
 
+from repairchain.actions.commit_to_diff import commit_to_diff
+from repairchain.actions.minimize_diff import DiffMinimizer
 from repairchain.strategies.generation.base import PatchGenerationStrategy
 
 if t.TYPE_CHECKING:
@@ -11,9 +12,13 @@ if t.TYPE_CHECKING:
 
 
 class CommitDD(PatchGenerationStrategy):
-    def build(self, diagnosis: Diagnosis) -> t.Self:
-        raise NotImplementedError
+    diagnosis: Diagnosis
 
-    @abc.abstractmethod
+    def build(self, diagnosis: Diagnosis) -> t.Self:
+        self.diagnosis = diagnosis
+
     def run(self) -> list[Diff]:
-        raise NotImplementedError
+        minimizer = DiffMinimizer(
+            self.diagnosis.project,
+            commit_to_diff(self.diagnosis.project.triggering_commit))
+        # OK the problem is, we have the slice of the undone commit we need 
