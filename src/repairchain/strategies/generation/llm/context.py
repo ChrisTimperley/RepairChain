@@ -55,5 +55,5 @@ def create_context_all_files_git_diff(files: dict[str, str], diff: Diff, functio
     return CONTEXT_TEMPLATE.format(
         code_context=code_context,
         diff=diff,
-        function_names=function_names,
+        code_functions=function_names,
     )
