@@ -26,7 +26,7 @@ def diagnose(project: Project) -> Diagnosis:
 
     crash_version_implicated_files = implicated_diff.files
     logger.info(
-        f"implicated files ({len(crash_version_implicated_files)})"
+        f"implicated files in crash version ({len(crash_version_implicated_files)})"
         f": {', '.join(crash_version_implicated_files)}",
     )
     crash_version_function_index = index_functions(
@@ -39,7 +39,7 @@ def diagnose(project: Project) -> Diagnosis:
         crash_version_function_index,
     )
     logger.info(
-        f"implicated functions ({len(crash_version_implicated_functions)})"
+        f"implicated functions in crash version ({len(crash_version_implicated_functions)})"
         f": {', '.join(function.name for function in crash_version_implicated_functions)}",
     )
 
@@ -52,12 +52,12 @@ def diagnose(project: Project) -> Diagnosis:
         restrict_to_files=current_version_implicated_files,
     )
     current_version_implicated_functions = map_functions(
-        project=project,
         functions=crash_version_implicated_functions,
-        from_version=project.triggering_commit,
-        to_version=project.head,
-        old_function_index=crash_version_function_index,
         new_function_index=current_version_function_index,
+    )
+    logger.info(
+        f"implicated functions in current version ({len(current_version_implicated_functions)})"
+        f": {', '.join(function.name for function in current_version_implicated_functions)}",
     )
 
     return Diagnosis(
