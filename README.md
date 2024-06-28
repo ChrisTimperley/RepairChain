@@ -25,17 +25,22 @@ Below is an example of a JSON input file that is provided to RepairChain as inpu
 ```json
 {
   "project-kind": "c",
-  "image": "foo/bar",
-  "repository-path": "/some/absolute/path",
-  "triggering-commit": "636b62f",
-  "sanitizer-report-filename": "/work/asan.txt",
+  "image": "repairchain/mock-cp",
+  "repository-path": {
+    "local": "./mock-cp-src/src/samples",
+    "docker": "/src/samples"
+  },
+  "triggering-commit": "11dafa9a5babc127357d710ee090eb4c0c05154f",
+  "sanitizer-report-filename": "./sanitizer.txt",
   "pov-payload-filename": "./mock-cp-src/exemplar_only/cpv_1/blobs/sample_solve.bin",
   "commands": {
     "build": "LOCAL_USER=$(id -u) /usr/local/sbin/container_scripts/cmd_harness.sh build",
+    "clean": "git clean -xdf",
     "regression-test": "/usr/local/sbin/container_scripts/cp_tests",
-    "crash": "/usr/local/sbin/container_scripts/cp_pov /some_blob /some-binary"
+    "crash": "/usr/local/sbin/container_scripts/cp_pov /work/repair/blobs/sample_solve.bin filein_harness"
   }
 }
+
 ```
 
 ## Output Format
