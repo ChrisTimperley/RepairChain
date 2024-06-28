@@ -7,6 +7,6 @@ def test_minimize_diff_simple() -> None:
     repository = git.Repo("/home/clegoues/aixcc/challenge-001-exemplar/src")
     commit = repository.commit("426d4a428a9c6aa89f366d1867fae55b4ebd6b7f")
     minimal = minimize_diff(repository,commit)
-    assert len(minimal) == 2
+    assert len(minimal) == 2  # noqa: PLR2004
     assert 0 in minimal
     assert 3 in minimal

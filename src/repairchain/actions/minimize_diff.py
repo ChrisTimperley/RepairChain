@@ -11,13 +11,13 @@ if t.TYPE_CHECKING:
     from repairchain.models.diff import Diff
 
 
-def split(c: set[int], n: int) -> list[list[int]]:
+def split(c: frozenset[int], n: int) -> list[list[int]]:
     subsets = []
     start = 0
     for i in range(n):
         subset = c[start:start + (len(c) - start) // (n - i)]
         if len(subset) > 0:
-            subsets.append(set(subset))
+            subsets.append(frozenset(subset))
         start += len(subset)
     return subsets
 
@@ -29,21 +29,25 @@ def test(patch: set) -> PatchOutcome:
     return PatchOutcome.PASSED
 
 
+def test_with_cache(cache: dict[list[int], PatchOutcome], subset: list[int]) -> PatchOutcome:
+    if subset in cache:
+        return cache[subset]
+    outcome = test(subset)
+    cache[subset] = outcome
+    return outcome
+
+
 def minimize_diff(
     repo: git.Repo,
     triggering_commit: git.Commit,
 ) -> Diff:
     triggering_diff = commit_to_diff(triggering_commit)
 
-    # - turn on/off hunks
-    # - what is fewest number of hunks that still trigger the bug?
-    #   - is this sound?
-    # - do delta debugging on a bitvector
-    # - transform bitvector into a Diff using Diff.from_file_hunks
+    test_cache = {}
     hunks = list(triggering_diff.file_hunks)
-    c_fail = set(range(len(hunks)))
+    c_fail = frozenset(range(len(hunks)))
 
-    assert test(c_fail) == PatchOutcome.FAILED
+    assert test_with_cache(test_cache, c_fail) == PatchOutcome.FAILED
 
     granularity = 2
     # Main loop
@@ -51,8 +55,9 @@ def minimize_diff(
         subsets = split(list(c_fail), granularity)
         reduced = False
         for subset in subsets:
-            complement = c_fail - set(subset)
-            if test(complement) == PatchOutcome.FAILED:
+            complement = c_fail - frozenset(subset)
+
+            if test_with_cache(test_cache, complement) == PatchOutcome.FAILED:
                 c_fail = complement
                 granularity = max(granularity - 1, 2)
                 reduced = True
