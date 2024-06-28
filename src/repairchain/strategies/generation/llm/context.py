@@ -23,9 +23,10 @@ Please fix the buggy file and return a modified version of the code with the fol
 - Keep the same functionality of the code
 - Do not modify the code unless it is to fix the bug
 - Only modify the buggy file
+- The buggy function is one of the following {code_functions}
 - The modified code should only contain the buggy function
 - Keep the same indentation as the original file
-- Return 10 potential bug fixes. These can cover different functions
+- Return 10 potential bug fixes. These can be different functions among {code_functions}
 Use as format the following for each bug fix:
 BEGIN BUG FIX
 <number>
@@ -46,7 +47,7 @@ END INSTRUCTIONS
 """
 
 
-def create_context_all_files_git_diff(files: dict[str, str], diff: Diff) -> str:
+def create_context_all_files_git_diff(files: dict[str, str], diff: Diff, function_names: str) -> str:
     code_context = "\n".join(
         f"BEGIN FILE: {filename}\n{contents}\nEND FILE"
         for filename, contents in files.items()
@@ -54,4 +55,5 @@ def create_context_all_files_git_diff(files: dict[str, str], diff: Diff) -> str:
     return CONTEXT_TEMPLATE.format(
         code_context=code_context,
         diff=diff,
+        function_names=function_names,
     )

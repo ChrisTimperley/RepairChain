@@ -6,6 +6,7 @@ import typing as t
 from dataclasses import dataclass
 
 import openai
+from loguru import logger
 
 from repairchain.actions import commit_to_diff
 from repairchain.models.diff import Diff
@@ -16,6 +17,12 @@ __all__ = ("SimpleYolo",)
 
 if t.TYPE_CHECKING:
     from repairchain.models.diagnosis import Diagnosis
+
+
+@dataclass
+class FileLines:
+    begin: int
+    end: int
 
 
 @dataclass
@@ -56,21 +63,6 @@ class SimpleYolo(PatchGenerationStrategy):
         )
 
     @classmethod
-    def is_unified_diff(cls, diff: str) -> bool:
-        lines = diff.split("\n")
-        if not lines[0].startswith("--- ") or not lines[1].startswith("+++ "):
-            return False
-
-        try:
-            for line in lines:
-                if line.startswith("@@ "):
-                    return True
-        except (ValueError, IndexError):
-            return False
-
-        return False
-
-    @classmethod
     def _extract_file_repairs(cls, output: str) -> list[RepairedFileContents]:
         """Extracts candidate file repairs from a given LLM output."""
         pattern = re.compile(
@@ -98,6 +90,19 @@ class SimpleYolo(PatchGenerationStrategy):
             for match in matches
         ]
 
+    def _implied_functions_to_str(self) -> list[str]:
+        return [function_diagnosis.name for function_diagnosis in self.diagnosis.implicated_functions]
+
+    def _extract_begin_end_lines(self, function_name: str) -> FileLines | None:
+        file_lines = None
+        for function_diagnosis in self.diagnosis.implicated_functions:
+            if function_diagnosis.name == function_name:
+                file_lines = FileLines(function_diagnosis.location.location_range.start.line,
+                                       function_diagnosis.location.location_range.stop.line)
+                break
+
+        return file_lines
+
     def _extract_patches(self, llm_output: str) -> list[Diff]:
         repaired_files: list[RepairedFileContents] = self._extract_file_repairs(llm_output)
 
@@ -110,20 +115,16 @@ class SimpleYolo(PatchGenerationStrategy):
             function_name = patch.function_name
 
             lines = self.files[filename].split("\n")
-            start_line = 0
-            end_line = 0
 
-            # NOTE: make this modular -- now just for testing mock cp
-            if function_name == "func_a":
-                start_line = 7
-                end_line = 18
+            file_lines = self._extract_begin_end_lines(function_name)
+            if file_lines is None:
+                logger.info(f"did not find function {function_name}")
+                continue
 
-            if function_name == "func_b":
-                start_line = 20
-                end_line = 28
+            logger.info(f"function: {function_name}, begin: {file_lines.begin}, end: {file_lines.end}")
 
             # Replace the lines in the range with the modified code
-            modified_lines = lines[:start_line - 1] + modified_code.split("\n") + lines[end_line + 1:]
+            modified_lines = lines[:file_lines.begin - 1] + modified_code.split("\n") + lines[file_lines.end + 1:]
 
             # Create the modified file content
             modified_file_content = "\n".join(modified_lines)
@@ -167,7 +168,8 @@ class SimpleYolo(PatchGenerationStrategy):
         return llm_output
 
     def run(self) -> list[Diff]:
+        function_names = self._implied_functions_to_str()
         # FIXME obtain the minimized diff
-        prompt = create_context_all_files_git_diff(self.files, self.diff)
+        prompt = create_context_all_files_git_diff(self.files, self.diff, str(function_names))
         llm_output = self._call_llm(prompt)
         return self._extract_patches(llm_output)
