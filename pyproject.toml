@@ -61,6 +61,7 @@ select = [
     "ALL",  # includes all rules (including new ones)
 ]
 extend-ignore = [
+    "ERA001",   # commented-out code
     "CPY001",   # missing copyright notice at top of file
     "ANN101",   # missing type annotation for 'self' in method
     "ANN102",   # missing type annotation for 'cls' in classmethod
