@@ -6,8 +6,11 @@ import contextlib
 import typing as t
 from dataclasses import dataclass
 
+import dockerblade
+
+from repairchain.errors import BuildFailure
+
 if t.TYPE_CHECKING:
-    import dockerblade
     import git
 
     from repairchain.models.diff import Diff
@@ -93,12 +96,33 @@ class ProjectContainer:
             cwd=str(self.project.docker_repository_path),
         )
 
-    # TODO raise a special error in the event of a build failure
     def build(self) -> None:
+        """Attempts to build the project inside the container.
+
+        Raises
+        ------
+        BuildFailure
+            If the build fails.
+        """
         command = self.project.build_command
-        self._shell.check_call(command)
+        try:
+            self._shell.check_output(command, text=True)
+        except dockerblade.exceptions.CalledProcessError as err:
+            assert err.output is not None  # noqa: PT017
+            if isinstance(err.output, bytes):  # noqa: SIM108
+                output = err.output.decode("utf-8")
+            else:
+                output = err.output
+            raise BuildFailure(
+                message=output,
+                returncode=err.returncode,
+            ) from err
 
     def run_regression_tests(self) -> bool:
         """Runs the project's regression tests and returns whether they pass."""
-        command = self.project.test_command
-        self._shell.check_call(command)
+        command = self.project.regression_test_command
+        try:
+            self._shell.check_call(command)
+        except dockerblade.exceptions.CalledProcessError:
+            return False
+        return True
