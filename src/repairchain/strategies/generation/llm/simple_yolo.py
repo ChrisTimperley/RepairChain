@@ -10,7 +10,7 @@ import openai
 from repairchain.actions import commit_to_diff
 from repairchain.models.diff import Diff
 from repairchain.strategies.generation.base import PatchGenerationStrategy
-from repairchain.strategies.llms.context import create_context_all_files_git_diff
+from repairchain.strategies.generation.llm.context import create_context_all_files_git_diff
 
 __all__ = ("SimpleYolo",)
 

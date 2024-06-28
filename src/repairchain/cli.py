@@ -3,14 +3,10 @@ from __future__ import annotations
 from pathlib import Path
 
 import click
-import git
 from loguru import logger
 
-from repairchain.actions import commit_to_diff
 from repairchain.models.project import Project
 from repairchain.repairchain import run
-from repairchain.strategies.llms.context import create_context_all_files_git_diff
-from repairchain.strategies.llms.yolo import yolo as do_yolo
 
 LOG_LEVELS = (
     "TRACE",
@@ -71,18 +67,3 @@ def repair(
             stop_early=stop_early,
             save_patches_to_dir=save_to_dir,
         )
-
-
-@cli.command()
-@click.argument(
-    "repo_dir",
-    type=click.Path(exists=True, path_type=Path, file_okay=False, dir_okay=True),
-)
-@click.argument("commit_hash", type=str)
-def yolo(repo_dir: Path, commit_hash: str) -> None:
-    repo = git.Repo(repo_dir)
-    commit = commit_to_diff.get_commit(repo, commit_hash)
-    diff = commit_to_diff.commit_to_diff(commit)
-    files = commit_to_diff.commit_to_files(commit, diff)
-    prompt = create_context_all_files_git_diff(files, diff)
-    do_yolo(prompt)
