@@ -97,3 +97,8 @@ class ProjectContainer:
     def build(self) -> None:
         command = self.project.build_command
         self._shell.check_call(command)
+
+    def run_regression_tests(self) -> bool:
+        """Runs the project's regression tests and returns whether they pass."""
+        command = self.project.test_command
+        self._shell.check_call(command)
