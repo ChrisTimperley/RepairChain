@@ -5,6 +5,7 @@ all: init docker
 
 init:
 	git submodule update --init --recursive
+	poetry run kaskara clang install
 
 docker: init
 	make -C mock-cp-src cpsrc-prepare
