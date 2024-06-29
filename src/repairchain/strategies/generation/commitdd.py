@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import typing as t
 from dataclasses import dataclass
+import tempfile
 
 import git
 
@@ -62,7 +63,13 @@ class CommitDD(PatchGenerationStrategy):
 
         # make a commit with the minimized undo
         diffstr = str(minimized)
-        repo.git.apply(diffstr)
+        with tempfile.NamedTemporaryFile(mode='w', delete=False) as temp_diff_file:
+            temp_diff_file.write(diffstr)
+            temp_diff_file_path = temp_diff_file.name
+
+        repo.git.apply(temp_diff_file_path)
+
+        # FIXME: error handle git, fix the tests while we're at it to pick the correct hunks
         repo.git.add(A=True)
         repo.git.index.commit("undo what we did")
 
