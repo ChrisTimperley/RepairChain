@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import typing as t
 from abc import ABC, abstractmethod
+from typing import Any
 
 from repairchain.actions.validate import validate
 from repairchain.models.diff import Diff
@@ -20,13 +21,13 @@ class DiffMinimizer(ABC):
     hunks: list[FileHunk]
     project: Project
 
-    def __init__(self, project: Project, triggering_diff: Diff) -> DiffMinimizer.t:
+    def __init__(self, project: Project, triggering_diff: Diff) -> None:
         self.triggering_diff = triggering_diff
         self.project = project
         self.hunks = list(self.triggering_diff.file_hunks)
 
     @staticmethod
-    def split(c: frozenset[int], n: int) -> list[list[int]]:
+    def split(c: list[int], n: int) -> list[frozenset[int]]:
         subsets = []
         start = 0
         for i in range(n):
@@ -44,11 +45,7 @@ class DiffMinimizer(ABC):
     def test(self, patch: frozenset[int]) -> PatchOutcome:
         pass
 
-    def min_to_patch(self, patch: frozenset[int]):  # noqa: ANN201
-        return [self.hunks[i] for i in patch]
-        # FIXME: think about whether I can annotate that type
-
-    def _test_with_cache(self, cache: dict[list[int], PatchOutcome], subset: list[int]) -> PatchOutcome:
+    def _test_with_cache(self, cache: dict[frozenset[int], PatchOutcome], subset: frozenset[int]) -> PatchOutcome:
         if subset in cache:
             return cache[subset]
         outcome = self.test(subset)
@@ -56,7 +53,7 @@ class DiffMinimizer(ABC):
         return outcome
 
     def minimize_diff(self) -> Diff:
-        test_cache = {}
+        test_cache: dict[frozenset[int], PatchOutcome] = {}
         c_fail = frozenset(range(len(self.hunks)))
 
 #  FIXME: check, not sure this makes sense with alternative strategies
@@ -76,15 +73,19 @@ class DiffMinimizer(ABC):
                     granularity = max(granularity - 1, 2)
                     reduced = True
             if not reduced and granularity >= len(c_fail):
-                return c_fail
+                return self._patch_to_real_diff(c_fail)
             granularity = min(granularity * 2, len(c_fail))
-        return self.min_to_patch(c_fail)
+        return self._patch_to_real_diff(c_fail)
 
 
 class SimpleTestDiffMinimizerFail(DiffMinimizer):
+    def __init__(self, triggering_diff: Diff) -> None:
+        self.triggering_diff = triggering_diff
+        self.hunks = list(self.triggering_diff.file_hunks)
 
-    def min_to_patch(self, c_fail: frozenset[int]) -> frozenset[int]:
-        return c_fail
+    def assert_pass(self, minimized : Diff) -> bool:
+        aslst = list(minimized.file_hunks)
+        return len(aslst) == 2 and self.hunks.index(aslst[0]) == 0 and self.hunks.index(aslst[1]) == 3
 
     def test(self, patch: frozenset[int]) -> PatchOutcome:
         if (3 in patch and 0 in patch):  # noqa: PLR2004
@@ -93,9 +94,7 @@ class SimpleTestDiffMinimizerFail(DiffMinimizer):
 
 
 class SimpleTestDiffMinimizerSuccess(DiffMinimizer):
-    def min_to_patch(self, c_fail: frozenset[int]) -> frozenset[int]:
-        return c_fail
-    
+
     def test(self, patch: frozenset[int]) -> PatchOutcome:
         if (3 in patch and 0 in patch):  # noqa: PLR2004
             return PatchOutcome.FAILED
@@ -107,7 +106,7 @@ class MinimizeForFailure(DiffMinimizer):
     def test(self, patch: frozenset[int]) -> PatchOutcome:
         asdiff = self._patch_to_real_diff(patch)
         validated = validate(self.project, [asdiff], stop_early=True)
-        return len(validated) > 0
+        return PatchOutcome.PASSED if len(validated) > 0 else PatchOutcome.FAILED
 
 
 class MinimizeForSuccess(DiffMinimizer):
@@ -115,4 +114,4 @@ class MinimizeForSuccess(DiffMinimizer):
     def test(self, patch: frozenset[int]) -> PatchOutcome:
         asdiff = self._patch_to_real_diff(patch)
         validated = validate(self.project, [asdiff], stop_early=True)
-        return len(validated) == 0
+        return PatchOutcome.PASSED if len(validated) == 0 else PatchOutcome.FAILED

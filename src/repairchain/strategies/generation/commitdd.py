@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import typing as t
+from dataclasses import dataclass
 
 import git
 
@@ -9,22 +10,28 @@ from repairchain.actions.commit_to_diff import commit_to_diff
 # from repairchain.actions.minimize_diff import MinimizeForSuccess, SimpleTestDiffMinimizerSuccess
 from repairchain.actions.minimize_diff import SimpleTestDiffMinimizerSuccess
 from repairchain.models.diff import Diff
+from repairchain.models.project import Project
 from repairchain.strategies.generation.base import PatchGenerationStrategy
 
 if t.TYPE_CHECKING:
     from repairchain.models.diagnosis import Diagnosis
 
-
+@dataclass
 class CommitDD(PatchGenerationStrategy):
     diagnosis: Diagnosis
+    project: Project
 
-    def build(self, diagnosis: Diagnosis) -> t.Self:
-        self.diagnosis = diagnosis
+    @classmethod
+    def build(cls, diagnosis: Diagnosis) -> CommitDD:
+        return cls(diagnosis=diagnosis, project=diagnosis.project)
 
+    # FIXME: check that the branch actually exists
     def _cleanup_branch(self, repo: git.Repo, primary_branch: str, branch_name: str) -> None:
-        assert branch_name in repo.branches
-        repo.git.checkout(primary_branch)
-        repo.git.branch("-D", branch_name)
+        try:
+            repo.git.checkout(primary_branch)
+            repo.git.branch("-D", branch_name)
+        except git.exc.GitCommandError:
+            return
 
     def run(self) -> list[Diff]:
         project = self.diagnosis.project
@@ -47,8 +54,7 @@ class CommitDD(PatchGenerationStrategy):
         # branch from the broken commit...
         commit_sha = project.triggering_commit.hexsha  # Replace with the actual commit SHA
         new_branch_name = "branch-" + str(commit_sha[:8])  # Replace with your desired new branch name
-        if new_branch_name in repo.branches:
-            self._cleanup_branch(repo, primary_branch, new_branch_name)
+        self._cleanup_branch(repo, primary_branch, new_branch_name)
 
         repo.git.branch(new_branch_name, project.triggering_commit)
         repo.git.checkout(new_branch_name)
@@ -67,4 +73,4 @@ class CommitDD(PatchGenerationStrategy):
         # now, get the head commit, which should undo the badness, turn that into a diff
         undoing_diff = commit_to_diff(project.repository.active_branch.commit)
         self._cleanup_branch(repo, primary_branch, new_branch_name)
-        return undoing_diff
+        return [undoing_diff]
