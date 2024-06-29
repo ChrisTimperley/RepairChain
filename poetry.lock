@@ -1186,18 +1186,18 @@ sourcelocation = "^1.1.5"
 [package.source]
 type = "git"
 url = "https://github.com/ChrisTimperley/Kaskara.git"
-reference = "c93830d3a50293a80c223f24579caebeb1d2fd8c"
-resolved_reference = "c93830d3a50293a80c223f24579caebeb1d2fd8c"
+reference = "8a13934d43f2ff45bac561d1b4ffe048771d6f9f"
+resolved_reference = "8a13934d43f2ff45bac561d1b4ffe048771d6f9f"
 
 [[package]]
 name = "litellm"
-version = "1.40.29"
+version = "1.41.1"
 description = "Library to easily interface with LLM API providers"
 optional = false
 python-versions = "!=2.7.*,!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*,!=3.4.*,!=3.5.*,!=3.6.*,!=3.7.*,>=3.8"
 files = [
-    {file = "litellm-1.40.29-py3-none-any.whl", hash = "sha256:f541c6a868e62a9018d1502a2043d9e3a669833a6a4ed4946635eec26329540a"},
-    {file = "litellm-1.40.29.tar.gz", hash = "sha256:167357fcfe33813bf3410c5f13058c7d8ca39a38a476a4ddb80ffd3c18dab770"},
+    {file = "litellm-1.41.1-py3-none-any.whl", hash = "sha256:46d33ceea03b3010176021ee53618e23f33226b4a3492ca4bf154954ec5b631c"},
+    {file = "litellm-1.41.1.tar.gz", hash = "sha256:c5aae8e8414a56844537b11e627fcdbb159f0399bc53930331997e060bf0ac2a"},
 ]
 
 [package.dependencies]
@@ -3056,4 +3056,4 @@ test = ["big-O", "importlib-resources", "jaraco.functools", "jaraco.itertools", 
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.11,<3.13"
-content-hash = "65c9564a1b39f2670172cd86d9a6526d1f3eeee8ae828e97c7d4208ddeb34c57"
+content-hash = "d4686f6f92bef2477443c382e34236457d0eed1be39fe8df439ed64f42520718"
