@@ -3,4 +3,7 @@
 	url = git@github.com:VERSATIL-GrammaTech/mock-cp
 [submodule "examples/jenkins/darpa-jazzer"]
 	path = examples/jenkins/darpa-jazzer
-	url = git@github.com:VERSATIL-GrammaTech/jazzer
+  url = git@github.com:VERSATIL-GrammaTech/jazzer
+[submodule "examples/jenkins/cp-repo"]
+	path = examples/jenkins/cp-repo
+	url = git@github.com:VERSATIL-GrammaTech/challenge-002-jenkins-cp
