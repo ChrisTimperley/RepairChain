@@ -4,7 +4,9 @@ DOCKER_FINAL_IMAGE_NAME=repairchain/jenkins
 all: init docker
 
 init:
-	git submodule update --init --recursive
+	git submodule update --init --recursive cp-repo
+	git submodule update --init --recursive darpa-jazzer
+	poetry run kaskara spoon install
 
 docker: init
 	make -C cp-repo cpsrc-prepare
