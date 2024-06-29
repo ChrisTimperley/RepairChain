@@ -10,6 +10,9 @@ OPENAI_KEY_FILE="${PROJECT_DIR}/.openapi.key"
 LITELLM_CONFIG_FILE="${PROJECT_DIR}/litellm.local.yml"
 
 export OPENAI_API_KEY="$(cat "${OPENAI_KEY_FILE}")"
+export ANTHROPIC_API_KEY=" "
+export AZURE_API_KEY=" "
+export AZURE_API_BASE=" "
 
 cleanup() {
   kill -9 ${LITELLM_PID}

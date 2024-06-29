@@ -37,6 +37,7 @@ class SimpleYolo(PatchGenerationStrategy):
     diagnosis: Diagnosis
     model: str
     litellm_url: str
+    master_key: str
     diff: Diff
     files: dict[str, str]
 
@@ -48,6 +49,7 @@ class SimpleYolo(PatchGenerationStrategy):
         # FIXME these are hardcoded!
         model = "oai-gpt-4o"
         litellm_url = "http://0.0.0.0:4000"
+        master_key = "sk-1234"
 
         diff = commit_to_diff.commit_to_diff(diagnosis.project.triggering_commit)
 
@@ -60,6 +62,7 @@ class SimpleYolo(PatchGenerationStrategy):
             files=files,
             diff=diff,
             litellm_url=litellm_url,
+            master_key=master_key,
         )
 
     @classmethod
@@ -147,7 +150,7 @@ class SimpleYolo(PatchGenerationStrategy):
     def _call_llm(self, prompt: str) -> str:
         model = self.model
         client = openai.OpenAI(
-            api_key="anything",
+            api_key=self.master_key,
             base_url=self.litellm_url,
         )
 

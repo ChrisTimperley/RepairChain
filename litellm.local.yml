@@ -43,3 +43,89 @@ model_list:
     model_info:
       mode: embedding
       base_model: text-embedding-3-small
+  # Anthropic/Claude
+  - model_name: claude-3-opus
+    litellm_params:
+      model: claude-3-opus-20240229
+      api_key: "os.environ/ANTHROPIC_API_KEY"
+      tpm: 40000
+      rpm: 1000
+  - model_name: claude-3-sonnet
+    litellm_params:
+      model: claude-3-sonnet-20240229
+      api_key: "os.environ/ANTHROPIC_API_KEY"
+      tpm: 80000
+      rpm: 1000
+  - model_name: claude-3-haiku
+    litellm_params:
+      model: claude-3-haiku-20240307
+      api_key: "os.environ/ANTHROPIC_API_KEY"
+      tpm: 100000
+      rpm: 1000
+  # Google/Vertex AI
+  - model_name: gemini-1.0-pro
+    litellm_params:
+      model: gemini-1.0-pro-002
+      vertex_project: "gen-lang-client-0044517447"
+      vertex_location: "us-central1"
+  - model_name: gemini-1.5-pro
+    litellm_params:
+      model: gemini-1.5-pro-preview-0514
+      vertex_project: "gen-lang-client-0044517447"
+      vertex_location: "us-central1"
+  - model_name: textembedding-gecko
+    litellm_params:
+      model: "textembedding-gecko@003"
+      vertex_project: "gen-lang-client-0044517447"
+      vertex_location: "us-central1"
+  # Microsoft/Azure
+  - model_name: azure-gpt-3.5-turbo
+    litellm_params:
+      model: azure/gpt-35-turbo-0125
+      api_base: "os.environ/AZURE_API_BASE"
+      api_key: "os.environ/AZURE_API_KEY"
+  - model_name: azure-gpt-3.5-turbo-16k
+    litellm_params:
+      model: azure/gpt-35-turbo-16k-0125
+      api_base: "os.environ/AZURE_API_BASE"
+      api_key: "os.environ/AZURE_API_KEY"
+  - model_name: azure-gpt-4o
+    litellm_params:
+      model: azure/gpt-4o  # pinned in Azure deployment as 2024-05-13
+      api_base: "os.environ/AZURE_API_BASE"
+      api_key: "os.environ/AZURE_API_KEY"
+  # fake endpoints for load testing only.
+  # Do not address this during competition, it is useless!
+  - model_name: fake-openai-endpoint
+    litellm_params:
+      model: openai/fake
+      api_key: fake-key
+      api_base: https://exampleopenaiendpoint-production.up.railway.app/
+  - model_name: fake-openai-endpoint-rate-limits
+    litellm_params:
+      model: openai/fake
+      api_key: fake-key
+      api_base: https://exampleopenaiendpoint-production.up.railway.app/
+      tpm: 2000
+      rpm: 2
+
+litellm_settings:
+  drop_params: true
+  max_budget: 100
+  budget_duration: 30d
+  num_retries: 10
+  request_timeout: 700
+  max_parallel_requests: 10000
+general_settings:
+  master_key: sk-1234  # Leave this default value.
+  database_url: "os.environ/DATABASE_URL"
+router_settings:
+  model_group_alias:
+    - azure-gpt-3.5-turbo: azure-gpt-3.5-turbo
+    - azure-gpt-3.5-turbo-16k: azure-gpt-3.5-turbo-16k
+    - azure-gpt-4o: azure-gpt-4o
+    - oai-gpt-3.5-turbo: oai-gpt-3.5-turbo-0125
+    - oai-gpt-3.5-turbo-16k: oai-gpt-3.5-turbo-16k
+    - oai-gpt-4: oai-gpt-4
+    - oai-gpt-4-turbo: oai-gpt-4-turbo
+  routing_strategy: "usage-based-routing-v2"
