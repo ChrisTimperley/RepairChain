@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import typing as t
 from abc import ABC, abstractmethod
-from typing import Any
 
 from repairchain.actions.validate import validate
 from repairchain.models.diff import Diff
@@ -83,9 +82,9 @@ class SimpleTestDiffMinimizerFail(DiffMinimizer):
         self.triggering_diff = triggering_diff
         self.hunks = list(self.triggering_diff.file_hunks)
 
-    def assert_pass(self, minimized : Diff) -> bool:
+    def assert_pass(self, minimized: Diff) -> bool:
         aslst = list(minimized.file_hunks)
-        return len(aslst) == 2 and self.hunks.index(aslst[0]) == 0 and self.hunks.index(aslst[1]) == 3
+        return len(aslst) == 2 and self.hunks.index(aslst[0]) == 0 and self.hunks.index(aslst[1]) == 3  # noqa: PLR2004
 
     def test(self, patch: frozenset[int]) -> PatchOutcome:
         if (3 in patch and 0 in patch):  # noqa: PLR2004

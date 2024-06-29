@@ -17,16 +17,14 @@ def test_minimize_diff_strategy() -> None:
     repository = git.Repo("/home/clegoues/aixcc/challenge-001-exemplar/src")
     commit = repository.commit("426d4a428a9c6aa89f366d1867fae55b4ebd6b7f")
 
-    docker_url = os.environ.get("DOCKER_HOST")
     sanitizer_report_path = Path("/home/clegoues/RepairChain/examples/mock-cp/sanitizer.txt")
     sreport = SanitizerReport.load(sanitizer_report_path, False)
-    with dockerblade.DockerDaemon(url=docker_url) as docker_daemon:
+    with dockerblade.DockerDaemon(url="unix:///run/user/15781/docker.sock") as docker_daemon:
         project = Project(docker_daemon, ProjectKind.C, "", 
                           repository, Path("/src/samples"),
                           repository.head.commit,
                           commit, "", "", "", "", 
-                          sreport
-                          )
+                          sreport)
 
         diag = Diagnosis(project, BugType.UNKNOWN, [])
 

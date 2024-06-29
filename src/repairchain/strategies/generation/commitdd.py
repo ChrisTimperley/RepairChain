@@ -10,11 +10,12 @@ from repairchain.actions.commit_to_diff import commit_to_diff
 # from repairchain.actions.minimize_diff import MinimizeForSuccess, SimpleTestDiffMinimizerSuccess
 from repairchain.actions.minimize_diff import SimpleTestDiffMinimizerSuccess
 from repairchain.models.diff import Diff
-from repairchain.models.project import Project
+from repairchain.models.project import Project  # noqa: TCH001
 from repairchain.strategies.generation.base import PatchGenerationStrategy
 
 if t.TYPE_CHECKING:
     from repairchain.models.diagnosis import Diagnosis
+
 
 @dataclass
 class CommitDD(PatchGenerationStrategy):
