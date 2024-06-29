@@ -562,7 +562,7 @@ description = "Interact with Docker containers via Python-like APIs"
 optional = false
 python-versions = ">=3.11,<4"
 files = []
-develop = false
+develop = true
 
 [package.dependencies]
 attrs = ">=19.2.0"
@@ -573,10 +573,8 @@ psutil = "^5.7"
 requests = "2.31.0"
 
 [package.source]
-type = "git"
-url = "https://github.com/ChrisTimperley/Dockerblade.git"
-reference = "a7552bc3005f2fd9d55eea326a4f6be91e4d2b40"
-resolved_reference = "a7552bc3005f2fd9d55eea326a4f6be91e4d2b40"
+type = "directory"
+url = "extern/dockerblade"
 
 [[package]]
 name = "email-validator"
@@ -1169,7 +1167,7 @@ description = "A simple, unified API for various static analysers"
 optional = false
 python-versions = ">=3.11,<4"
 files = []
-develop = false
+develop = true
 
 [package.dependencies]
 astor = "^0.8"
@@ -1184,10 +1182,8 @@ requests = "2.31.0"
 sourcelocation = "^1.1.5"
 
 [package.source]
-type = "git"
-url = "https://github.com/ChrisTimperley/Kaskara.git"
-reference = "8a13934d43f2ff45bac561d1b4ffe048771d6f9f"
-resolved_reference = "8a13934d43f2ff45bac561d1b4ffe048771d6f9f"
+type = "directory"
+url = "extern/kaskara"
 
 [[package]]
 name = "litellm"
@@ -2310,13 +2306,11 @@ description = "Simple data structures for representing source code locations"
 optional = false
 python-versions = ">= 3.9"
 files = []
-develop = false
+develop = true
 
 [package.source]
-type = "git"
-url = "https://github.com/ChrisTimperley/sourcelocation.py.git"
-reference = "4a5cf8a6cbad9c62888a5b00ddc3d2f8fc4ee1c8"
-resolved_reference = "4a5cf8a6cbad9c62888a5b00ddc3d2f8fc4ee1c8"
+type = "directory"
+url = "extern/sourcelocation"
 
 [[package]]
 name = "starlette"
@@ -3056,4 +3050,4 @@ test = ["big-O", "importlib-resources", "jaraco.functools", "jaraco.itertools", 
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.11,<3.13"
-content-hash = "d4686f6f92bef2477443c382e34236457d0eed1be39fe8df439ed64f42520718"
+content-hash = "e25fef99b18ee9059d0c6581a9a59a8f00b1a927e2724ac661f6627cd7f11f0e"

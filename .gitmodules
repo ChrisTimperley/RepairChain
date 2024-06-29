@@ -7,3 +7,15 @@
 [submodule "examples/jenkins/cp-repo"]
 	path = examples/jenkins/cp-repo
 	url = git@github.com:VERSATIL-GrammaTech/challenge-002-jenkins-cp
+[submodule "extern/extern/darjeeling"]
+	path = extern/darjeeling
+	url = https://github.com/squaresLab/Darjeeling
+[submodule "extern/extern/kaskara"]
+	path = extern/kaskara
+	url = https://github.com/squaresLab/Kaskara
+[submodule "extern/extern/sourcelocation"]
+	path = extern/sourcelocation
+	url = https://github.com/ChrisTimperley/sourcelocation.py
+[submodule "extern/extern/dockerblade"]
+	path = extern/dockerblade
+	url = https://github.com/ChrisTimperley/dockerblade

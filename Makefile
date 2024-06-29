@@ -12,12 +12,16 @@ lint:
 	poetry run ruff check --preview src
 
 test:
-	poetry run pytest
+	poetry run pytest test
 
 fix:
 	poetry run ruff check --preview --fix src
 
 install:
+	git submodule update --init --recursive extern/darjeeling
+	git submodule update --init --recursive extern/kaskara
+	git submodule update --init --recursive extern/dockerblade
+	git submodule update --init --recursive extern/sourcelocation
 	poetry install --with dev
 
 bundle:
