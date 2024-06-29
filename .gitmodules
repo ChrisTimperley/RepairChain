@@ -1,3 +1,6 @@
 [submodule "examples/mock-cp"]
 	path = examples/mock-cp/mock-cp-src
 	url = git@github.com:VERSATIL-GrammaTech/mock-cp
+[submodule "examples/jenkins/darpa-jazzer"]
+	path = examples/jenkins/darpa-jazzer
+	url = git@github.com:VERSATIL-GrammaTech/jazzer
