@@ -1,8 +1,10 @@
 from __future__ import annotations
 
-import typing as t
-from dataclasses import dataclass
+import os
 import tempfile
+import typing as t
+from contextlib import chdir
+from dataclasses import dataclass
 
 import git
 
@@ -41,7 +43,7 @@ class CommitDD(PatchGenerationStrategy):
         repo = project.repository
 
         sha = commit.hexsha
-        reverse_diff_str = project.repository.git.diff(sha, sha + "^", R=True, unified=True)
+        reverse_diff_str = project.repository.git.diff(sha, sha + "^", unified=True)
         reverse_diff = Diff.from_unidiff(reverse_diff_str)
         # FIXME: this is for testing
         # minimizer = MinimizeForSuccess(project, reverse_diff)
@@ -60,18 +62,24 @@ class CommitDD(PatchGenerationStrategy):
 
         repo.git.branch(new_branch_name, project.triggering_commit)
         repo.git.checkout(new_branch_name)
-
         # make a commit with the minimized undo
         diffstr = str(minimized)
-        with tempfile.NamedTemporaryFile(mode='w', delete=False) as temp_diff_file:
+        with tempfile.NamedTemporaryFile(mode='w', delete=True, encoding="locale") as temp_diff_file:
             temp_diff_file.write(diffstr)
             temp_diff_file_path = temp_diff_file.name
+            repo_path = os.path.abspath(project.local_repository_path)
 
-        repo.git.apply(temp_diff_file_path)
+            with chdir(repo_path):
+                # FIXME: try with patch instead, with apologies to dornja
+                os.system(f'patch -p1 -i {temp_diff_file_path}')
 
-        # FIXME: error handle git, fix the tests while we're at it to pick the correct hunks
+
+        # repo.git.apply(temp_diff_file_path)
+
+
+        # FIXME: error handle git, fix the tests while we're at it to pick the correct hunks to properly test this
         repo.git.add(A=True)
-        repo.git.index.commit("undo what we did")
+        repo.index.commit("undo what we did")
 
         repo.git.rebase(primary_branch)
 
