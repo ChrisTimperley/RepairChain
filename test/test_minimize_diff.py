@@ -23,8 +23,8 @@ def test_minimize_diff_strategy() -> None:
         project = Project(docker_daemon, ProjectKind.C, "", 
                           repository, Path("/src/samples"),
                           repository.head.commit,
-                          commit, "", "", "", "", 
-                          sreport)
+                          commit, "", "", "", "",
+                          sreport, bytes(8))
 
         diag = Diagnosis(project, BugType.UNKNOWN, [])
 
