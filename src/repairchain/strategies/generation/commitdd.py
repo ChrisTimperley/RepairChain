@@ -56,23 +56,23 @@ class CommitDD(PatchGenerationStrategy):
         primary_branch = project.repository.active_branch.name
 
         # branch from the broken commit...
-        commit_sha = project.triggering_commit.hexsha  # Replace with the actual commit SHA
-        new_branch_name = "branch-" + str(commit_sha[:8])  # Replace with your desired new branch name
+        commit_sha = project.triggering_commit.hexsha
+        new_branch_name = "branch-" + str(commit_sha[:8])
         self._cleanup_branch(repo, primary_branch, new_branch_name)
 
         repo.git.branch(new_branch_name, project.triggering_commit)
         repo.git.checkout(new_branch_name)
         # make a commit with the minimized undo
         diffstr = str(minimized)
-        with tempfile.NamedTemporaryFile(mode='w', delete=True, encoding="locale") as temp_diff_file:
+        with tempfile.NamedTemporaryFile(mode='w', delete=False, encoding="locale") as temp_diff_file:
             temp_diff_file.write(diffstr)
             temp_diff_file_path = temp_diff_file.name
+            temp_diff_file.close()
             repo_path = os.path.abspath(project.local_repository_path)
 
             with chdir(repo_path):
-                # FIXME: try with patch instead, with apologies to dornja
+                # with apologies to dornja
                 os.system(f'patch -p1 -i {temp_diff_file_path}')
-
 
         # repo.git.apply(temp_diff_file_path)
 
