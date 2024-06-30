@@ -18,7 +18,7 @@ def test_minimize_diff_strategy() -> None:
     commit = repository.commit("426d4a428a9c6aa89f366d1867fae55b4ebd6b7f")
 
     sanitizer_report_path = Path("/home/clegoues/RepairChain/examples/mock-cp/sanitizer.txt")
-    sreport = SanitizerReport.load(sanitizer_report_path, False)
+    sreport = SanitizerReport.load(sanitizer_report_path, False)  # noqa: FBT003
     with dockerblade.DockerDaemon(url="unix:///run/user/15781/docker.sock") as docker_daemon:
         project = Project(docker_daemon, ProjectKind.C, "", 
                           repository, Path("/src/samples"),
