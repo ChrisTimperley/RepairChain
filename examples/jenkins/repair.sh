@@ -18,7 +18,7 @@ cleanup() {
   kill -9 ${LITELLM_PID}
 }
 
-if ! poetry run command -v litellm &> /dev/null; then
+if ! poetry run which litellm &> /dev/null; then
   echo "LiteLLM is not installed. Please install LiteLLM before running this script."
   exit 1
 fi
