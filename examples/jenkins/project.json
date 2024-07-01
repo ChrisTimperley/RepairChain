@@ -9,7 +9,7 @@
   "sanitizer-report-filename": "./sanitizer.txt",
   "pov-payload-filename": "./cp-repo/exemplar_only/cpv_exemplar/blobs/sample_solve.bin",
   "commands": {
-    "build": "/usr/local/sbin/container_scripts/cmd_harness.sh build",
+    "build": "LOCAL_USER=$(id -u) /usr/local/sbin/container_scripts/cmd_harness.sh build",
     "clean": "git clean -xdf",
     "regression-test": "/usr/local/sbin/container_scripts/cmd_harness.sh tests",
     "crash-template": "/usr/local/sbin/container_scripts/cp_pov __PAYLOAD_FILE__ JenkinsTwo"
