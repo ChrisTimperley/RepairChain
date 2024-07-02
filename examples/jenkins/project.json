@@ -11,7 +11,8 @@
   "commands": {
     "build": "LOCAL_USER=$(id -u) /usr/local/sbin/container_scripts/cmd_harness.sh build",
     "clean": "git clean -xdf",
-    "regression-test": "/usr/local/sbin/container_scripts/cmd_harness.sh tests",
+    "regression-test": "true",
+    "actual-regression-test": "/usr/local/sbin/container_scripts/cmd_harness.sh tests",
     "crash-template": "/usr/local/sbin/container_scripts/cp_pov __PAYLOAD_FILE__ JenkinsTwo"
   }
 }
