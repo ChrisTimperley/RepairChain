@@ -4,7 +4,7 @@ DOCKER_FINAL_IMAGE_NAME=repairchain/mock-cp
 all: init docker
 
 init:
-	git submodule update --init --recursive
+	git submodule update --init --recursive mock-cp-src
 	poetry run kaskara clang install
 
 docker: init
