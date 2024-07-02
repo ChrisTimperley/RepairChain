@@ -28,4 +28,4 @@ poetry run litellm -c $LITELLM_CONFIG_FILE &
 LITELLM_PID=$!
 trap cleanup SIGINT SIGTERM EXIT
 
-poetry run repairchain repair ./project.json --save-to-dir ./patches
+poetry run repairchain repair --log-level INFO ./project.json --save-to-dir ./patches
