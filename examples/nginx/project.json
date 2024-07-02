@@ -1,0 +1,17 @@
+{
+  "project-kind": "c",
+  "image": "repairchain/nginx",
+  "repository-path": {
+    "local": "./cp-repo/src/nginx",
+    "docker": "/src/nginx"
+  },
+  "triggering-commit": "8e2a8e613fe5b6f03cb8e0c27180a468671f03a8",
+  "sanitizer-report-filename": "./sanitizer.txt",
+  "pov-payload-filename": "./cp-repo/exemplar_only/cpv_exemplar/blobs/sample_solve.bin",
+  "commands": {
+    "build": "/usr/local/sbin/container_scripts/cmd_harness.sh build",
+    "clean": "git clean -xdf",
+    "regression-test": "/usr/local/sbin/container_scripts/cmd_harness.sh tests",
+    "crash-template": "/usr/local/sbin/container_scripts/cp_pov __PAYLOAD_FILE__ pov_harness"
+  }
+}
