@@ -22,3 +22,6 @@
 [submodule "examples/nginx/cp-repo"]
 	path = examples/nginx/cp-repo
 	url = git@github.com:VERSATIL-GrammaTech/challenge-004-nginx-cp
+[submodule "examples/linux/cp-repo"]
+	path = examples/linux/cp-repo
+	url = git@github.com:VERSATIL-GrammaTech/challenge-001-linux-cp
