@@ -58,6 +58,11 @@ def repair(
         sink=click.get_text_stream("stdout"),
         level=log_level,
     )
+    logger.enable("kaskara")
+
+    if log_level == "TRACE":
+        logger.enable("dockerblade")
+        logger.enable("sourcelocation")
 
     logger.info(f"loading project: {filename}")
     with Project.load(filename) as project:
