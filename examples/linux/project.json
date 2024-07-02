@@ -1,0 +1,18 @@
+{
+  "project-kind": "c",
+  "image": "repairchain/linux",
+  "repository-path": {
+    "local": "./cp-repo/src/linux_kernel",
+    "docker": "/src/linux_kernel"
+  },
+  "triggering-commit": "747400b971e2131ef86fbab1aa6350f181e40310",
+  "sanitizer-report-filename": "./sanitizer.txt",
+  "pov-payload-filename": "./cp-repo/exemplar_only/blobs/sample_solve.bin",
+  "commands": {
+    "build": "/usr/local/sbin/container_scripts/cmd_harness.sh build",
+    "clean": "git clean -xdf",
+    "regression-test": "pass",
+    "broken-regression-test": "/usr/local/sbin/container_scripts/cmd_harness.sh tests",
+    "crash-template": "/usr/local/sbin/container_scripts/cp_pov __PAYLOAD_FILE__ linux_test_harness"
+  }
+}
