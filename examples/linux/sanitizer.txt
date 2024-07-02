@@ -1,0 +1,163 @@
+[  121.274171] ==================================================================
+[  121.274707] BUG: KASAN: slab-out-of-bounds in tipc_crypto_msg_rcv+0x398/0x6e0
+[  121.275347] Write of size 1220 at addr ffff888004340824 by task linux_test_harn/98
+[  121.275599]
+[  121.275998] CPU: 0 PID: 98 Comm: linux_test_harn Not tainted 6.1.54-g4bcc3a8868a8 #1
+[  121.276317] Hardware name: QEMU Standard PC (i440FX + PIIX, 1996), BIOS 1.15.0-1 04/01/2014
+[  121.276706] Call Trace:
+[  121.276877]  <IRQ>
+[  121.277050]  dump_stack_lvl+0x34/0x48
+[  121.277259]  print_report+0x172/0x475
+[  121.277355]  ? tipc_crypto_msg_rcv+0x398/0x6e0
+[  121.277449]  ? tipc_crypto_msg_rcv+0x398/0x6e0
+[  121.277541]  kasan_report+0xad/0x130
+[  121.277633]  ? tipc_crypto_msg_rcv+0x398/0x6e0
+[  121.277731]  kasan_check_range+0x35/0x1c0
+[  121.277819]  memcpy+0x39/0x60
+[  121.277898]  tipc_crypto_msg_rcv+0x398/0x6e0
+[  121.277989]  ? __local_bh_enable_ip+0x32/0x70
+[  121.278085]  tipc_data_input+0x112/0x2e0
+[  121.278175]  tipc_link_rcv+0x3d2/0x26c0
+[  121.278270]  ? get_stack_info+0x2d/0xa0
+[  121.278360]  ? tipc_link_input+0x810/0x810
+[  121.278453]  ? get_reg+0x125/0x190
+[  121.278540]  ? _raw_write_lock_bh+0x82/0xe0
+[  121.278629]  ? _raw_write_lock+0xe0/0xe0
+[  121.278720]  tipc_rcv+0xf19/0x29d0
+[  121.278821]  ? tipc_node_broadcast+0x640/0x640
+[  121.278917]  ? __udp4_lib_lookup+0x559/0x9a0
+[  121.279020]  ? ip_rcv_core+0x734/0xcf0
+[  121.279105]  ? udp_push_pending_frames+0xd0/0xd0
+[  121.279195]  ? kasan_save_free_info+0x2a/0x50
+[  121.279288]  tipc_udp_recv+0x253/0x650
+[  121.279371]  ? tipc_udp_send_msg+0x2f0/0x2f0
+[  121.279453]  ? ip_output+0x2a4/0x710
+[  121.279530]  ? ip_send_skb+0x110/0x150
+[  121.279608]  ? udp_send_skb+0x575/0x1280
+[  121.279697]  ? __udp4_lib_rcv+0xd33/0x2a20
+[  121.279784]  ? tipc_udp_send_msg+0x2f0/0x2f0
+[  121.279872]  udp_queue_rcv_one_skb+0x962/0x1380
+[  121.279972]  udp_unicast_rcv_skb+0x103/0x340
+[  121.280066]  ip_protocol_deliver_rcu+0x234/0x600
+[  121.280164]  ip_local_deliver_finish+0x262/0x340
+[  121.280260]  ip_local_deliver+0x186/0x2d0
+[  121.280345]  ? ip_local_deliver_finish+0x340/0x340
+[  121.280441]  ? memset+0x20/0x50
+[  121.280517]  ? ip_rcv_core+0x5ba/0xcf0
+[  121.280603]  ? ip_rcv_finish+0xe0/0xe0
+[  121.280683]  ip_rcv+0x228/0x280
+[  121.280758]  ? ip_rcv_finish+0xe0/0xe0
+[  121.280839]  ? rcu_is_cpu_rrupt_from_idle+0xd/0x90
+[  121.280936]  ? rcu_sched_clock_irq+0x62c/0x1ea0
+[  121.281030]  ? sched_clock_cpu+0x69/0x2b0
+[  121.281118]  ? ip_rcv_finish+0xe0/0xe0
+[  121.281198]  __netif_receive_skb_one_core+0x161/0x1b0
+[  121.281299]  ? __netif_receive_skb_list_core+0x830/0x830
+[  121.281396]  ? _raw_spin_lock_irq+0x83/0xe0
+[  121.281491]  process_backlog+0x189/0x4f0
+[  121.281578]  ? update_curr+0x233/0x520
+[  121.281664]  __napi_poll+0x9c/0x440
+[  121.281748]  net_rx_action+0x428/0xa50
+[  121.281841]  ? napi_threaded_poll+0x390/0x390
+[  121.281928]  ? try_to_wake_up+0x101/0x11f0
+[  121.282018]  ? push_cpu_stop+0x8b0/0x8b0
+[  121.282103]  ? hrtimer_interrupt+0x348/0x7a0
+[  121.282202]  __do_softirq+0x1b9/0x63d
+[  121.282293]  do_softirq+0xcf/0x100
+[  121.282394]  </IRQ>
+[  121.282458]  <TASK>
+[  121.282515]  __local_bh_enable_ip+0x64/0x70
+[  121.282601]  ip_finish_output2+0x567/0x1ae0
+[  121.282698]  ? ip_fraglist_init+0x560/0x560
+[  121.282784]  ? selinux_ip_postroute_compat+0x3e0/0x3e0
+[  121.282889]  ? nf_hook_slow+0xb4/0x190
+[  121.282981]  ip_output+0x2a4/0x710
+[  121.283071]  ? __ip_finish_output.part.0+0x900/0x900
+[  121.283170]  ? dst_output+0xc0/0xc0
+[  121.283245]  ? xfrm_lookup_route+0x1c/0x170
+[  121.283339]  ? ip_flush_pending_frames+0x20/0x20
+[  121.283435]  ip_send_skb+0x110/0x150
+[  121.283518]  udp_send_skb+0x575/0x1280
+[  121.283611]  udp_sendmsg+0x1624/0x1da0
+[  121.283703]  ? ip_frag_init+0x3e0/0x3e0
+[  121.283793]  ? udp_read_skb+0x5d0/0x5d0
+[  121.283888]  ? ip4_datagram_release_cb+0x147/0x760
+[  121.283987]  ? ip4_datagram_connect+0x40/0x40
+[  121.284075]  ? __ww_mutex_lock.constprop.0+0x730/0x1b00
+[  121.284196]  ? __fget_light+0x52/0x510
+[  121.284279]  ? udp_read_skb+0x5d0/0x5d0
+[  121.284362]  ? inet_send_prepare+0x2a0/0x2a0
+[  121.284453]  ? sock_sendmsg+0xdc/0x110
+[  121.284537]  sock_sendmsg+0xdc/0x110
+[  121.284620]  __sys_sendto+0x1bc/0x290
+[  121.284703]  ? __ia32_sys_getpeername+0xb0/0xb0
+[  121.284812]  ? memset+0x20/0x50
+[  121.284890]  ? __rseq_handle_notify_resume+0x723/0xa10
+[  121.284990]  ? __schedule+0x8a1/0x1be0
+[  121.285078]  ? rseq_warn_flags.part.0+0x60/0x60
+[  121.285174]  ? __blkcg_punt_bio_submit+0x1b0/0x1b0
+[  121.285281]  __x64_sys_sendto+0xd7/0x1b0
+[  121.285364]  ? exit_to_user_mode_prepare+0x123/0x130
+[  121.285460]  ? syscall_exit_to_user_mode+0x2b/0x50
+[  121.285552]  do_syscall_64+0x3b/0x90
+[  121.285636]  entry_SYSCALL_64_after_hwframe+0x64/0xce
+[  121.285821] RIP: 0033:0x7f9c73f42a0a
+[  121.286777] Code: d8 64 89 02 48 c7 c0 ff ff ff ff eb b8 0f 1f 00 f3 0f 1e fa 41 89 ca 64 8b 04 25 18 00 00 00 85 c0 75 15 b8 2c 00 00 00 0f 05 <48> 3d 00 f0 ff ff 77 7e c3 0f 1f 44 00 00 41 54 48 83 ec 30 44 89
+[  121.287081] RSP: 002b:00007ffd66f2b298 EFLAGS: 00000246 ORIG_RAX: 000000000000002c
+[  121.287320] RAX: ffffffffffffffda RBX: 0000000000000000 RCX: 00007f9c73f42a0a
+[  121.287483] RDX: 00000000000003f8 RSI: 0000562dd5e113a8 RDI: 0000000000000007
+[  121.287633] RBP: 00007ffd66f2b2b0 R08: 0000562dd489f030 R09: 0000000000000010
+[  121.287781] R10: 0000000000000000 R11: 0000000000000246 R12: 00007ffd66f2b4e8
+[  121.287930] R13: 0000562dd489cb47 R14: 0000562dd489ed20 R15: 00007f9c7408a040
+[  121.288087]  </TASK>
+[  121.288214]
+[  121.288292] Allocated by task 98:
+[  121.288491]  kasan_save_stack+0x1e/0x40
+[  121.288608]  kasan_set_track+0x21/0x30
+[  121.288689]  __kasan_kmalloc+0xa9/0xb0
+[  121.288767]  __kmalloc+0x5a/0x140
+[  121.288846]  tipc_crypto_msg_rcv+0x331/0x6e0
+[  121.288929]  tipc_data_input+0x112/0x2e0
+[  121.289009]  tipc_link_rcv+0x3d2/0x26c0
+[  121.289087]  tipc_rcv+0xf19/0x29d0
+[  121.289160]  tipc_udp_recv+0x253/0x650
+[  121.289235]  udp_queue_rcv_one_skb+0x962/0x1380
+[  121.289323]  udp_unicast_rcv_skb+0x103/0x340
+[  121.289407]  ip_protocol_deliver_rcu+0x234/0x600
+[  121.289493]  ip_local_deliver_finish+0x262/0x340
+[  121.289579]  ip_local_deliver+0x186/0x2d0
+[  121.289659]  ip_rcv+0x228/0x280
+[  121.289728]  __netif_receive_skb_one_core+0x161/0x1b0
+[  121.289819]  process_backlog+0x189/0x4f0
+[  121.289897]  __napi_poll+0x9c/0x440
+[  121.289972]  net_rx_action+0x428/0xa50
+[  121.290048]  __do_softirq+0x1b9/0x63d
+[  121.290140]
+[  121.290242] The buggy address belongs to the object at ffff888004340800
+[  121.290242]  which belongs to the cache kmalloc-1k of size 1024
+[  121.290449] The buggy address is located 36 bytes inside of
+[  121.290449]  1024-byte region [ffff888004340800, ffff888004340c00)
+[  121.290619]
+[  121.290765] The buggy address belongs to the physical page:
+[  121.291127] page:(____ptrval____) refcount:1 mapcount:0 mapping:0000000000000000 index:0x0 pfn:0x4340
+[  121.291777] head:(____ptrval____) order:2 compound_mapcount:0 compound_pincount:0
+[  121.291956] flags: 0x100000000010200(slab|head|node=0|zone=1)
+[  121.293014] raw: 0100000000010200 0000000000000000 dead000000000122 ffff888001041dc0
+[  121.293192] raw: 0000000000000000 0000000080080008 00000001ffffffff 0000000000000000
+[  121.293369] page dumped because: kasan: bad access detected
+[  121.293467]
+[  121.293519] Memory state around the buggy address:
+[  121.293872]  ffff888004340a80: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+[  121.294026]  ffff888004340b00: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+[  121.294140] >ffff888004340b80: 00 00 00 00 00 00 00 00 00 00 00 00 fc fc fc fc
+[  121.294259]                                                        ^
+[  121.294435]  ffff888004340c00: fc fc fc fc fc fc fc fc fc fc fc fc fc fc fc fc
+[  121.294543]  ffff888004340c80: fc fc fc fc fc fc fc fc fc fc fc fc fc fc fc fc
+[  121.294687] ==================================================================
+[  121.294947] Disabling lock debugging due to kernel taint
+[  121.390885] kvm: exiting hardware virtualization
+[  122.053692] tipc: RX(11223344): unable to attach received skey, err -2
+[  122.057017] ACPI: PM: Preparing to enter system sleep state S5
+[  122.060285] reboot: Power down
+virtme-run: failed to start virtiofsd, fallback to 9p
+===== VM output data end =====
