@@ -8,8 +8,11 @@ from dataclasses import dataclass
 
 import kaskara
 import kaskara.clang.analyser
+from loguru import logger
 
 if t.TYPE_CHECKING:
+    from pathlib import Path
+
     import git
 
     from repairchain.models.project import Project
@@ -18,6 +21,7 @@ if t.TYPE_CHECKING:
 @dataclass
 class KaskaraIndexer:
     _analyzer: kaskara.analyser.Analyser
+    _docker_repository_path: Path
 
     @classmethod
     @contextlib.contextmanager
@@ -36,6 +40,7 @@ class KaskaraIndexer:
             files=frozenset(restrict_to_files),
             ignore_errors=ignore_errors,
         )
+        logger.debug(f"using kaskara project: {kaskara_project}")
 
         with project.provision(version=version) as container:
             kaskara_container = kaskara_project.attach(container.id_)
@@ -47,21 +52,24 @@ class KaskaraIndexer:
                     _project=kaskara_project,
                 )
             elif project.kind == "java":
-                # TODO update spoon API
-                # analyzer = kaskara.spoon.analyser.SpoonAnalyser(
-                #     _container=kaskara_container,
-                #     _project=kaskara_project,
-                # )
-                message = "Java projects are not yet supported"
-                raise NotImplementedError(message)
+                analyzer = kaskara.spoon.analyser.SpoonAnalyser(
+                    _container=kaskara_container,
+                    _project=kaskara_project,
+                )
             else:
                 message = f"unsupported project kind: {project.kind}"
                 raise ValueError(message)
 
-            yield cls(analyzer)
+            yield cls(
+                _analyzer=analyzer,
+                _docker_repository_path=project.docker_repository_path,
+            )
 
     # FIXME ideally, we want to be able to just run individual analyses
     # to do this, I need to expose a few more public methods in the
     # Analyser base class
     def run(self) -> kaskara.analysis.Analysis:
-        return self._analyzer.run()
+        analysis = self._analyzer.run()
+        # ensure that all paths are relative to the repository
+        # this is super important!
+        return analysis.with_relative_locations(str(self._docker_repository_path))

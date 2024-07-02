@@ -1,12 +1,12 @@
 from __future__ import annotations
 
+import typing as t
+
 import kaskara.functions
 
 __all__ = (
     "diff_to_functions",
 )
-
-import typing as t
 
 if t.TYPE_CHECKING:
     import kaskara
