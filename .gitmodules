@@ -19,3 +19,6 @@
 [submodule "extern/extern/dockerblade"]
 	path = extern/dockerblade
 	url = https://github.com/ChrisTimperley/dockerblade
+[submodule "examples/nginx/cp-repo"]
+	path = examples/nginx/cp-repo
+	url = git@github.com:VERSATIL-GrammaTech/challenge-004-nginx-cp
