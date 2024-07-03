@@ -6,7 +6,11 @@ import click
 from loguru import logger
 
 from repairchain.models.project import Project
-from repairchain.repairchain import generate, run
+from repairchain.repairchain import (
+    generate,
+    run,
+    validate,
+)
 
 LOG_LEVELS = (
     "TRACE",
@@ -89,4 +93,40 @@ def do_generate(
         generate(
             project=project,
             save_candidates_to_directory=output,
+        )
+
+
+@cli.command("validate")
+@click.argument(
+    "project-file",
+    type=click.Path(exists=True, dir_okay=False, path_type=Path),
+)
+@click.argument(
+    "candidates-directory",
+    type=click.Path(exists=True, dir_okay=True, file_okay=False, path_type=Path),
+)
+@click.option(
+    "--stop-early/--no-stop-early",
+    default=True,
+    help="stop early if a repair is found",
+)
+@click.option(
+    "--save-to-dir",
+    type=click.Path(file_okay=False, dir_okay=True, writable=True, path_type=Path),
+    required=True,
+    help="the directory to which repairs should be saved",
+)
+def do_validate(
+    project_file: Path,
+    candidates_directory: Path,
+    stop_early: bool,
+    save_to_dir: Path,
+) -> None:
+    logger.info(f"loading project: {project_file}")
+    with Project.load(project_file) as project:
+        validate(
+            project=project,
+            candidates_directory=candidates_directory,
+            save_patches_to_dir=save_to_dir,
+            stop_early=stop_early,
         )
