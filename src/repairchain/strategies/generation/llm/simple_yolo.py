@@ -47,7 +47,8 @@ class SimpleYolo(PatchGenerationStrategy):
         diagnosis: Diagnosis,
     ) -> SimpleYolo:
         # FIXME these are hardcoded!
-        model = "oai-gpt-4o"
+        # model = "oai-gpt-4o"
+        model = "oai-gpt-3.5-turbo"
         litellm_url = "http://0.0.0.0:4000"
         master_key = "sk-1234"
 
