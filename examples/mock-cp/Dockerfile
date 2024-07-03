@@ -11,6 +11,7 @@ COPY mock-cp-src/src /src
 
 # pass the local user ID into the image to avoid permissions issues
 ARG LOCAL_USER
+ENV LOCAL_USER=${LOCAL_USER}
 
 # NOTE I'm simulating the behavior of image-extender here
 RUN cd /src \

@@ -9,7 +9,7 @@
   "sanitizer-report-filename": "./sanitizer.txt",
   "pov-payload-filename": "./mock-cp-src/exemplar_only/cpv_1/blobs/sample_solve.bin",
   "commands": {
-    "build": "LOCAL_USER=$(id -u) /usr/local/sbin/container_scripts/cmd_harness.sh build",
+    "build": "/usr/local/sbin/container_scripts/cmd_harness.sh build",
     "clean": "git clean -xdf",
     "regression-test": "/usr/local/sbin/container_scripts/cp_tests",
     "crash-template": "/usr/local/sbin/container_scripts/cp_pov __PAYLOAD_FILE__ filein_harness"
