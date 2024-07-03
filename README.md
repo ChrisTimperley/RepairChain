@@ -18,7 +18,7 @@ After running the above, you will need to create a file `.openapi.key` at the ro
 To run an end-to-end example of RepairChain, run the following:
 
 ```shell
-poetry run examples/mock-cp/repair.sh
+./scripts/repair.sh ./examples/mock-cp
 ```
 
 ## Usage
