@@ -5,8 +5,6 @@ __all__ = ("generate", "run")
 import typing as t
 
 from loguru import logger
-from ruamel.yaml import YAML
-from ruamel.yaml.scalarstring import LiteralScalarString
 
 from repairchain.actions.generate import generate as _generate
 from repairchain.actions.repair import repair
@@ -19,15 +17,14 @@ if t.TYPE_CHECKING:
 
 def generate(
     project: Project,
-    save_candidates_to: Path,
+    save_candidates_to_directory: Path,
 ) -> None:
-    save_candidates_to.parent.mkdir(exist_ok=True, parents=True)
+    save_candidates_to_directory.mkdir(exist_ok=True, parents=True)
     candidates = _generate(project)
-    output = [LiteralScalarString(str(candidate)) for candidate in candidates]
-    with save_candidates_to.open("w") as file:
-        yaml = YAML()
-        yaml.indent(sequence=0, offset=2)
-        yaml.dump(output, file)
+    for candidate_no, candidate in enumerate(candidates):
+        candidate_path = save_candidates_to_directory / f"{candidate_no}.diff"
+        with candidate_path.open("w") as file:
+            file.write(str(candidate))
 
 
 def run(

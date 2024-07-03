@@ -76,9 +76,9 @@ def repair(
 )
 @click.option(
     "-o", "--output",
-    type=click.Path(dir_okay=False, writable=True, path_type=Path),
-    default="candidates.yml",
-    help="the file to which patch candidates should be saved",
+    type=click.Path(dir_okay=True, file_okay=False, writable=True, path_type=Path),
+    default="candidates",
+    help="the directory to which patch candidates should be saved",
 )
 def do_generate(
     filename: Path,
@@ -88,5 +88,5 @@ def do_generate(
     with Project.load(filename) as project:
         generate(
             project=project,
-            save_candidates_to=output,
+            save_candidates_to_directory=output,
         )
