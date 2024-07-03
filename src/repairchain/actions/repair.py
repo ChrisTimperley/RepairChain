@@ -2,8 +2,7 @@ from __future__ import annotations
 
 import typing as t
 
-from repairchain.actions.determine_patch_generation_strategy import determine_patch_generation_strategy
-from repairchain.actions.diagnose import diagnose
+from repairchain.actions.generate import generate
 from repairchain.actions.validate import validate
 
 if t.TYPE_CHECKING:
@@ -20,9 +19,7 @@ def repair(
 
     If `stop_early` is True, the repair process will stop as soon as a valid patch is found.
     """
-    diagnosis = diagnose(project)
-    patch_generator = determine_patch_generation_strategy(diagnosis)
-    candidates = patch_generator.run()
+    candidates = generate(project)
     return validate(
         project,
         candidates,

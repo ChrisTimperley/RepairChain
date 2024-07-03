@@ -6,7 +6,7 @@ import click
 from loguru import logger
 
 from repairchain.models.project import Project
-from repairchain.repairchain import run
+from repairchain.repairchain import generate, run
 
 LOG_LEVELS = (
     "TRACE",
@@ -19,8 +19,24 @@ LOG_LEVELS = (
 
 
 @click.group()
-def cli() -> None:
-    pass
+@click.option(
+    "--log-level",
+    type=click.Choice(LOG_LEVELS),
+    default="INFO",
+    help="controls the logging level",
+
+)
+def cli(log_level: str) -> None:
+    logger.remove()
+    logger.add(
+        sink=click.get_text_stream("stdout"),
+        level=log_level,
+    )
+    logger.enable("kaskara")
+
+    if log_level == "TRACE":
+        logger.enable("dockerblade")
+        logger.enable("sourcelocation")
 
 
 @cli.command()
@@ -39,36 +55,38 @@ def cli() -> None:
     required=True,
     help="the directory to which repairs should be saved",
 )
-@click.option(
-    "--log-level",
-    type=click.Choice(LOG_LEVELS),
-    default="INFO",
-    help="controls the logging level",
-
-)
 def repair(
     filename: Path,
     stop_early: bool,
     save_to_dir: Path,
-    *,
-    log_level: str,
 ) -> None:
-    logger.remove()
-    logger.add(
-        sink=click.get_text_stream("stdout"),
-        level=log_level,
-    )
-    logger.enable("kaskara")
-
-    if log_level == "TRACE":
-        logger.enable("dockerblade")
-        logger.enable("sourcelocation")
-
     logger.info(f"loading project: {filename}")
     with Project.load(filename) as project:
-        logger.info(f"loaded project: {project}")
         run(
             project=project,
             stop_early=stop_early,
             save_patches_to_dir=save_to_dir,
+        )
+
+
+@cli.command("generate")
+@click.argument(
+    "filename",
+    type=click.Path(exists=True, path_type=Path),
+)
+@click.option(
+    "-o", "--output",
+    type=click.Path(dir_okay=False, writable=True, path_type=Path),
+    default="candidates.yml",
+    help="the file to which patch candidates should be saved",
+)
+def do_generate(
+    filename: Path,
+    output: Path,
+) -> None:
+    logger.info(f"loading project: {filename}")
+    with Project.load(filename) as project:
+        generate(
+            project=project,
+            save_candidates_to=output,
         )

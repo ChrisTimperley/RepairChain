@@ -1,17 +1,33 @@
 from __future__ import annotations
 
-__all__ = ("run",)
+__all__ = ("generate", "run")
 
 import typing as t
 
+from ruamel.yaml import YAML
+from ruamel.yaml.scalarstring import LiteralScalarString
 from loguru import logger
 
+from repairchain.actions.generate import generate as _generate
 from repairchain.actions.repair import repair
 
 if t.TYPE_CHECKING:
     from pathlib import Path
 
     from repairchain.models.project import Project
+
+
+def generate(
+    project: Project,
+    save_candidates_to: Path,
+) -> None:
+    save_candidates_to.parent.mkdir(exist_ok=True, parents=True)
+    candidates = _generate(project)
+    output = [LiteralScalarString(candidate) for candidate in candidates]
+    with save_candidates_to.open("w") as file:
+        yaml = YAML()
+        yaml.indent(sequence=0, offset=2)
+        yaml.dump(output, file)
 
 
 def run(
