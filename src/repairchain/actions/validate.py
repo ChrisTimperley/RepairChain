@@ -23,6 +23,7 @@ def validate_patch(
     commit: git.Commit | None = None,
 ) -> PatchOutcome:
     """Applies a given patch to a specific version of a project and returns the outcome."""
+    logger.info(f"validating patch: {diff}")
     try:
         with project.provision(version=commit, diff=diff) as container:
             if not container.run_pov():
