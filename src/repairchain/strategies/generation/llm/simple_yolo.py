@@ -97,14 +97,13 @@ class SimpleYolo(PatchGenerationStrategy):
         return [function_diagnosis.name for function_diagnosis in self.diagnosis.implicated_functions]
 
     def _extract_begin_end_lines(self, function_name: str) -> FileLines | None:
-        file_lines = None
         for function_diagnosis in self.diagnosis.implicated_functions:
             if function_diagnosis.name == function_name:
-                file_lines = FileLines(function_diagnosis.location.location_range.start.line,
-                                       function_diagnosis.location.location_range.stop.line)
-                break
-
-        return file_lines
+                return FileLines(
+                    function_diagnosis.location.location_range.start.line,
+                    function_diagnosis.location.location_range.stop.line
+                )
+        return None
 
     def _extract_patches(self, llm_output: str) -> list[Diff]:
         repaired_files: list[RepairedFileContents] = self._extract_file_repairs(llm_output)
@@ -131,7 +130,6 @@ class SimpleYolo(PatchGenerationStrategy):
 
             # Create the modified file content
             modified_file_content = "\n".join(modified_lines)
-            print(modified_file_content)
 
             # Generate the diff
             diff = difflib.unified_diff(
