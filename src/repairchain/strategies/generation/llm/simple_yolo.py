@@ -101,7 +101,7 @@ class SimpleYolo(PatchGenerationStrategy):
             if function_diagnosis.name == function_name:
                 return FileLines(
                     function_diagnosis.location.location_range.start.line,
-                    function_diagnosis.location.location_range.stop.line
+                    function_diagnosis.location.location_range.stop.line,
                 )
         return None
 
