@@ -1,142 +1,112 @@
 from __future__ import annotations
 
+import functools
 import typing as t
 from abc import ABC, abstractmethod
+from dataclasses import dataclass, field
 
-from repairchain.actions.validate import validate
+from overrides import overrides
+
+from repairchain.actions.validate import (
+    PatchValidator,
+    SimplePatchValidator,
+)
 from repairchain.models.diff import Diff
 from repairchain.models.patch_outcome import PatchOutcome
+from repairchain.util import split
 
 if t.TYPE_CHECKING:
-
+    import git
     from sourcelocation import FileHunk
 
     from repairchain.models.project import Project
 
 
-def split(c: list[int], n: int) -> list[frozenset[int]]:
-    """Utility function to split a list of integers into specified number of
-    sublists of approximately equal size, as sets.
-
-    Parameters
-    ----------
-    c : list[int]
-      List to split
-    n : int
-       Number of desired sublists
-
-    Returns
-    -------
-    list[frozenset[int]]
-       c split into n subsets of approximately equal size
-    """  # noqa: D205
-    subsets = []
-    start = 0
-    for i in range(n):
-        subset = c[start:start + (len(c) - start) // (n - i)]
-        if len(subset) > 0:
-            subsets.append(frozenset(subset))
-        start += len(subset)
-    return subsets
-
-
+@dataclass
 class DiffMinimizer(ABC):
-
+    """Minimizes the hunks within a diff with respect to a criterion specified by the DiffMinizer subclass."""
     triggering_diff: Diff
-    hunks: list[FileHunk]
-    project: Project
+    validator: PatchValidator
+    hunks: list[FileHunk] = field(init=False)
 
-    def __init__(self, project: Project, triggering_diff: Diff) -> None:
-        self.triggering_diff = triggering_diff
-        self.project = project
+    @classmethod
+    def build(
+        cls,
+        triggering_diff: Diff,
+        project: Project,
+        commit: git.Commit | None = None,
+    ) -> t.Self:
+        validator = SimplePatchValidator(project, commit)
+        return cls(
+            triggering_diff=triggering_diff,
+            validator=validator,
+        )
+
+    def __post_init__(self) -> None:
         self.hunks = list(self.triggering_diff.file_hunks)
 
-    def _patch_to_real_diff(self, patch: frozenset[int]) -> Diff:
-        filehunks = [self.hunks[index] for index in patch]
-        return Diff.from_file_hunks(filehunks)
+    def _minimization_to_diff(self, minimization: frozenset[int]) -> Diff:
+        as_hunks = [self.hunks[index] for index in minimization]
+        return Diff.from_file_hunks(as_hunks)
 
     @abstractmethod
-    def _test(self, patch: frozenset[int]) -> PatchOutcome:
-        pass
+    def check_outcome(self, outcome: PatchOutcome) -> bool:
+        """Determines whether a given minimization is valid based on the outcome of the test."""
+        ...
 
-    def _test_with_cache(self, cache: dict[frozenset[int], PatchOutcome], subset: frozenset[int]) -> PatchOutcome:
-        if subset in cache:
-            return cache[subset]
-        outcome = self._test(subset)
-        cache[subset] = outcome
-        return outcome
+    @functools.cache  # noqa: B019
+    def test(self, minimization: frozenset[int]) -> bool:
+        """Determines whether a given minimization satisfies the criterion of this minimizer."""
+        as_hunks = [self.hunks[index] for index in minimization]
+        as_diff = Diff.from_file_hunks(as_hunks)
 
-    def minimize_diff(self) -> Diff:
-        test_cache: dict[frozenset[int], PatchOutcome] = {}
+        outcome = self.validator.validate(as_diff)
+        if outcome == PatchOutcome.FAILED_TO_BUILD:
+            return False
+        return self.check_outcome(outcome)
+
+    def minimize(self) -> Diff:
         c_fail = frozenset(range(len(self.hunks)))
 
-#  FIXME: check, not sure this makes sense with alternative strategies
-#        assert self._test_with_cache(test_cache, c_fail) == PatchOutcome.FAILED
-
+        #  FIXME: check, not sure this makes sense with alternative strategies
+        #        assert self._test_with_cache(test_cache, c_fail) == PatchOutcome.FAILED
         granularity = 2
 
-        # Main loop
         while granularity >= 1:
             subsets = split(list(c_fail), granularity)
             reduced = False
             for subset in subsets:
                 complement = c_fail - frozenset(subset)
 
-                if self._test_with_cache(test_cache, complement) == PatchOutcome.FAILED:
+                # is this a valid subset?
+                if not self.test(complement):
                     c_fail = complement
                     granularity = max(granularity - 1, 2)
                     reduced = True
+
             if not reduced and granularity >= len(c_fail):
-                return self._patch_to_real_diff(c_fail)
+                return self._minimization_to_diff(c_fail)
+
             granularity = min(granularity * 2, len(c_fail))
-        return self._patch_to_real_diff(c_fail)
+
+        return self._minimization_to_diff(c_fail)
 
 
 class MinimizeForFailure(DiffMinimizer):
     """Strategy to find a minimal diff subset that leads to failure."""
 
-    def _test(self, patch: frozenset[int]) -> PatchOutcome:
-        asdiff = self._patch_to_real_diff(patch)
-        validated = validate(self.project, [asdiff], stop_early=True)
-        return PatchOutcome.PASSED if len(validated) > 0 else PatchOutcome.FAILED
+    @overrides
+    def check_outcome(self, outcome: PatchOutcome) -> bool:
+        """Valid minimizations must fail the tests."""
+        assert outcome != PatchOutcome.FAILED_TO_BUILD
+        return outcome == PatchOutcome.FAILED
 
 
 class MinimizeForSuccess(DiffMinimizer):
     """Strategy to find a minimal diff subset required for success."""
 
-    def _test(self, patch: frozenset[int]) -> PatchOutcome:
-        asdiff = self._patch_to_real_diff(patch)
-        validated = validate(self.project, [asdiff], stop_early=True)
-        return PatchOutcome.PASSED if len(validated) == 0 else PatchOutcome.FAILED
-
-
-class SimpleTestDiffMinimizerSuccess(DiffMinimizer):
-    """Minimizer that exists strictly to test delta debugging implementation."""
-
-    def _test(self, patch: frozenset[int]) -> PatchOutcome:
-        if (3 in patch and 0 in patch):  # noqa: PLR2004
-            return PatchOutcome.FAILED
-        return PatchOutcome.PASSED
-
-
-class SimpleTestDiffMinimizerFail(DiffMinimizer):
-    """Minimizer that exists strictly to test delta debugging implementation."""
-
-    def __init__(self, triggering_diff: Diff) -> None:
-        self.triggering_diff = triggering_diff
-        self.hunks = list(self.triggering_diff.file_hunks)
-
-    """
-    Strictly for testing, for test outcome observability.
-    """
-    def assert_pass(self, minimized: Diff) -> bool:
-        aslst = list(minimized.file_hunks)
-        return len(aslst) == 2 and self.hunks.index(aslst[0]) == 0 and self.hunks.index(aslst[1]) == 3  # noqa: PLR2004
-
-    """
-    Hardcodes silly expectation that the minimal patch includes the 0th and 3rd element.
-    """
-    def _test(self, patch: frozenset[int]) -> PatchOutcome:
-        if (3 in patch and 0 in patch):  # noqa: PLR2004
-            return PatchOutcome.FAILED
-        return PatchOutcome.PASSED
+    @overrides
+    def check_outcome(self, outcome: PatchOutcome) -> bool:
+        """Valid minimizations must pass the tests."""
+        assert outcome != PatchOutcome.FAILED_TO_BUILD
+        return outcome == PatchOutcome.PASSED
