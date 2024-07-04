@@ -26,11 +26,18 @@ class Diagnosis:
         return self.project.sanitizer_report
 
     def to_dict(self) -> dict[str, t.Any]:
+        function_descriptions: list[dict[str, t.Any]] = [
+            {
+                "name": function.name,
+                "filename": function.location.filename,
+                "return-type": function.return_type,
+                "location": str(function.location),
+            }
+            for function in self.implicated_functions
+        ]
         return {
             "bug-type": self.bug_type.value,
-            "implicated-functions": [
-                function.name for function in self.implicated_functions
-            ],
+            "implicated-functions": function_descriptions,
         }
 
     def save(self, path: str | Path) -> None:

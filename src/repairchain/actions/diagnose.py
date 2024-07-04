@@ -27,8 +27,9 @@ def diagnose(project: Project) -> Diagnosis:
     implicated_diff = commit_to_diff(triggering_commit)
     crash_version_implicated_files = implicated_diff.files
     logger.info(
-        f"implicated files in crash version ({len(crash_version_implicated_files)})"
-        f": {', '.join(crash_version_implicated_files)}",
+        "implicated files in crash version ({}):\n{}",
+        len(crash_version_implicated_files),
+        "\n".join(crash_version_implicated_files),
     )
     crash_version_function_index = index_functions(
         project=project,
@@ -40,8 +41,9 @@ def diagnose(project: Project) -> Diagnosis:
         crash_version_function_index,
     )
     logger.info(
-        f"implicated functions in crash version ({len(crash_version_implicated_functions)})"
-        f": {', '.join(function.name for function in crash_version_implicated_functions)}",
+        "implicated functions in crash version ({}):\n{}",
+        len(crash_version_implicated_functions),
+        "\n".join(f.name for f in crash_version_implicated_functions),
     )
 
     # FIXME there's an assumption here that these files haven't moved!
@@ -57,8 +59,9 @@ def diagnose(project: Project) -> Diagnosis:
         new_function_index=current_version_function_index,
     )
     logger.info(
-        f"implicated functions in current version ({len(current_version_implicated_functions)})"
-        f": {', '.join(function.name for function in current_version_implicated_functions)}",
+        "implicated functions in current version ({}):\n{}",
+        len(current_version_implicated_functions),
+        "\n".join(f.name for f in current_version_implicated_functions),
     )
 
     return Diagnosis(
