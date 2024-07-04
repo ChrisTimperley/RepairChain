@@ -16,6 +16,7 @@ from repairchain.models.sanitizer_report import SanitizerReport
 
 if t.TYPE_CHECKING:
     from repairchain.models.diff import Diff
+    from repairchain.models.settings import Settings
 
 
 class ProjectKind(enum.StrEnum):
@@ -39,20 +40,29 @@ class Project:
     crash_command_template: str
     sanitizer_report: SanitizerReport
     pov_payload: bytes
+    settings: Settings
 
     @classmethod
     @contextlib.contextmanager
-    def load(cls, path: str | Path) -> t.Iterator[t.Self]:
+    def load(
+        cls,
+        path: str | Path,
+        settings: Settings,
+    ) -> t.Iterator[t.Self]:
         if isinstance(path, str):
             path = Path(path)
         with path.open("r") as file:
             dict_ = json.load(file)
-        with cls.from_dict(dict_) as project:
+        with cls.from_dict(dict_, settings) as project:
             yield project
 
     @classmethod
     @contextlib.contextmanager
-    def from_dict(cls, dict_: dict[str, t.Any]) -> t.Iterator[t.Self]:
+    def from_dict(
+        cls,
+        dict_: dict[str, t.Any],
+        settings: Settings,
+    ) -> t.Iterator[t.Self]:
         kind = ProjectKind(dict_["project-kind"])
         image = dict_["image"]
 
@@ -87,6 +97,7 @@ class Project:
             sanitizer_report_path=sanitizer_report_path,
             triggering_commit_sha=triggering_commit_sha,
             pov_payload_path=pov_payload_path,
+            settings=settings,
         ) as project:
             yield project
 
@@ -106,6 +117,7 @@ class Project:
         crash_command_template: str,
         sanitizer_report_path: Path,
         pov_payload_path: Path,
+        settings: Settings,
         docker_url: str | None = None,
     ) -> t.Iterator[t.Self]:
         assert local_repository_path.is_dir()
@@ -140,6 +152,7 @@ class Project:
                 sanitizer_report=sanitizer_report,
                 triggering_commit=commit,
                 pov_payload=pov_payload,
+                settings=settings,
             )
             yield project
 

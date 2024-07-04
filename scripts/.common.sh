@@ -6,6 +6,8 @@ PROJECT_DIR="${HERE_DIR}/.."
 OPENAI_KEY_FILE="${PROJECT_DIR}/.openapi.key"
 LITELLM_CONFIG_FILE="${PROJECT_DIR}/litellm.local.yml"
 
+export REPAIRCHAIN_WORKERS=${REPAIRCHAIN_WORKERS:-1}
+
 if ! poetry run which litellm &> /dev/null; then
   echo "LiteLLM is not installed. Please install LiteLLM before running this script."
   exit 1

@@ -6,6 +6,7 @@ import click
 from loguru import logger
 
 from repairchain.models.project import Project
+from repairchain.models.settings import Settings
 from repairchain.repairchain import (
     generate,
     run,
@@ -59,13 +60,23 @@ def cli(log_level: str) -> None:
     required=True,
     help="the directory to which repairs should be saved",
 )
+@click.option(
+    "--workers",
+    type=int,
+    default=1,
+    envvar="REPAIRCHAIN_WORKERS",
+    help="the number of workers to use for parallel operations",
+)
 def repair(
     filename: Path,
     stop_early: bool,
     save_to_dir: Path,
+    workers: int,
 ) -> None:
+    settings = Settings(workers=workers)
     logger.info(f"loading project: {filename}")
-    with Project.load(filename) as project:
+    logger.info(f"using settings: {settings}")
+    with Project.load(filename, settings) as project:
         run(
             project=project,
             stop_early=stop_early,
@@ -88,8 +99,10 @@ def do_generate(
     filename: Path,
     output: Path,
 ) -> None:
+    settings = Settings()
     logger.info(f"loading project: {filename}")
-    with Project.load(filename) as project:
+    logger.info(f"using settings: {settings}")
+    with Project.load(filename, settings) as project:
         generate(
             project=project,
             save_candidates_to_directory=output,
@@ -116,14 +129,24 @@ def do_generate(
     required=True,
     help="the directory to which repairs should be saved",
 )
+@click.option(
+    "--workers",
+    type=int,
+    default=1,
+    envvar="REPAIRCHAIN_WORKERS",
+    help="the number of workers to use for parallel operations",
+)
 def do_validate(
     project_file: Path,
     candidates_directory: Path,
     stop_early: bool,
     save_to_dir: Path,
+    workers: int,
 ) -> None:
+    settings = Settings(workers=workers)
     logger.info(f"loading project: {project_file}")
-    with Project.load(project_file) as project:
+    logger.info(f"using settings: {settings}")
+    with Project.load(project_file, settings) as project:
         validate(
             project=project,
             candidates_directory=candidates_directory,

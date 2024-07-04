@@ -161,5 +161,6 @@ def validate(
 
     If `stop_early` is True, the validation process will stop as soon as a valid patch is found.
     """
-    validator = SimplePatchValidator(project, commit)
+    workers = project.settings.workers
+    validator = ThreadedPatchValidator(project, commit, workers=workers)
     return list(validator.run(candidates, stop_early=stop_early))
