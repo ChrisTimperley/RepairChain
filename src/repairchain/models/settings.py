@@ -15,6 +15,9 @@ class Settings:
         The number of workers to use for parallel operations.
     stop_early: bool
         Whether to stop early if a repair is found.
+    minimize_failure: bool
+        Whether to minimize the failure-inducing diff.
     """
     workers: int = field(default=1)
     stop_early: bool = field(default=True)
+    minimize_failure: bool = field(default=True)

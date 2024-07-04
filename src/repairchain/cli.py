@@ -68,13 +68,23 @@ def cli(log_level: str) -> None:
     envvar="REPAIRCHAIN_WORKERS",
     help="the number of workers to use for parallel operations",
 )
+@click.option(
+    "--minimize-failure/--no-minimize-failure",
+    default=True,
+    help="minimize the failure-inducing diff",
+    envvar="REPAIRCHAIN_MINIMIZE_FAILURE",
+)
 def repair(
     filename: Path,
     stop_early: bool,
     save_to_dir: Path,
     workers: int,
+    minimize_failure: bool,
 ) -> None:
-    settings = Settings(workers=workers)
+    settings = Settings(
+        minimize_failure=minimize_failure,
+        workers=workers,
+    )
     logger.info(f"loading project: {filename}")
     logger.info(f"using settings: {settings}")
     with Project.load(filename, settings) as project:
@@ -96,11 +106,18 @@ def repair(
     default="candidates",
     help="the directory to which patch candidates should be saved",
 )
+@click.option(
+    "--minimize-failure/--no-minimize-failure",
+    default=True,
+    help="minimize the failure-inducing diff",
+    envvar="REPAIRCHAIN_MINIMIZE_FAILURE",
+)
 def do_generate(
     filename: Path,
     output: Path,
+    minimize_failure: bool,
 ) -> None:
-    settings = Settings()
+    settings = Settings(minimize_failure=minimize_failure)
     logger.info(f"loading project: {filename}")
     logger.info(f"using settings: {settings}")
     with Project.load(filename, settings) as project:
@@ -174,12 +191,22 @@ def do_validate(
     envvar="REPAIRCHAIN_WORKERS",
     help="the number of workers to use for parallel operations",
 )
+@click.option(
+    "--minimize-failure/--no-minimize-failure",
+    default=True,
+    help="minimize the failure-inducing diff",
+    envvar="REPAIRCHAIN_MINIMIZE_FAILURE",
+)
 def do_diagnose(
     project_file: Path,
     save_to_file: Path,
     workers: int,
+    minimize_failure: bool,
 ) -> None:
-    settings = Settings(workers=workers)
+    settings = Settings(
+        minimize_failure=minimize_failure,
+        workers=workers,
+    )
     logger.info(f"loading project: {project_file}")
     logger.info(f"using settings: {settings}")
     with Project.load(project_file, settings) as project:
