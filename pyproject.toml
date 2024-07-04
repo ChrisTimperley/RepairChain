@@ -63,6 +63,8 @@ select = [
     "ALL",  # includes all rules (including new ones)
 ]
 extend-ignore = [
+    "S404",     # `subprocess` module is possibly insecure
+    "S603",     # `subprocess` call: check for execution of untrusted input
     "PLR6301",  # no-self-use
     "ERA001",   # commented-out code
     "CPY001",   # missing copyright notice at top of file
