@@ -1,11 +1,17 @@
 from __future__ import annotations
 
-__all__ = ("generate", "run")
+__all__ = (
+    "diagnose",
+    "generate",
+    "run",
+    "validate",
+)
 
 import typing as t
 
 from loguru import logger
 
+from repairchain.actions.diagnose import diagnose as _diagnose
 from repairchain.actions.generate import generate as _generate
 from repairchain.actions.repair import repair
 from repairchain.actions.validate import validate as _validate
@@ -15,6 +21,15 @@ if t.TYPE_CHECKING:
     from pathlib import Path
 
     from repairchain.models.project import Project
+
+
+def diagnose(
+    project: Project,
+    save_to_file: Path,
+) -> None:
+    save_to_file.parent.mkdir(exist_ok=True, parents=True)
+    diagnosis = _diagnose(project)
+    diagnosis.save(save_to_file)
 
 
 def generate(

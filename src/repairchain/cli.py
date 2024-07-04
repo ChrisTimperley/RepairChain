@@ -8,6 +8,7 @@ from loguru import logger
 from repairchain.models.project import Project
 from repairchain.models.settings import Settings
 from repairchain.repairchain import (
+    diagnose,
     generate,
     run,
     validate,
@@ -29,7 +30,7 @@ LOG_LEVELS = (
     type=click.Choice(LOG_LEVELS),
     default="INFO",
     help="controls the logging level",
-
+    envvar="REPAIRCHAIN_LOG_LEVEL",
 )
 def cli(log_level: str) -> None:
     logger.remove()
@@ -153,3 +154,33 @@ def do_validate(
             save_patches_to_dir=save_to_dir,
             stop_early=stop_early,
         )
+
+
+@cli.command("diagnose")
+@click.argument(
+    "project-file",
+    type=click.Path(exists=True, dir_okay=False, path_type=Path),
+)
+@click.option(
+    "-o", "--output", "save_to_file",
+    type=click.Path(dir_okay=False, writable=True, path_type=Path),
+    help="the file to which the diagnosis should be saved",
+    default="diagnosis.json",
+)
+@click.option(
+    "--workers",
+    type=int,
+    default=1,
+    envvar="REPAIRCHAIN_WORKERS",
+    help="the number of workers to use for parallel operations",
+)
+def do_diagnose(
+    project_file: Path,
+    save_to_file: Path,
+    workers: int,
+) -> None:
+    settings = Settings(workers=workers)
+    logger.info(f"loading project: {project_file}")
+    logger.info(f"using settings: {settings}")
+    with Project.load(project_file, settings) as project:
+        diagnose(project, save_to_file)
