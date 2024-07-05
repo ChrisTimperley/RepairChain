@@ -70,7 +70,7 @@ def cli(log_level: str) -> None:
 )
 @click.option(
     "--minimize-failure/--no-minimize-failure",
-    default=True,
+    default=False,
     help="minimize the failure-inducing diff",
     envvar="REPAIRCHAIN_MINIMIZE_FAILURE",
 )
@@ -108,7 +108,7 @@ def repair(
 )
 @click.option(
     "--minimize-failure/--no-minimize-failure",
-    default=True,
+    default=False,
     help="minimize the failure-inducing diff",
     envvar="REPAIRCHAIN_MINIMIZE_FAILURE",
 )
@@ -193,7 +193,7 @@ def do_validate(
 )
 @click.option(
     "--minimize-failure/--no-minimize-failure",
-    default=True,
+    default=False,
     help="minimize the failure-inducing diff",
     envvar="REPAIRCHAIN_MINIMIZE_FAILURE",
 )

@@ -8,6 +8,5 @@ EXAMPLE_DIR="$1"
 pushd "${EXAMPLE_DIR}" &> /dev/null
 
 poetry run repairchain \
-    --log-level INFO \
     diagnose \
     ./project.json

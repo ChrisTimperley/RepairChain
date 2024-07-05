@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-import functools
 import typing as t
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 
+from loguru import logger
 from overrides import overrides
 
 from repairchain.actions.validate import (
@@ -54,24 +54,32 @@ class DiffMinimizer(ABC):
         """Determines whether a given minimization is valid based on the outcome of the test."""
         ...
 
-    @functools.cache  # noqa: B019
     def test(self, minimization: frozenset[int]) -> bool:
         """Determines whether a given minimization satisfies the criterion of this minimizer."""
+        logger.debug(f"testing minimization: {minimization}")
         as_hunks = [self.hunks[index] for index in minimization]
         as_diff = Diff.from_file_hunks(as_hunks)
 
         outcome = self.validator.validate(as_diff)
         if outcome == PatchOutcome.FAILED_TO_BUILD:
+            logger.debug(f"minimization failed to build: {minimization}")
             return False
-        return self.check_outcome(outcome)
+
+        logger.debug(f"minimization outcome: {outcome}")
+        is_valid = self.check_outcome(outcome)
+        if is_valid:
+            logger.debug(f"minimization is valid: {minimization}")
+        else:
+            logger.debug(f"minimization is invalid: {minimization}")
+        return is_valid
 
     def minimize(self) -> Diff:
-        c_fail = frozenset(range(len(self.hunks)))
+        num_hunks = len(self.hunks)
+        logger.debug(f"minimizing diff with {num_hunks} hunks")
+        c_fail = frozenset(range(num_hunks))
 
-        #  FIXME: check, not sure this makes sense with alternative strategies
-        #        assert self._test_with_cache(test_cache, c_fail) == PatchOutcome.FAILED
+        # FIXME this should probably be higher?
         granularity = 2
-
         while granularity >= 1:
             subsets = split(list(c_fail), granularity)
             reduced = False
@@ -81,9 +89,11 @@ class DiffMinimizer(ABC):
                 # is this a valid subset?
                 if not self.test(complement):
                     c_fail = complement
+                    # FIXME granularity will never be lower than 2?
                     granularity = max(granularity - 1, 2)
                     reduced = True
 
+            # this seems wrong?
             if not reduced and granularity >= len(c_fail):
                 return self._minimization_to_diff(c_fail)
 

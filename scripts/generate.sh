@@ -11,7 +11,6 @@ pushd "${EXAMPLE_DIR}" &> /dev/null
 run_litellm
 
 poetry run repairchain \
-    --log-level INFO \
     generate \
     ./project.json \
     -o "${OUTPUT_DIR}"

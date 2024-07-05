@@ -10,7 +10,6 @@ SAVE_TO_DIR="$(realpath "${EXAMPLE_DIR}/patches")"
 pushd "${EXAMPLE_DIR}" &> /dev/null
 
 poetry run repairchain \
-    --log-level INFO \
     validate \
     ./project.json \
     "${CANDIDATES_DIR}" \

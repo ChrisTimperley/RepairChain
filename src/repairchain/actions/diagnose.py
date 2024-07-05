@@ -4,6 +4,7 @@ __all__ = ("diagnose",)
 
 import typing as t
 
+from dockerblade.stopwatch import Stopwatch
 from loguru import logger
 
 from repairchain.actions.commit_to_diff import commit_to_diff
@@ -11,6 +12,7 @@ from repairchain.actions.determine_bug_type import determine_bug_type
 from repairchain.actions.index_functions import index_functions
 from repairchain.actions.localize_diff import diff_to_functions
 from repairchain.actions.map_functions import map_functions
+from repairchain.actions.minimize_diff import MinimizeForFailure
 from repairchain.models.diagnosis import Diagnosis
 
 if t.TYPE_CHECKING:
@@ -22,9 +24,23 @@ def diagnose(project: Project) -> Diagnosis:
     logger.info(f"determined bug type: {bug_type}")
 
     triggering_commit = project.triggering_commit
-    # FIXME: need to minimize diff first
-
     implicated_diff = commit_to_diff(triggering_commit)
+
+    if project.settings.minimize_failure:
+        stopwatch = Stopwatch()
+        logger.info(f"minimizing implicated diff:\n{implicated_diff}")
+        stopwatch.start()
+        minimizer = MinimizeForFailure.build(
+            project=project,
+            triggering_diff=implicated_diff,
+            commit=triggering_commit.parents[0],
+        )
+        implicated_diff = minimizer.minimize()
+        time_taken = stopwatch.duration
+        logger.info(
+            f"minimized implicated diff (took {time_taken:.2f} s):\n{implicated_diff}",
+        )
+
     crash_version_implicated_files = implicated_diff.files
     logger.info(
         "implicated files in crash version ({}):\n{}",
