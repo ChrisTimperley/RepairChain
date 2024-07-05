@@ -29,6 +29,11 @@ def dd_minimize(
     list[T]
         the minimized sequence
     """
+    len_original = len(original)
+    input_indices = set(range(len_original))
+
+
+
     raise NotImplementedError
 
 
