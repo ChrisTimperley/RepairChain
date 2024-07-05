@@ -7,6 +7,27 @@ import typing as t
 T = t.TypeVar("T")
 
 
+def dd_minimize(
+    original: t.Sequence[T],
+    tester: t.Callable[[t.Sequence[T]], bool],
+) -> list[T]:
+    """Finds the minimal subsequence of a sequence that satisfies a given predicate.
+
+    Arguments:
+    ---------
+    original: t.Sequence[T]
+        the original sequence to minimize
+    tester: t.Callable[[t.Sequence[T]], bool]
+        a function that takes a sequence and returns True if the sequence is valid
+
+    Returns:
+    -------
+    list[T]
+        the minimized sequence
+    """
+    raise NotImplementedError
+
+
 def split(list_: t.Sequence[T], chunks: int) -> list[frozenset[T]]:
     """Splits a sequence into sub-sequences of approximately equal size.
 
