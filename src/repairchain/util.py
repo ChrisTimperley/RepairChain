@@ -1,6 +1,10 @@
 from __future__ import annotations
 
-__all__ = ("split",)
+__all__ = (
+    "dd_maximize",
+    "dd_minimize",
+    "split",
+)
 
 import typing as t
 
@@ -11,7 +15,7 @@ def dd_minimize(
     original: t.Sequence[T],
     tester: t.Callable[[t.Sequence[T]], bool],
 ) -> list[T]:
-    """Finds the minimal subsequence of a sequence that satisfies a given predicate.
+    """Finds the minimal portion of a sequence that satisfies a given predicate.
 
     Arguments:
     ---------
@@ -24,6 +28,27 @@ def dd_minimize(
     -------
     list[T]
         the minimized sequence
+    """
+    raise NotImplementedError
+
+
+def dd_maximize(
+    original: t.Sequence[T],
+    tester: t.Callable[[t.Sequence[T]], bool],
+) -> list[T]:
+    """Finds the maximal portion of a sequence that satisfies a given predicate.
+
+    Arguments:
+    ---------
+    original: t.Sequence[T]
+        the original sequence to maximize
+    tester: t.Callable[[t.Sequence[T]], bool]
+        a function that takes a sequence and returns True if the sequence is valid
+
+    Returns:
+    -------
+    list[T]
+        the maximized sequence
     """
     raise NotImplementedError
 
