@@ -11,6 +11,46 @@ import typing as t
 T = t.TypeVar("T")
 
 
+def to_set(inp: t.Sequence) -> set:
+    """Convert inp into a set of indices."""
+    return set(range(len(inp)))
+
+
+def from_indices(indices: set, inp: t.Sequence) -> t.Sequence[T]:
+    """Convert a set of indices into `inp` back into a collection."""
+    ret = []
+    for i, c in enumerate(inp):
+        if i in indices:
+            ret.append(c)
+    return ret
+
+
+def split(list_: t.Sequence[T], chunks: int) -> list[set[T]]:
+    """Splits a sequence into sub-sequences of approximately equal size.
+
+    Parameters
+    ----------
+    list_: t.Sequence[T]
+        list to split
+    chunks: int
+        number of desired sublists
+
+    Returns
+    -------
+    list[frozenset[T]]
+        a list of approximately equal-sized subsequences
+    """
+    list_size = len(list_)
+    subsets: list[set[T]] = []
+    start = 0
+    for i in range(chunks):
+        subset = list_[start:start + (list_size - start) // (chunks - i)]
+        if subset:
+            subsets.append(set(subset))
+        start += len(subset)
+    return subsets
+
+
 def dd_minimize(
     original: t.Sequence[T],
     tester: t.Callable[[t.Sequence[T]], bool],
@@ -29,12 +69,28 @@ def dd_minimize(
     list[T]
         the minimized sequence
     """
-    len_original = len(original)
-    input_indices = set(range(len_original))
+    c_fail = set(range(len(original)))
 
+    granularity = 2
 
+    while len(c_fail) >= 2:
+        subsets = split(list(c_fail), granularity)
+        some_complement_is_failing = False
+        for subset in subsets:
+            complement = c_fail - frozenset(subset)
+            totest: t.Sequence[T] = from_indices(complement, original)
+            if tester(totest):
+                c_fail = complement
+                granularity = max(granularity - 1, 2)
+                some_complement_is_failing = True
+                break
 
-    raise NotImplementedError
+        if not some_complement_is_failing:
+            if granularity == len(c_fail):
+                break
+            granularity = min(granularity * 2, len(c_fail))
+
+    return list(from_indices(set(c_fail), original))
 
 
 def dd_maximize(
@@ -55,30 +111,6 @@ def dd_maximize(
     list[T]
         the maximized sequence
     """
-    raise NotImplementedError
-
-
-def split(list_: t.Sequence[T], chunks: int) -> list[frozenset[T]]:
-    """Splits a sequence into sub-sequences of approximately equal size.
-
-    Parameters
-    ----------
-    list_: t.Sequence[T]
-        list to split
-    chunks: int
-        number of desired sublists
-
-    Returns
-    -------
-    list[frozenset[T]]
-        a list of approximately equal-sized subsequences
-    """
-    list_size = len(list_)
-    subsets: list[frozenset[T]] = []
-    start = 0
-    for i in range(chunks):
-        subset = list_[start:start + (list_size - start) // (chunks - i)]
-        if subset:
-            subsets.append(frozenset(subset))
-        start += len(subset)
-    return subsets
+    new_tester = lambda x: not tester(x)
+    minimized = dd_minimize(original, new_tester)
+    return [i for i in original if i not in minimized]
