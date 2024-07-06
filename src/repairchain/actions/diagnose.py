@@ -44,7 +44,9 @@ def diagnose(project: Project) -> Diagnosis:
 
         def tester(fds: t.Sequence[FileHunk]) -> bool:
             as_diff = Diff.from_file_hunks(list(fds))
+            logger.info(f"minimization testing :\n{implicated_diff}")
             outcome = validator.validate(as_diff)
+            logger.info(f"...outcome...{outcome}")
             return outcome == PatchOutcome.FAILED
 
         to_minimize: list[FileHunk] = list(implicated_diff.file_hunks)

@@ -8,6 +8,8 @@ __all__ = (
 
 import typing as t
 
+from loguru import logger
+
 T = t.TypeVar("T")
 
 
@@ -70,6 +72,8 @@ def dd_minimize(
         the minimized sequence
     """
     c_fail = set(range(len(original)))
+    logger.info(f"beginning dd_min. failure indices:{c_fail}")
+    assert tester(original)  # property should hold on entry
 
     granularity = 2
 
@@ -80,8 +84,11 @@ def dd_minimize(
             complement = c_fail - frozenset(subset)
             totest: t.Sequence[T] = from_indices(complement, original)
             if tester(totest):
+                logger.info(f"property holds on this subset, decreasing granularity from{granularity}...")
+
                 c_fail = complement
                 granularity = max(granularity - 1, 2)
+                logger.info(f"...to{granularity} New c_fail is {c_fail}")
                 some_complement_is_failing = True
                 break
 
