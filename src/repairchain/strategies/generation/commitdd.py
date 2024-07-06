@@ -10,11 +10,15 @@ import git
 from loguru import logger
 
 from repairchain.actions.commit_to_diff import commit_to_diff
-from repairchain.actions.minimize_diff import MinimizeForSuccess
+from repairchain.actions.validate import SimplePatchValidator
 from repairchain.models.diff import Diff
+from repairchain.models.patch_outcome import PatchOutcome
 from repairchain.strategies.generation.base import PatchGenerationStrategy
+from repairchain.util import dd_minimize
 
 if t.TYPE_CHECKING:
+    from sourcelocation.diff import FileHunk
+
     from repairchain.models.diagnosis import Diagnosis
     from repairchain.models.project import Project
 
@@ -45,16 +49,21 @@ class CommitDD(PatchGenerationStrategy):
         project = self.diagnosis.project
         repo = project.repository
 
-        # compute a reverse diff between the triggering commit and HEAD
+        # compute a reverse diff between the triggering commit and the one
+        # before it
         sha = project.triggering_commit.hexsha
         reverse_diff = Diff.from_unidiff(project.repository.git.diff(sha, sha + "^", unified=True))
 
-        minimizer = MinimizeForSuccess.build(
-            project=project,
-            commit=project.triggering_commit,
-            triggering_diff=reverse_diff,
-        )
-        minimized = minimizer.minimize()
+        validator = SimplePatchValidator(project, project.triggering_commit.parents[0])
+
+        def tester(fds: t.Sequence[FileHunk]) -> bool:
+            as_diff = Diff.from_file_hunks(list(fds))
+            outcome = validator.validate(as_diff)
+            return outcome == PatchOutcome.PASSED
+
+        to_minimize: list[FileHunk] = list(reverse_diff.file_hunks)
+        minimized_hunks = dd_minimize(to_minimize, tester)
+        minimized = Diff.from_file_hunks(minimized_hunks)
 
         # we have the slice of the undone commit we need, now we need it to
         # apply to the program at its _current_ commit.  We:
