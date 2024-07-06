@@ -73,7 +73,7 @@ def dd_minimize(
 
     granularity = 2
 
-    while len(c_fail) >= 2:
+    while len(c_fail) >= 2:  # noqa: PLR2004
         subsets = split(list(c_fail), granularity)
         some_complement_is_failing = False
         for subset in subsets:
@@ -111,6 +111,7 @@ def dd_maximize(
     list[T]
         the maximized sequence
     """
-    new_tester = lambda x: not tester(x)
+    def new_tester(x: t.Sequence[T]) -> bool:
+        return not tester(x)
     minimized = dd_minimize(original, new_tester)
     return [i for i in original if i not in minimized]

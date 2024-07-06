@@ -10,7 +10,6 @@ import typing as t
 
 from dockerblade.stopwatch import Stopwatch
 from loguru import logger
-from sourcelocation import FileHunk
 
 from repairchain.actions.commit_to_diff import commit_to_diff
 from repairchain.actions.determine_bug_type import determine_bug_type
@@ -23,7 +22,10 @@ from repairchain.models.diff import Diff
 T = t.TypeVar("T")
 
 if t.TYPE_CHECKING:
+    from sourcelocation import FileHunk
+
     from repairchain.models.project import Project
+
 
 def diagnose(project: Project) -> Diagnosis:
     bug_type = determine_bug_type(project.sanitizer_report)
