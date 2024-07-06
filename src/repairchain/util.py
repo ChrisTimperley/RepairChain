@@ -11,12 +11,12 @@ import typing as t
 T = t.TypeVar("T")
 
 
-def to_set(inp: t.Sequence) -> set:
+def to_set(inp: t.Sequence[T]) -> set[int]:
     """Convert inp into a set of indices."""
     return set(range(len(inp)))
 
 
-def from_indices(indices: set, inp: t.Sequence) -> t.Sequence[T]:
+def from_indices(indices: set[int], inp: t.Sequence[T]) -> t.Sequence[T]:
     """Convert a set of indices into `inp` back into a collection."""
     ret = []
     for i, c in enumerate(inp):
