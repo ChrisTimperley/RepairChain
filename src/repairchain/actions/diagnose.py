@@ -34,6 +34,12 @@ def diagnose(project: Project) -> Diagnosis:
     triggering_commit = project.triggering_commit
     implicated_diff = commit_to_diff(triggering_commit)
 
+    if project.settings.sanity_check:
+        with project.provision() as container:
+            logger.info("running sanity check")
+            assert container.run_regression_tests()
+            assert not container.run_pov()
+
     if project.settings.minimize_failure:
         stopwatch = Stopwatch()
         logger.info(f"minimizing implicated diff:\n{implicated_diff}")
@@ -42,9 +48,9 @@ def diagnose(project: Project) -> Diagnosis:
 
         validator = SimplePatchValidator(project, triggering_commit.parents[0])
 
-        def tester(fds: t.Sequence[FileHunk]) -> bool:
-            as_diff = Diff.from_file_hunks(list(fds))
-            logger.info(f"minimization testing :\n{implicated_diff}")
+        def tester(hunks: t.Sequence[FileHunk]) -> bool:
+            as_diff = Diff.from_file_hunks(list(hunks))
+            logger.info(f"minimization testing :\n{as_diff}")
             outcome = validator.validate(as_diff)
             logger.info(f"...outcome...{outcome}")
             return outcome == PatchOutcome.FAILED
