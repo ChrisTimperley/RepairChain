@@ -96,7 +96,7 @@ def dd_minimize(
                 break
             granularity = min(granularity * 2, len(c_fail))
 
-    return list(from_indices(set(c_fail), original))
+    return list(from_indices(c_fail, original))
 
 
 def dd_maximize(
