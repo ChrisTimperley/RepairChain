@@ -85,6 +85,10 @@ class ProjectContainer:
         container_patch_filename = self._filesystem.mktemp(suffix=".diff")
         patch_contents = str(patch)
         self._filesystem.put(container_patch_filename, patch_contents)
+        self._filesystem.patch(
+            context=str(self.project.docker_repository_path),
+            diff=str(patch),
+        )
 
     def checkout(
         self,
@@ -92,6 +96,8 @@ class ProjectContainer:
         *,
         clean_before: bool = True,
     ) -> None:
+        logger.trace(f"checking out version: {version.hexsha}")
+
         if clean_before:
             self.clean()
 
