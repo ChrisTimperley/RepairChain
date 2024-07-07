@@ -18,13 +18,9 @@ def to_set(inp: t.Sequence[T]) -> set[int]:
     return set(range(len(inp)))
 
 
-def from_indices(indices: set[int], inp: t.Sequence[T]) -> t.Sequence[T]:
+def from_indices(indices: set[int], input_: t.Sequence[T]) -> t.Sequence[T]:
     """Convert a set of indices into `inp` back into a collection."""
-    ret = []
-    for i, c in enumerate(inp):
-        if i in indices:
-            ret.append(c)
-    return ret
+    return [value for (index, value) in enumerate(input_) if index in indices]
 
 
 def split(list_: t.Sequence[T], chunks: int) -> list[set[T]]:
