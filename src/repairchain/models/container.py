@@ -9,6 +9,10 @@ from dataclasses import dataclass
 import dockerblade
 
 from repairchain.errors import BuildFailure
+from repairchain.models.sanitizer_report import (
+    Sanitizer,
+    SanitizerReport,
+)
 
 if t.TYPE_CHECKING:
     import git
@@ -153,8 +157,31 @@ class ProjectContainer:
             container_payload_filename,
         )
 
-        try:
-            self._shell.check_call(crash_command)
-        except dockerblade.exceptions.CalledProcessError:
-            return False
-        return True
+        # TODO inject time limit!
+        outcome = self._shell.run(
+            crash_command,
+            stdout=False,
+            stderr=True,
+            text=True,
+        )
+
+        # TODO we're going to have to detect time limits
+        # outcome.duration >= time_limit
+        return self._check_pov_outcome(outcome)
+
+    def _check_pov_outcome(self, outcome: dockerblade.CompletedProcess) -> bool:
+        """Checks the outcome of a PoV execution.
+
+        Arguments:
+        ---------
+        outcome: dockerblade.CompletedProcess
+            The outcome of the PoV execution.
+
+        Returns:
+        -------
+        bool
+            :code:`True` if no sanitizers were triggered, :code:`False` otherwise.
+        """
+        assert isinstance(outcome.output, str)
+        detected_sanitizer = SanitizerReport._find_sanitizer(outcome.output)
+        return detected_sanitizer is not Sanitizer.UNKNOWN
