@@ -30,7 +30,7 @@ class PatchValidator(abc.ABC):
     # that would allow for container recycling
     def validate(self, candidate: Diff) -> PatchOutcome:
         """Validates a single patch and returns the outcome."""
-        logger.info(f"validating patch:\n{candidate}")
+        logger.info(f"validating patch (applied to {self.commit}):\n{candidate}")
         try:
             with self.project.provision(
                 version=self.commit,

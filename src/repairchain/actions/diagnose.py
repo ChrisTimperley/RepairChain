@@ -44,15 +44,13 @@ def diagnose(project: Project) -> Diagnosis:
         stopwatch = Stopwatch()
         logger.info(f"minimizing implicated diff:\n{implicated_diff}")
         stopwatch.start()
-        # potential FIXME: should this be testing from the commit right before the triggering commit?
-
         validator = SimplePatchValidator(project, triggering_commit.parents[0])
 
         def tester(hunks: t.Sequence[FileHunk]) -> bool:
             as_diff = Diff.from_file_hunks(list(hunks))
-            logger.info(f"minimization testing :\n{as_diff}")
+            logger.debug(f"testing minimization:\n{as_diff}")
             outcome = validator.validate(as_diff)
-            logger.info(f"...outcome...{outcome}")
+            logger.debug(f"outcome: {outcome}")
             return outcome == PatchOutcome.FAILED
 
         to_minimize: list[FileHunk] = list(implicated_diff.file_hunks)

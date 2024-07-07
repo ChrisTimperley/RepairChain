@@ -68,12 +68,13 @@ def dd_minimize(
         the minimized sequence
     """
     c_fail = set(range(len(original)))
-    logger.info(f"beginning dd_min. failure indices:{c_fail}")
+    logger.debug(f"beginning dd_min. failure indices: {c_fail}")
     assert tester(original)  # property should hold on entry
 
     granularity = 2
 
     while len(c_fail) >= 2:  # noqa: PLR2004
+        logger.debug(f"using granularity: {granularity}")
         subsets = split(list(c_fail), granularity)
         some_complement_is_failing = False
         for subset in subsets:
