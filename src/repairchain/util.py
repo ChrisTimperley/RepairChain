@@ -18,7 +18,7 @@ def to_set(inp: t.Sequence[T]) -> set[int]:
     return set(range(len(inp)))
 
 
-def from_indices(indices: set[int], input_: t.Sequence[T]) -> t.Sequence[T]:
+def from_indices(indices: set[int], input_: t.Sequence[T]) -> list[T]:
     """Convert a set of indices into `inp` back into a collection."""
     return [value for (index, value) in enumerate(input_) if index in indices]
 
@@ -78,7 +78,7 @@ def dd_minimize(
         some_complement_is_failing = False
         for subset in subsets:
             complement = c_fail - frozenset(subset)
-            totest: t.Sequence[T] = from_indices(complement, original)
+            totest = from_indices(complement, original)
             if tester(totest):
                 c_fail = complement
                 old_granularity = granularity
@@ -96,7 +96,8 @@ def dd_minimize(
                 break
             granularity = min(granularity * 2, len(c_fail))
 
-    return list(from_indices(c_fail, original))
+    logger.debug("finished dd_minimize")
+    return from_indices(c_fail, original)
 
 
 def dd_maximize(
