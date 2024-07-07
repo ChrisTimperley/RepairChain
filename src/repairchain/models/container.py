@@ -7,6 +7,7 @@ import typing as t
 from dataclasses import dataclass
 
 import dockerblade
+from loguru import logger
 
 from repairchain.errors import BuildFailure
 from repairchain.models.sanitizer_report import (
@@ -160,7 +161,7 @@ class ProjectContainer:
         # TODO inject time limit!
         outcome = self._shell.run(
             crash_command,
-            stdout=False,
+            stdout=True,
             stderr=True,
             text=True,
         )
@@ -183,5 +184,7 @@ class ProjectContainer:
             :code:`True` if no sanitizers were triggered, :code:`False` otherwise.
         """
         assert isinstance(outcome.output, str)
+        logger.debug(f"checking PoV output: {outcome.output}")
         detected_sanitizer = SanitizerReport._find_sanitizer(outcome.output)
-        return detected_sanitizer is not Sanitizer.UNKNOWN
+        logger.debug(f"detected sanitizer: {detected_sanitizer}")
+        return detected_sanitizer is Sanitizer.UNKNOWN
