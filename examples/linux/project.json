@@ -11,7 +11,7 @@
   "commands": {
     "build": "/usr/local/sbin/container_scripts/cmd_harness.sh build",
     "clean": "git clean -xdf",
-    "regression-test": "pass",
+    "regression-test": "echo hello",
     "broken-regression-test": "/usr/local/sbin/container_scripts/cmd_harness.sh tests",
     "crash-template": "/usr/local/sbin/container_scripts/cp_pov __PAYLOAD_FILE__ linux_test_harness"
   }
