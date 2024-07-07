@@ -84,11 +84,14 @@ def dd_minimize(
             complement = c_fail - frozenset(subset)
             totest: t.Sequence[T] = from_indices(complement, original)
             if tester(totest):
-                logger.info(f"property holds on this subset, decreasing granularity from{granularity}...")
-
                 c_fail = complement
+                old_granularity = granularity
                 granularity = max(granularity - 1, 2)
-                logger.info(f"...to{granularity} New c_fail is {c_fail}")
+                logger.debug(
+                    "property holds on this subset, decreasing granularity "
+                    f"from {old_granularity} to {granularity}.",
+                )
+                logger.debug(f"updated c_fail to: {c_fail}")
                 some_complement_is_failing = True
                 break
 
