@@ -97,7 +97,7 @@ def repair(  # noqa: PLR0917
     persist_evaluations_to_file: Path | None,
     persist_kaskara_to_file: Path | None,
 ) -> None:
-    settings = Settings(
+    settings = Settings.from_env(
         cache_evaluations_to_file=persist_evaluations_to_file,
         cache_index_to_file=persist_kaskara_to_file,
         minimize_failure=minimize_failure,
@@ -151,7 +151,7 @@ def do_generate(
     persist_evaluations_to_file: Path | None,
     persist_kaskara_to_file: Path | None,
 ) -> None:
-    settings = Settings(
+    settings = Settings.from_env(
         cache_evaluations_to_file=persist_evaluations_to_file,
         cache_index_to_file=persist_kaskara_to_file,
         minimize_failure=minimize_failure,
@@ -207,7 +207,7 @@ def do_validate(  # noqa: PLR0917
     workers: int,
     persist_evaluations_to_file: Path | None,
 ) -> None:
-    settings = Settings(
+    settings = Settings.from_env(
         cache_evaluations_to_file=persist_evaluations_to_file,
         workers=workers,
     )
@@ -268,7 +268,7 @@ def do_diagnose(  # noqa: PLR0917
     persist_evaluations_to_file: Path | None,
     persist_kaskara_to_file: Path | None,
 ) -> None:
-    settings = Settings(
+    settings = Settings.from_env(
         cache_evaluations_to_file=persist_evaluations_to_file,
         cache_index_to_file=persist_kaskara_to_file,
         minimize_failure=minimize_failure,
