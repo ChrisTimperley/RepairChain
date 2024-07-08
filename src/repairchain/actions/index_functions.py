@@ -4,8 +4,6 @@ __all__ = ("index_functions",)
 
 import typing as t
 
-from repairchain.indexer import KaskaraIndexer
-
 if t.TYPE_CHECKING:
     import git
     import kaskara.functions
@@ -25,8 +23,7 @@ def index_functions(
     if restrict_to_files is None:
         restrict_to_files = []
 
-    indexer = KaskaraIndexer(project)
-    analysis = indexer.run(
+    analysis = project.indexer.run(
         version=version,
         restrict_to_files=restrict_to_files,
     )

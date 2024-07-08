@@ -15,6 +15,7 @@ from repairchain.actions.validate import (
     PatchValidator,
     ThreadedPatchValidator,
 )
+from repairchain.indexer import KaskaraIndexer
 from repairchain.models.container import ProjectContainer
 from repairchain.models.patch_outcome import PatchOutcomeCache
 from repairchain.models.sanitizer_report import SanitizerReport
@@ -48,10 +49,12 @@ class Project:
     settings: Settings
     evaluation_cache: PatchOutcomeCache = field(init=False)
     validator: PatchValidator = field(init=False)
+    indexer: KaskaraIndexer = field(init=False)
 
     def __post_init__(self) -> None:
         self.evaluation_cache = PatchOutcomeCache.for_settings(self.settings)
         self.validator = ThreadedPatchValidator.for_project(self)
+        self.indexer = KaskaraIndexer(self)
 
     @classmethod
     @contextlib.contextmanager
