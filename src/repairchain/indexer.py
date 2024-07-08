@@ -4,15 +4,14 @@ __all__ = ("KaskaraIndexer",)
 
 import contextlib
 import typing as t
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 import kaskara
 import kaskara.clang.analyser
+from dockerblade.stopwatch import Stopwatch
 from loguru import logger
 
 if t.TYPE_CHECKING:
-    from pathlib import Path
-
     import git
 
     from repairchain.models.project import Project
@@ -20,25 +19,22 @@ if t.TYPE_CHECKING:
 
 @dataclass
 class KaskaraIndexer:
-    _analyzer: kaskara.analyser.Analyser
-    _docker_repository_path: Path
+    project: Project
+    _ignore_errors: bool = field(default=True)
 
-    @classmethod
     @contextlib.contextmanager
-    def build(
-        cls,
-        project: Project,
-        *,
-        version: git.Commit | None = None,
+    def _build_analyzer(
+        self,
+        version: git.Commit | None,
         restrict_to_files: list[str],
-        ignore_errors: bool = True,
-    ) -> t.Iterator[t.Self]:
+    ) -> t.Iterator[kaskara.analyser.Analyser]:
+        project = self.project
         kaskara_project = kaskara.Project(
             dockerblade=project.docker_daemon,
             image=project.image,
             directory=str(project.docker_repository_path),
             files=frozenset(restrict_to_files),
-            ignore_errors=ignore_errors,
+            ignore_errors=self._ignore_errors,
         )
         logger.debug(f"using kaskara project: {kaskara_project}")
 
@@ -60,16 +56,27 @@ class KaskaraIndexer:
                 message = f"unsupported project kind: {project.kind}"
                 raise ValueError(message)
 
-            yield cls(
-                _analyzer=analyzer,
-                _docker_repository_path=project.docker_repository_path,
-            )
+            yield analyzer
 
-    # FIXME ideally, we want to be able to just run individual analyses
-    # to do this, I need to expose a few more public methods in the
-    # Analyser base class
-    def run(self) -> kaskara.analysis.Analysis:
-        analysis = self._analyzer.run()
+    def run(
+        self,
+        version: git.Commit | None,
+        restrict_to_files: list[str],
+    ) -> kaskara.analysis.Analysis:
+        stopwatch = Stopwatch()
+        logger.info(f"indexing project version ({version}) ...")
+        stopwatch.start()
+
+        with self._build_analyzer(
+            version=version,
+            restrict_to_files=restrict_to_files,
+        ) as analyzer:
+            analysis = analyzer.run()
+
         # ensure that all paths are relative to the repository
         # this is super important!
-        return analysis.with_relative_locations(str(self._docker_repository_path))
+        docker_repository_path = self.project.docker_repository_path
+        analysis = analysis.with_relative_locations(str(docker_repository_path))
+        time_taken = stopwatch.duration
+        logger.info(f"indexed {len(analysis.functions)} functions (took {time_taken:.2f}s)")
+        return analysis
