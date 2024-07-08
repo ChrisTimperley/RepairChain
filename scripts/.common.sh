@@ -9,6 +9,7 @@ LITELLM_CONFIG_FILE="${PROJECT_DIR}/litellm.local.yml"
 export REPAIRCHAIN_WORKERS="${REPAIRCHAIN_WORKERS:-1}"
 export REPAIRCHAIN_LOG_LEVEL="${REPAIRCHAIN_LOG_LEVEL:-DEBUG}"
 export REPAIRCHAIN_MINIMIZE_FAILURE="${REPAIRCHAIN_MINIMIZE_FAILURE:-true}"
+export REPAIRCHAIN_EVALUATION_CACHE="${REPAIRCHAIN_EVALUATION_CACHE:-./.caches/evaluation.pkl}"
 
 if ! poetry run which litellm &> /dev/null; then
   echo "LiteLLM is not installed. Please install LiteLLM before running this script."
