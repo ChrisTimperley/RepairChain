@@ -29,16 +29,19 @@ if t.TYPE_CHECKING:
 class PatchValidator(abc.ABC):
     """Validates patches against a specific project version."""
     project: Project
-    commit: git.Commit | None
 
-    # TODO allow a container to be optionally provided?
-    # that would allow for container recycling
-    def validate(self, candidate: Diff) -> PatchOutcome:
+    def validate(
+        self,
+        candidate: Diff,
+        commit: git.Commit | None,
+    ) -> PatchOutcome:
         """Validates a single patch and returns the outcome."""
-        logger.info(f"validating patch (applied to {self.commit}):\n{candidate}")
+        if commit is None:
+            commit = self.project.head
+        logger.info(f"validating patch (applied to {commit}):\n{candidate}")
         try:
             with self.project.provision(
-                version=self.commit,
+                version=commit,
                 diff=candidate,
             ) as container:
                 if not container.run_pov():
@@ -57,10 +60,11 @@ class PatchValidator(abc.ABC):
         self,
         candidates: list[Diff],
         *,
+        commit: git.Commit | None = None,
         timeout: int | None = None,
         stop_early: bool = True,
-    ) -> t.Iterator[Diff]:
-        """Validates a list of patches and yields the valid ones.
+    ) -> t.Iterator[tuple[Diff, PatchOutcome]]:
+        """Validates a list of patches and yields their outcomes.
 
         Arguments:
         ---------
@@ -71,11 +75,14 @@ class PatchValidator(abc.ABC):
         timeout : int | None
             The maximum amount of time to spend validating (in seconds).
             If None, no timeout is set.
+        commit: git.Commit | None
+            The commit to which the patches should be applied.
+            If None, the project's head commit is used.
 
         Yields:
         ------
-        Diff
-            A valid patch.
+        tuple[Diff, PatchOutcome]
+            A tuple containing the patch and its outcome.
         """
         raise NotImplementedError
 
@@ -83,16 +90,16 @@ class PatchValidator(abc.ABC):
 @dataclass
 class SimplePatchValidator(PatchValidator):
     project: Project
-    commit: git.Commit | None
 
     @overrides
     def run(
         self,
         candidates: list[Diff],
         *,
-        stop_early: bool = True,
+        commit: git.Commit | None = None,
         timeout: int | None = None,
-    ) -> t.Iterator[Diff]:
+        stop_early: bool = True,
+    ) -> t.Iterator[tuple[Diff, PatchOutcome]]:
         timer = Stopwatch()
         timer.start()
 
@@ -100,17 +107,15 @@ class SimplePatchValidator(PatchValidator):
             if timeout is not None and timer.duration >= timeout:
                 return
 
-            outcome = self.validate(candidate)
-            if outcome == PatchOutcome.PASSED:
-                yield candidate
-                if stop_early:
-                    break
+            outcome = self.validate(candidate, commit)
+            yield candidate, outcome
+            if outcome == PatchOutcome.PASSED and stop_early:
+                break
 
 
 @dataclass
 class ThreadedPatchValidator(PatchValidator):
     project: Project
-    commit: git.Commit | None
     workers: int = field(default=1)
 
     @overrides
@@ -118,16 +123,17 @@ class ThreadedPatchValidator(PatchValidator):
         self,
         candidates: list[Diff],
         *,
+        commit: git.Commit | None = None,
         timeout: int | None = None,
         stop_early: bool = True,
-    ) -> t.Iterator[Diff]:
+    ) -> t.Iterator[tuple[Diff, PatchOutcome]]:
         executor = concurrent.futures.ThreadPoolExecutor(
             max_workers=self.workers,
         )
 
         future_to_candidate: dict[concurrent.futures.Future[PatchOutcome], Diff] = {}
         for candidate in candidates:
-            future = executor.submit(self.validate, candidate)
+            future = executor.submit(self.validate, candidate, commit)
             future_to_candidate[future] = candidate
 
         for future in concurrent.futures.as_completed(
@@ -136,10 +142,9 @@ class ThreadedPatchValidator(PatchValidator):
         ):
             candidate = future_to_candidate[future]
             outcome = future.result()
-            if outcome == PatchOutcome.PASSED:
-                yield candidate
-                if stop_early:
-                    break
+            yield candidate, outcome
+            if outcome == PatchOutcome.PASSED and stop_early:
+                break
 
         executor.shutdown(cancel_futures=True)
 
@@ -156,5 +161,13 @@ def validate(
     If `stop_early` is True, the validation process will stop as soon as a valid patch is found.
     """
     workers = project.settings.workers
-    validator = ThreadedPatchValidator(project, commit, workers=workers)
-    return list(validator.run(candidates, stop_early=stop_early))
+    validator = ThreadedPatchValidator(project, workers=workers)
+    patches: list[Diff] = []
+
+    for candidate, outcome in validator.run(candidates, commit=commit, stop_early=stop_early):
+        if outcome == PatchOutcome.PASSED:
+            patches.append(candidate)
+            if stop_early:
+                break
+
+    return patches

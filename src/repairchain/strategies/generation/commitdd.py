@@ -46,19 +46,19 @@ class CommitDD(PatchGenerationStrategy):
             return
 
     def _find_minimal_diff(self) -> Diff | None:
-        project = self.diagnosis.project
-        repo = project.repository
+        repo = self.project.repository
+        triggering_commit = self.project.triggering_commit
 
         # compute a reverse diff between the triggering commit and the one
         # before it
-        sha = project.triggering_commit.hexsha
-        reverse_diff = Diff.from_unidiff(project.repository.git.diff(sha, sha + "^", unified=True))
+        sha = triggering_commit.hexsha
+        reverse_diff = Diff.from_unidiff(repo.git.diff(sha, sha + "^", unified=True))
 
-        validator = SimplePatchValidator(project, project.triggering_commit.parents[0])
+        validator = SimplePatchValidator(self.project)
 
         def tester(fds: t.Sequence[FileHunk]) -> bool:
             as_diff = Diff.from_file_hunks(list(fds))
-            outcome = validator.validate(as_diff)
+            outcome = validator.validate(as_diff, commit=triggering_commit)
             return outcome == PatchOutcome.PASSED
 
         to_minimize: list[FileHunk] = list(reverse_diff.file_hunks)
@@ -75,12 +75,12 @@ class CommitDD(PatchGenerationStrategy):
         primary_branch = repo.active_branch.name
 
         # branch from the broken commit...
-        commit_sha = project.triggering_commit.hexsha
+        commit_sha = triggering_commit.hexsha
         new_branch_name = f"branch-{commit_sha[:8]}"
         self._cleanup_branch(repo, primary_branch, new_branch_name)
 
         try:
-            repo.git.branch(new_branch_name, project.triggering_commit)
+            repo.git.branch(new_branch_name, triggering_commit)
             repo.git.checkout(new_branch_name)
 
             # make a commit consisting of only the minimized undo
@@ -88,7 +88,7 @@ class CommitDD(PatchGenerationStrategy):
                 temp_diff_file.write(str(minimized))
                 temp_diff_file_path = temp_diff_file.name
                 temp_diff_file.close()
-                repo_path = Path.resolve(project.local_repository_path)
+                repo_path = Path.resolve(self.project.local_repository_path)
 
                 command_args = ["patch", "-p1", "-i", temp_diff_file_path]
                 result = subprocess.run(command_args, cwd=repo_path, check=False)
@@ -98,7 +98,7 @@ class CommitDD(PatchGenerationStrategy):
                     repo.git.rebase(primary_branch)
 
                     # grab the head commit, which should undo the badness, turn that into a diff
-                    return commit_to_diff(project.repository.active_branch.commit)
+                    return commit_to_diff(self.project.repository.active_branch.commit)
 
                 logger.error("failed to apply patch")
 

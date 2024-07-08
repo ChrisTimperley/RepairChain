@@ -190,7 +190,7 @@ class ProjectContainer:
             :code:`True` if no sanitizers were triggered, :code:`False` otherwise.
         """
         assert isinstance(outcome.output, str)
-        logger.debug(f"checking PoV output: {outcome.output}")
+        logger.trace(f"checking PoV output: {outcome.output}")
         detected_sanitizer = SanitizerReport._find_sanitizer(outcome.output)
-        logger.debug(f"detected sanitizer: {detected_sanitizer}")
+        logger.trace(f"detected sanitizer: {detected_sanitizer}")
         return detected_sanitizer is Sanitizer.UNKNOWN

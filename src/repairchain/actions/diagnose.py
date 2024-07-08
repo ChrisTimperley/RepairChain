@@ -44,12 +44,13 @@ def diagnose(project: Project) -> Diagnosis:
         stopwatch = Stopwatch()
         logger.info(f"minimizing implicated diff:\n{implicated_diff}")
         stopwatch.start()
-        validator = SimplePatchValidator(project, triggering_commit.parents[0])
+        triggering_commit_parent = triggering_commit.parents[0]
+        validator = SimplePatchValidator(project)
 
         def tester(hunks: t.Sequence[FileHunk]) -> bool:
             as_diff = Diff.from_file_hunks(list(hunks))
             logger.debug(f"testing minimization:\n{as_diff}")
-            outcome = validator.validate(as_diff)
+            outcome = validator.validate(as_diff, commit=triggering_commit_parent)
             logger.debug(f"outcome: {outcome}")
             return outcome == PatchOutcome.FAILED
 
