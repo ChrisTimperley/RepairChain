@@ -81,7 +81,7 @@ def cli(log_level: str) -> None:
     help="the file to which evaluations should be saved",
     envvar="REPAIRCHAIN_EVALUATION_CACHE",
 )
-def repair(
+def repair(  # noqa: PLR0917
     filename: Path,
     stop_early: bool,
     save_to_dir: Path,
@@ -181,7 +181,7 @@ def do_generate(
     help="the file to which evaluations should be saved",
     envvar="REPAIRCHAIN_EVALUATION_CACHE",
 )
-def do_validate(
+def do_validate(  # noqa: PLR0917
     project_file: Path,
     candidates_directory: Path,
     stop_early: bool,
