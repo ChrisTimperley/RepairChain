@@ -1,6 +1,11 @@
 from __future__ import annotations
 
-__all__ = ("validate", "validate_patch")
+__all__ = (
+    "PatchValidator",
+    "SimplePatchValidator",
+    "ThreadedPatchValidator",
+    "validate",
+)
 
 import abc
 import concurrent.futures
@@ -137,17 +142,6 @@ class ThreadedPatchValidator(PatchValidator):
                     break
 
         executor.shutdown(cancel_futures=True)
-
-
-def validate_patch(
-    project: Project,
-    diff: Diff,
-    *,
-    commit: git.Commit | None = None,
-) -> PatchOutcome:
-    """Applies a given patch to a specific version of a project and returns the outcome."""
-    validator = SimplePatchValidator(project, commit)
-    return validator.validate(diff)
 
 
 def validate(
