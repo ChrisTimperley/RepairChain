@@ -52,6 +52,8 @@ class Settings:
         """
         def fetch(name: str, envvar: str) -> t.Any:  # noqa: ANN401
             value = kwargs.get(name, os.environ.get(envvar, None))
+            if value == "":
+                value = None
             kwargs[name] = value
             return value
 
