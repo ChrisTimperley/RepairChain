@@ -26,9 +26,13 @@ class Settings:
     cache_evaluations_to_file: Path | None
         The path to a file used to persist the evaluations of patches.
         If :code:`None`, caching to disk is disabled.
+    cache_index_to_file: Path | None
+        The path to a file used to persist the kaskara indices.
+        If :code:`None`, caching to disk is disabled.
     """
     workers: int = field(default=1)
     stop_early: bool = field(default=True)
     minimize_failure: bool = field(default=True)
     sanity_check: bool = field(default=True)
     cache_evaluations_to_file: Path | None = field(default=None)
+    cache_index_to_file: Path | None = field(default=None)
