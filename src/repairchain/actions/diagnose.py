@@ -103,5 +103,7 @@ def diagnose(project: Project) -> Diagnosis:
     return Diagnosis(
         project=project,
         bug_type=bug_type,
-        implicated_functions=current_version_implicated_functions,
+        implicated_diff=implicated_diff,
+        implicated_functions_at_head=current_version_implicated_functions,
+        implicated_functions_at_crash_version=crash_version_implicated_functions,
     )

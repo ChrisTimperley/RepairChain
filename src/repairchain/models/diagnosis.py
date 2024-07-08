@@ -11,6 +11,7 @@ if t.TYPE_CHECKING:
     import kaskara.functions
 
     from repairchain.models.bug_type import BugType
+    from repairchain.models.diff import Diff
     from repairchain.models.project import Project
     from repairchain.models.sanitizer_report import SanitizerReport
 
@@ -19,25 +20,41 @@ if t.TYPE_CHECKING:
 class Diagnosis:
     project: Project = field(repr=False)
     bug_type: BugType
-    implicated_functions: list[kaskara.functions.Function]
+    implicated_functions_at_head: list[kaskara.functions.Function]
+    implicated_functions_at_crash_version: list[kaskara.functions.Function]
+    implicated_diff: Diff
+
+    @property
+    def implicated_files_at_head(self) -> set[str]:
+        return {f.filename for f in self.implicated_functions_at_head}
+
+    @property
+    def implicated_files_at_crash_version(self) -> set[str]:
+        return {f.filename for f in self.implicated_functions_at_crash_version}
 
     @property
     def sanitizer_report(self) -> SanitizerReport:
         return self.project.sanitizer_report
 
-    def to_dict(self) -> dict[str, t.Any]:
-        function_descriptions: list[dict[str, t.Any]] = [
+    def _functions_to_dict(self, functions: list[kaskara.functions.Function]) -> list[dict[str, t.Any]]:
+        return [
             {
                 "name": function.name,
                 "filename": function.location.filename,
                 "return-type": function.return_type,
                 "location": str(function.location),
             }
-            for function in self.implicated_functions
+            for function in functions
         ]
+
+    def to_dict(self) -> dict[str, t.Any]:
+        implicated_functions_at_head = self._functions_to_dict(self.implicated_functions_at_head)
+        implicated_functions_at_crash_version = self._functions_to_dict(self.implicated_functions_at_crash_version)
         return {
             "bug-type": self.bug_type.value,
-            "implicated-functions": function_descriptions,
+            "implicated-diff": str(self.implicated_diff),
+            "implicated-functions-at-head": implicated_functions_at_head,
+            "implicated-functions-at-crash-version": implicated_functions_at_crash_version,
         }
 
     def save(self, path: str | Path) -> None:

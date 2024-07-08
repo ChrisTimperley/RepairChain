@@ -30,7 +30,7 @@ class DeleteStatementsStrategy(PatchGenerationStrategy):
         implicated_statements = index_statements(
             project=self.project,
             version=self.project.head,
-            restrict_to_functions=self.diagnosis.implicated_functions,
+            restrict_to_functions=self.diagnosis.implicated_functions_at_head,
         )
         print(implicated_statements)
         raise NotImplementedError
