@@ -5,7 +5,8 @@ __all__ = ("DeleteStatementsStrategy",)
 import typing as t
 from dataclasses import dataclass
 
-from repairchain.actions.index_statements import index_statements
+from overrides import overrides
+
 from repairchain.strategies.generation.base import PatchGenerationStrategy
 
 if t.TYPE_CHECKING:
@@ -19,18 +20,7 @@ class DeleteStatementsStrategy(PatchGenerationStrategy):
     project: Project
     diagnosis: Diagnosis
 
-    @classmethod
-    def build(cls, diagnosis: Diagnosis) -> DeleteStatementsStrategy:
-        return cls(
-            project=diagnosis.project,
-            diagnosis=diagnosis,
-        )
-
+    @overrides
     def run(self) -> list[Diff]:
-        implicated_statements = index_statements(
-            project=self.project,
-            version=self.project.head,
-            restrict_to_functions=self.diagnosis.implicated_functions_at_head,
-        )
-        print(implicated_statements)
+        # TODO filter statements by parent function
         raise NotImplementedError

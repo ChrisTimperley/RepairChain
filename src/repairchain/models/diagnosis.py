@@ -20,6 +20,8 @@ if t.TYPE_CHECKING:
 class Diagnosis:
     project: Project = field(repr=False)
     bug_type: BugType
+    index_at_head: kaskara.analysis.Analysis
+    index_at_crash_version: kaskara.analysis.Analysis
     implicated_functions_at_head: list[kaskara.functions.Function]
     implicated_functions_at_crash_version: list[kaskara.functions.Function]
     implicated_diff: Diff

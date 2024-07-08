@@ -25,7 +25,7 @@ class KaskaraIndexer:
     @contextlib.contextmanager
     def _build_analyzer(
         self,
-        version: git.Commit | None,
+        version: git.Commit,
         restrict_to_files: list[str],
     ) -> t.Iterator[kaskara.analyser.Analyser]:
         project = self.project
@@ -63,6 +63,9 @@ class KaskaraIndexer:
         version: git.Commit | None,
         restrict_to_files: list[str],
     ) -> kaskara.analysis.Analysis:
+        if version is None:
+            version = self.project.head
+
         stopwatch = Stopwatch()
         logger.info(f"indexing project version ({version}) ...")
         stopwatch.start()
