@@ -81,6 +81,13 @@ def cli(log_level: str) -> None:
     help="the file to which evaluations should be saved",
     envvar="REPAIRCHAIN_EVALUATION_CACHE",
 )
+@click.option(
+    "--persist-kaskara-to-file",
+    default=None,
+    type=click.Path(dir_okay=False, writable=True, path_type=Path),
+    help="the file to which kaskara indices should be saved",
+    envvar="REPAIRCHAIN_KASKARA_CACHE",
+)
 def repair(  # noqa: PLR0917
     filename: Path,
     stop_early: bool,
@@ -88,9 +95,11 @@ def repair(  # noqa: PLR0917
     workers: int,
     minimize_failure: bool,
     persist_evaluations_to_file: Path | None,
+    persist_kaskara_to_file: Path | None,
 ) -> None:
     settings = Settings(
         cache_evaluations_to_file=persist_evaluations_to_file,
+        cache_index_to_file=persist_kaskara_to_file,
         minimize_failure=minimize_failure,
         workers=workers,
     )
@@ -128,14 +137,23 @@ def repair(  # noqa: PLR0917
     help="the file to which evaluations should be saved",
     envvar="REPAIRCHAIN_EVALUATION_CACHE",
 )
+@click.option(
+    "--persist-kaskara-to-file",
+    default=None,
+    type=click.Path(dir_okay=False, writable=True, path_type=Path),
+    help="the file to which kaskara indices should be saved",
+    envvar="REPAIRCHAIN_KASKARA_CACHE",
+)
 def do_generate(
     filename: Path,
     output: Path,
     minimize_failure: bool,
     persist_evaluations_to_file: Path | None,
+    persist_kaskara_to_file: Path | None,
 ) -> None:
     settings = Settings(
         cache_evaluations_to_file=persist_evaluations_to_file,
+        cache_index_to_file=persist_kaskara_to_file,
         minimize_failure=minimize_failure,
     )
     logger.info(f"loading project: {filename}")
@@ -235,15 +253,24 @@ def do_validate(  # noqa: PLR0917
     help="the file to which evaluations should be saved",
     envvar="REPAIRCHAIN_EVALUATION_CACHE",
 )
-def do_diagnose(
+@click.option(
+    "--persist-kaskara-to-file",
+    default=None,
+    type=click.Path(dir_okay=False, writable=True, path_type=Path),
+    help="the file to which kaskara indices should be saved",
+    envvar="REPAIRCHAIN_KASKARA_CACHE",
+)
+def do_diagnose(  # noqa: PLR0917
     project_file: Path,
     save_to_file: Path,
     workers: int,
     minimize_failure: bool,
     persist_evaluations_to_file: Path | None,
+    persist_kaskara_to_file: Path | None,
 ) -> None:
     settings = Settings(
         cache_evaluations_to_file=persist_evaluations_to_file,
+        cache_index_to_file=persist_kaskara_to_file,
         minimize_failure=minimize_failure,
         workers=workers,
     )

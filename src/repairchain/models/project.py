@@ -54,7 +54,7 @@ class Project:
     def __post_init__(self) -> None:
         self.evaluation_cache = PatchOutcomeCache.for_settings(self.settings)
         self.validator = ThreadedPatchValidator.for_project(self)
-        self.indexer = KaskaraIndexer(self)
+        self.indexer = KaskaraIndexer.for_project(self)
 
     @classmethod
     @contextlib.contextmanager
@@ -171,6 +171,7 @@ class Project:
             try:
                 yield project
             finally:
+                project.indexer.save_cache()
                 project.evaluation_cache.save()
 
     @property
