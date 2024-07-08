@@ -17,7 +17,10 @@ from loguru import logger
 from overrides import overrides
 
 from repairchain.errors import BuildFailure
-from repairchain.models.patch_outcome import PatchOutcome
+from repairchain.models.patch_outcome import (
+    PatchOutcome,
+    PatchOutcomeCache,
+)
 
 if t.TYPE_CHECKING:
     import git
@@ -29,16 +32,13 @@ if t.TYPE_CHECKING:
 class PatchValidator(abc.ABC):
     """Validates patches against a specific project version."""
     project: Project
+    cache: PatchOutcomeCache
 
-    def validate(
+    def _validate(
         self,
         candidate: Diff,
-        commit: git.Commit | None,
+        commit: git.Commit,
     ) -> PatchOutcome:
-        """Validates a single patch and returns the outcome."""
-        if commit is None:
-            commit = self.project.head
-        logger.info(f"validating patch (applied to {commit}):\n{candidate}")
         try:
             with self.project.provision(
                 version=commit,
@@ -54,6 +54,25 @@ class PatchValidator(abc.ABC):
 
         except BuildFailure:
             return PatchOutcome.FAILED_TO_BUILD
+
+    def validate(
+        self,
+        candidate: Diff,
+        commit: git.Commit | None,
+    ) -> PatchOutcome:
+        """Validates a single patch and returns the outcome."""
+        if commit is None:
+            commit = self.project.head
+        logger.info(f"validating patch (applied to {commit}):\n{candidate}")
+
+        outcome = self.cache.fetch(commit, candidate)
+        if outcome is not None:
+            logger.debug(f"cache hit: {outcome}")
+            return outcome
+
+        outcome = self._validate(candidate, commit)
+        self.cache.store(commit, candidate, outcome)
+        return outcome
 
     @abc.abstractmethod
     def run(
@@ -90,6 +109,7 @@ class PatchValidator(abc.ABC):
 @dataclass
 class SimplePatchValidator(PatchValidator):
     project: Project
+    cache: PatchOutcomeCache
 
     @overrides
     def run(
@@ -116,11 +136,13 @@ class SimplePatchValidator(PatchValidator):
 @dataclass
 class ThreadedPatchValidator(PatchValidator):
     project: Project
+    cache: PatchOutcomeCache
     workers: int = field(default=1)
 
     @classmethod
     def for_project(cls, project: Project) -> ThreadedPatchValidator:
         return cls(
+            cache=project.evaluation_cache,
             project=project,
             workers=project.settings.workers,
         )

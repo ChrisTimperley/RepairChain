@@ -16,6 +16,7 @@ from repairchain.actions.validate import (
     ThreadedPatchValidator,
 )
 from repairchain.models.container import ProjectContainer
+from repairchain.models.patch_outcome import PatchOutcomeCache
 from repairchain.models.sanitizer_report import SanitizerReport
 
 if t.TYPE_CHECKING:
@@ -45,9 +46,11 @@ class Project:
     sanitizer_report: SanitizerReport
     pov_payload: bytes
     settings: Settings
+    evaluation_cache: PatchOutcomeCache = field(init=False)
     validator: PatchValidator = field(init=False)
 
     def __post_init__(self) -> None:
+        self.evaluation_cache = PatchOutcomeCache.for_settings(self.settings)
         self.validator = ThreadedPatchValidator.for_project(self)
 
     @classmethod
@@ -162,7 +165,10 @@ class Project:
                 pov_payload=pov_payload,
                 settings=settings,
             )
-            yield project
+            try:
+                yield project
+            finally:
+                project.evaluation_cache.save()
 
     @property
     def local_repository_path(self) -> Path:

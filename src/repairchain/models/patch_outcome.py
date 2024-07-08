@@ -10,6 +10,8 @@ import pickle  # noqa: S403
 import typing as t
 from dataclasses import dataclass, field
 
+from loguru import logger
+
 if t.TYPE_CHECKING:
     from pathlib import Path
 
@@ -45,6 +47,7 @@ class PatchOutcomeCache:
 
     @classmethod
     def load(cls, path: Path) -> t.Self:
+        logger.debug(f"loading evaluation cache: {path}")
         with path.open("rb") as file:
             version_patch_to_outcome = pickle.load(file, encoding="utf-8")  # noqa: S301
         assert isinstance(version_patch_to_outcome, dict)
@@ -55,10 +58,14 @@ class PatchOutcomeCache:
 
     def save(self) -> None:
         if self._save_to_file is None:
+            logger.debug("not persisting evaluation cache")
             return
+
+        logger.debug(f"persisting evaluation cache: {self._save_to_file}")
         self._save_to_file.parent.mkdir(parents=True, exist_ok=True)
         with self._save_to_file.open("wb") as file:
             pickle.dump(self._version_patch_to_outcome, file)
+        logger.debug("persisted evaluation cache")
 
     def _key(self, version: git.Commit, patch: Diff) -> tuple[str, str]:
         return (version.hexsha, str(patch))
