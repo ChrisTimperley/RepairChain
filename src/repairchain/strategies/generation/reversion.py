@@ -23,12 +23,12 @@ if t.TYPE_CHECKING:
 
 
 @dataclass
-class CommitDD(PatchGenerationStrategy):
+class MinimalPatchReversion(PatchGenerationStrategy):
     diagnosis: Diagnosis
     project: Project
 
     @classmethod
-    def build(cls, diagnosis: Diagnosis) -> CommitDD:
+    def build(cls, diagnosis: Diagnosis) -> MinimalPatchReversion:
         return cls(diagnosis=diagnosis, project=diagnosis.project)
 
     # performs cleanup, intended for the temporary branch created to rebase. is
@@ -47,19 +47,22 @@ class CommitDD(PatchGenerationStrategy):
     def _find_minimal_diff(self) -> Diff | None:
         repo = self.project.repository
         triggering_commit = self.project.triggering_commit
+        triggering_commit_parent = triggering_commit.parents[0]
 
-        # compute a reverse diff between the triggering commit and the one
-        # before it
-        sha = triggering_commit.hexsha
-        reverse_diff = Diff.from_unidiff(repo.git.diff(sha, sha + "^", unified=True))
-        validator = self.project.validator
+        # compute a diff that reverses the changes introduces by the triggering commit
+        reverse_diff = Diff.from_unidiff(
+            repo.git.diff(triggering_commit, triggering_commit_parent, unified=True),
+        )
 
-        def tester(fds: t.Sequence[FileHunk]) -> bool:
-            as_diff = Diff.from_file_hunks(list(fds))
-            outcome = validator.validate(as_diff, commit=triggering_commit)
+        def tester(hunks: t.Sequence[FileHunk]) -> bool:
+            as_diff = Diff.from_file_hunks(list(hunks))
+            outcome = self.project.validator.validate(
+                candidate=as_diff,
+                commit=triggering_commit,
+            )
             return outcome == PatchOutcome.PASSED
 
-        to_minimize: list[FileHunk] = list(reverse_diff.file_hunks)
+        to_minimize = list(reverse_diff.file_hunks)
         minimized_hunks = dd_minimize(to_minimize, tester)
         minimized = Diff.from_file_hunks(minimized_hunks)
 
@@ -82,7 +85,7 @@ class CommitDD(PatchGenerationStrategy):
             repo.git.checkout(new_branch_name)
 
             # make a commit consisting of only the minimized undo
-            with tempfile.NamedTemporaryFile(mode="w", delete=True, encoding="utf-8") as temp_diff_file:
+            with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8") as temp_diff_file:
                 temp_diff_file.write(str(minimized))
                 temp_diff_file_path = temp_diff_file.name
                 temp_diff_file.close()
