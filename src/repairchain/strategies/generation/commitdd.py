@@ -10,7 +10,6 @@ import git
 from loguru import logger
 
 from repairchain.actions.commit_to_diff import commit_to_diff
-from repairchain.actions.validate import SimplePatchValidator
 from repairchain.models.diff import Diff
 from repairchain.models.patch_outcome import PatchOutcome
 from repairchain.strategies.generation.base import PatchGenerationStrategy
@@ -53,8 +52,7 @@ class CommitDD(PatchGenerationStrategy):
         # before it
         sha = triggering_commit.hexsha
         reverse_diff = Diff.from_unidiff(repo.git.diff(sha, sha + "^", unified=True))
-
-        validator = SimplePatchValidator(self.project)
+        validator = self.project.validator
 
         def tester(fds: t.Sequence[FileHunk]) -> bool:
             as_diff = Diff.from_file_hunks(list(fds))

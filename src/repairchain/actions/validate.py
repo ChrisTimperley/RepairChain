@@ -118,6 +118,13 @@ class ThreadedPatchValidator(PatchValidator):
     project: Project
     workers: int = field(default=1)
 
+    @classmethod
+    def for_project(cls, project: Project) -> ThreadedPatchValidator:
+        return cls(
+            project=project,
+            workers=project.settings.workers,
+        )
+
     @overrides
     def run(
         self,
@@ -160,8 +167,7 @@ def validate(
 
     If `stop_early` is True, the validation process will stop as soon as a valid patch is found.
     """
-    workers = project.settings.workers
-    validator = ThreadedPatchValidator(project, workers=workers)
+    validator = project.validator
     patches: list[Diff] = []
 
     for candidate, outcome in validator.run(candidates, commit=commit, stop_early=stop_early):

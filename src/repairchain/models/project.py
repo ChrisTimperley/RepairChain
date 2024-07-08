@@ -5,12 +5,16 @@ import enum
 import json
 import os
 import typing as t
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 import dockerblade
 import git
 
+from repairchain.actions.validate import (
+    PatchValidator,
+    ThreadedPatchValidator,
+)
 from repairchain.models.container import ProjectContainer
 from repairchain.models.sanitizer_report import SanitizerReport
 
@@ -41,6 +45,10 @@ class Project:
     sanitizer_report: SanitizerReport
     pov_payload: bytes
     settings: Settings
+    validator: PatchValidator = field(init=False)
+
+    def __post_init__(self) -> None:
+        self.validator = ThreadedPatchValidator.for_project(self)
 
     @classmethod
     @contextlib.contextmanager

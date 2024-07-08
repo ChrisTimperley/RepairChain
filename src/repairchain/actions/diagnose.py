@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from repairchain.actions.validate import SimplePatchValidator
 from repairchain.models.patch_outcome import PatchOutcome
 from repairchain.util import dd_minimize
 
@@ -45,7 +44,7 @@ def diagnose(project: Project) -> Diagnosis:
         logger.info(f"minimizing implicated diff:\n{implicated_diff}")
         stopwatch.start()
         triggering_commit_parent = triggering_commit.parents[0]
-        validator = SimplePatchValidator(project)
+        validator = project.validator
 
         def tester(hunks: t.Sequence[FileHunk]) -> bool:
             as_diff = Diff.from_file_hunks(list(hunks))
