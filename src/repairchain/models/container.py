@@ -82,13 +82,32 @@ class ProjectContainer:
         )
 
     def patch(self, patch: Diff) -> None:
+        """Attempts to apply a given patch to the project inside the container.
+
+        Arguments:
+        ---------
+        patch: Diff
+            The patch to apply to the project.
+
+        Raises:
+        ------
+        BuildFailure
+            If the patch cannot be applied.
+        """
         container_patch_filename = self._filesystem.mktemp(suffix=".diff")
         patch_contents = str(patch)
-        self._filesystem.put(container_patch_filename, patch_contents)
-        self._filesystem.patch(
-            context=str(self.project.docker_repository_path),
-            diff=str(patch),
-        )
+        try:
+            self._filesystem.put(container_patch_filename, patch_contents)
+            self._filesystem.patch(
+                context=str(self.project.docker_repository_path),
+                diff=str(patch),
+            )
+        except dockerblade.exceptions.CalledProcessError as err:
+            message = "patch failed to apply"
+            raise BuildFailure(
+                message=message,
+                returncode=err.returncode,
+            ) from err
 
     def checkout(
         self,
