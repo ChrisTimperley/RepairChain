@@ -5,8 +5,8 @@ __all__ = (
     "SanitizerReport",
 )
 
-import re
 import enum
+import re
 import typing as t
 from dataclasses import dataclass, field
 
@@ -17,7 +17,7 @@ if t.TYPE_CHECKING:
 class StackTrace:
     frame: int
     address: str
-    function: str
+    fname: str
     location: str
 
 
