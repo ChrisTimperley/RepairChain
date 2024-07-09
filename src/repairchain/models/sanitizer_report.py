@@ -7,7 +7,7 @@ __all__ = (
 
 import enum
 import typing as t
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 if t.TYPE_CHECKING:
     from pathlib import Path
@@ -25,7 +25,7 @@ class Sanitizer(enum.StrEnum):
 
 @dataclass
 class SanitizerReport:
-    contents: str
+    contents: str = field(repr=False)
     sanitizer: Sanitizer
 
     @classmethod
