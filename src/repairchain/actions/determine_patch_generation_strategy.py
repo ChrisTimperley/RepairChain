@@ -1,12 +1,14 @@
 from __future__ import annotations
 
+from repairchain.strategies.generation.llm.yolo_llm import YoloLLMStrategy
+
 __all__ = ("determine_patch_generation_strategy",)
 
 import typing as t
 
 from loguru import logger
 
-from repairchain.strategies.generation.reversion import MinimalPatchReversion
+# from repairchain.strategies.generation.reversion import MinimalPatchReversion
 from repairchain.strategies.generation.sequence import SequenceStrategy
 
 if t.TYPE_CHECKING:
@@ -21,8 +23,9 @@ def determine_patch_generation_strategy(
 
     # TODO add settings to enable and disable certain strategies
     # yolo = SimpleYolo.build(diagnosis)
-    reversion = MinimalPatchReversion.build(diagnosis)
-    strategies = [reversion]
+    # reversion = MinimalPatchReversion.build(diagnosis)
+    yolo = YoloLLMStrategy.build(diagnosis)
+    strategies = [yolo]
 
     strategy = SequenceStrategy(strategies)
     logger.info(f"determined patch generation strategy: {strategy}")
