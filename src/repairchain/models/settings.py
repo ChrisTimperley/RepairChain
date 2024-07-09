@@ -30,6 +30,8 @@ class Settings:
         If :code:`None`, caching to disk is disabled.
     build_time_limit: int
         The maximum time in seconds to allow for building a container.
+    regression_time_limit: int
+        The maximum time in seconds to allow for running regression tests.
     """
     workers: int = field(default=1)
     stop_early: bool = field(default=True)
@@ -38,6 +40,7 @@ class Settings:
     cache_evaluations_to_file: Path | None = field(default=None)
     cache_index_to_file: Path | None = field(default=None)
     build_time_limit: int = field(default=60)
+    regression_time_limit: int = field(default=60)
 
     @classmethod
     def from_env(cls, **kwargs: t.Any) -> Settings:  # noqa: ANN401
@@ -77,11 +80,12 @@ class Settings:
                 kwargs[name] = int(value)
 
         fetch_int("workers", "REPAIRCHAIN_WORKERS")
+        fetch_int("build_time_limit", "REPAIRCHAIN_BUILD_TIME_LIMIT")
+        fetch_int("regression_time_limit", "REPAIRCHAIN_REGRESSION_TIME_LIMIT")
         fetch_bool("stop_early", "REPAIRCHAIN_STOP_EARLY")
         fetch_bool("minimize_failure", "REPAIRCHAIN_MINIMIZE_FAILURE")
         fetch_bool("sanity_check", "REPAIRCHAIN_SANITY_CHECK")
         fetch_path("cache_evaluations_to_file", "REPAIRCHAIN_EVALUATION_CACHE")
         fetch_path("cache_index_to_file", "REPAIRCHAIN_KASKARA_CACHE")
-        fetch_path("build_time_limit", "REPAIRCHAIN_BUILD_TIME_LIMIT")
 
         return cls(**kwargs)

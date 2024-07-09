@@ -55,6 +55,7 @@ poetry run repairchain repair --help
 | `REPAIRCHAIN_EVALUATION_CACHE` | `` | if specified, saves the results of patch evaluations to the given file |
 | `REPAIRCHAIN_KASKARA_CACHE` | `` | if specified, saves the results of Kaskara indexing to the given file |
 | `REPAIRCHAIN_BUILD_TIME_LIMIT` | `60` | time limit (in seconds) on building projects |
+| `REPAIRCHAIN_REGRESSION_TIME_LIMIT` | `60` | time limit (in seconds) on regression test suite |
 
 
 ## Input Format

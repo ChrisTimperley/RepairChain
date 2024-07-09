@@ -155,9 +155,10 @@ class ProjectContainer:
 
     def run_regression_tests(self) -> bool:
         """Runs the project's regression tests and returns whether they pass."""
+        time_limit = self.project.settings.regression_time_limit
         command = self.project.regression_test_command
         try:
-            self._shell.check_call(command)
+            self._shell.check_call(command, time_limit=time_limit)
         except dockerblade.exceptions.CalledProcessError:
             return False
         return True
