@@ -17,14 +17,18 @@ if t.TYPE_CHECKING:
 class StackTrace:
     frame: int
     address: str
-    fname: str
-    location: str
+    funcname: str
+    filename: str
+    lineno: int
+    offset: int
 
 
 def parse_asan_output(asan_output: str) -> dict[str, list[StackTrace]]:
     # Regular expressions to match different parts of the ASan output
     error_regex = re.compile(r".*ERROR: AddressSanitizer: (.+)")
-    stack_trace_regex = re.compile(r"\s*#(\d+)\s(0x[0-9a-fA-F]+)\s+in\s+([\w_]+)\s+([^:\s]+)(?::\d+:\d+)?")
+    stack_trace_regex = re.compile(r"#(?P<frame>\d+) 0x(?P<address>[0-9a-f]+) in (?P<function>[\w_]+) (?P<filename>[\w/\.]+):(?P<line>\d+):(?P<offset>\d+)")
+    # possible FIXME: error handling on this, possibly no offset for example
+
     newline_regex = re.compile(r"^\n", re.MULTILINE)
     # Data structure to hold parsed information
     parsed_data: dict[str, list[StackTrace]] = {}
@@ -49,15 +53,20 @@ def parse_asan_output(asan_output: str) -> dict[str, list[StackTrace]]:
                 current_stack_trace = []
         elif stack_trace_match:
             if current_error:
-                frame_number = int(stack_trace_match.group(1))
-                address = stack_trace_match.group(2)
-                function = stack_trace_match.group(3)
-                location = stack_trace_match.group(4)
+                frame = int(stack_trace_match.group("frame"))
+                address = stack_trace_match.group("address")
+                function = stack_trace_match.group("function")
+                filename = stack_trace_match.group("filename")
+                lineno = int(stack_trace_match.group("line"))
+                offset = int(stack_trace_match.group("offset"))
+
                 current_stack_trace.append(
-                    StackTrace(frame_number,
+                    StackTrace(frame,
                     address,
                     function,
-                    location),
+                    filename,
+                    lineno,
+                    offset),
                 )
 
     if current_error:
