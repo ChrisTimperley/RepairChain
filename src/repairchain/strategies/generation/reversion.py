@@ -94,7 +94,12 @@ class MinimalPatchReversion(PatchGenerationStrategy):
 
                 command_args = ["patch", "-u", "-p0", "-i", temp_diff_file_path]
                 logger.debug(f"applying patch: {command_args}")
-                result = subprocess.run(command_args, cwd=repo_path, check=False)
+                result = subprocess.run(
+                    command_args,
+                    cwd=repo_path,
+                    check=False,
+                    stdin=subprocess.DEVNULL,
+                )
                 if result.returncode == 0:
                     repo.git.add(A=True)
                     repo.index.commit("undo minimal changes")
