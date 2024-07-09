@@ -96,7 +96,7 @@ class MinimalPatchReversion(PatchGenerationStrategy):
                     "-u",
                     "-p0",
                     "-i",
-                    temp_patch_path,
+                    str(temp_patch_path),
                     "-d",
                     str(repo_path),
                 ]
