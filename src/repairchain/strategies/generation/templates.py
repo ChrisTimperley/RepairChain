@@ -6,6 +6,7 @@ import itertools
 import typing as t
 from dataclasses import dataclass
 
+from loguru import logger
 from sourcelocation.fileline import FileLine
 
 from repairchain.actions.commit_to_diff import get_file_contents_at_commit
@@ -32,8 +33,11 @@ class TemplateGenerationStrategy(abc.ABC):
 
 
 def function_in_trace(stack_trace: list[SanitizerReport.StackTrace], f: kaskara.functions.Function) -> bool: 
-    return any(stack_trace_ele.fname == f.name for stack_trace_ele in stack_trace)
+    return any(stack_trace_ele.funcname == f.name for stack_trace_ele in stack_trace)
 
+
+def trace_in_function(ele_name: str, funcs: list[kaskara.functions.Function]) -> bool:
+    return any(ele_name == f.name for f in funcs)
 
 
 @dataclass
@@ -46,19 +50,27 @@ class BoundsCheckStrategy(TemplateGenerationStrategy):
     def build(cls, diagnosis: Diagnosis) -> t.Self:
         report = diagnosis.project.sanitizer_report
         implicated_functions = diagnosis.implicated_functions_at_head
+        logger.debug(f"implicated_functions:{len(implicated_functions)}")
         condensed_trace = list(itertools.chain(*report.stack_trace.values()))
+        logger.debug(f"stack trace {condensed_trace}")
 
         localized_functions = [f for f in implicated_functions if function_in_trace(condensed_trace, f)]
-        filtered_trace = [ele for ele in condensed_trace if ele.funcname in implicated_functions]
+        logger.debug(f"localized_functions: {len(localized_functions)}")
+
+        filtered_trace = [ele for ele in condensed_trace if trace_in_function(ele.funcname, implicated_functions)]
+        logger.debug(f"filtered trace:{filtered_trace}")
+
         info = [ele for ele in filtered_trace if ele.funcname in localized_functions]
         return cls(funcs=localized_functions,
                    diagnosis=diagnosis,
                    stack_info=info,)
 
     def generate(self) -> list[Diff]:
+        logger.debug("Here? debugging this way sucks")
         head_index = self.diagnosis.index_at_head
         diffs = []
         for f in self.funcs:
+            logger.debug(f"func: {f}")
             lines = [ele for ele in self.stack_info if ele.funcname == f]
             # K need to turn the line into a file-line
             # absolute vs. relative path here is going to be A Thing, but let's start with what we have
@@ -112,6 +124,7 @@ class TemplateBasedRepair(PatchGenerationStrategy):
 
     def run(self) -> list[Diff]:
         diffs = []
+        logger.debug("ahoy!")
         for g in self.generators:
             diffs += g.generate()
         return diffs

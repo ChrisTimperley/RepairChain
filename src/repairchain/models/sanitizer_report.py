@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from loguru import logger
+
 __all__ = (
     "Sanitizer",
     "SanitizerReport",
@@ -26,7 +28,7 @@ class StackTrace:
 def parse_asan_output(asan_output: str) -> dict[str, list[StackTrace]]:
     # Regular expressions to match different parts of the ASan output
     error_regex = re.compile(r".*ERROR: AddressSanitizer: (.+)")
-    stack_trace_regex = re.compile(r"#(?P<frame>\d+) 0x(?P<address>[0-9a-f]+) in (?P<function>[\w_]+) (?P<filename>[\w/\.]+):(?P<line>\d+):(?P<offset>\d+)")
+    stack_trace_regex = re.compile(r"\s*#(?P<frame>\d+) 0x(?P<address>[0-9a-f]+) in (?P<function>[\w_]+) (?P<filename>[\w/\.]+):(?P<line>\d+):(?P<offset>\d+)")
     # possible FIXME: error handling on this, possibly no offset for example
 
     newline_regex = re.compile(r"^\n", re.MULTILINE)
@@ -112,6 +114,7 @@ class SanitizerReport:
     @classmethod
     def from_report_text(cls, text: str) -> t.Self:
         sanitizer = cls._find_sanitizer(text)
+        logger.debug(f"from report text, sanitizer {sanitizer}")
         stack_trace = parse_asan_output(text)  # asan only for now
         return cls(
             contents=text,
