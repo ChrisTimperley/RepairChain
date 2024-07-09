@@ -101,7 +101,7 @@ class MinimalPatchReversion(PatchGenerationStrategy):
                     str(repo_path),
                 ]
                 logger.debug(f"applying patch: {command_args}")
-                result = subprocess.run(
+                subprocess.run(
                     command_args,
                     check=True,
                     stdin=subprocess.DEVNULL,
