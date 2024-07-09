@@ -52,7 +52,7 @@ class MinimalPatchReversion(PatchGenerationStrategy):
         # compute a diff that reverses the changes introduces by the triggering commit
         reverse_diff = Diff.from_unidiff(
             repo.git.diff(triggering_commit, triggering_commit_parent, unified=True),
-        )
+        ).strip(1)
 
         def tester(hunks: t.Sequence[FileHunk]) -> bool:
             as_diff = Diff.from_file_hunks(list(hunks))
@@ -81,28 +81,44 @@ class MinimalPatchReversion(PatchGenerationStrategy):
         self._cleanup_branch(repo, primary_branch, new_branch_name)
 
         try:
+            repo_path = Path.resolve(self.project.local_repository_path)
             repo.git.branch(new_branch_name, triggering_commit)
             repo.git.checkout(new_branch_name)
 
             # make a commit consisting of only the minimized undo
-            with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8") as temp_diff_file:
-                temp_diff_file.write(str(minimized))
-                temp_diff_file_path = temp_diff_file.name
-                temp_diff_file.close()
-                repo_path = Path.resolve(self.project.local_repository_path)
+            temp_patch_path = Path(tempfile.mkstemp(suffix=".diff")[1])
+            try:
+                with temp_patch_path.open("w", encoding="utf-8") as temp_patch_file:
+                    temp_patch_file.write(str(minimized))
 
-                command_args = ["patch", "-p1", "-i", temp_diff_file_path]
-                result = subprocess.run(command_args, cwd=repo_path, check=False)
-                if result.returncode == 0:
-                    repo.git.add(A=True)
-                    repo.index.commit("undo minimal changes")
-                    repo.git.rebase(primary_branch)
+                command_args = [
+                    "patch",
+                    "-u",
+                    "-p0",
+                    "-i",
+                    str(temp_patch_path),
+                    "-d",
+                    str(repo_path),
+                ]
+                logger.debug(f"applying patch: {command_args}")
+                subprocess.run(
+                    command_args,
+                    check=True,
+                    stdin=subprocess.DEVNULL,
+                )
 
-                    # grab the head commit, which should undo the badness, turn that into a diff
-                    return commit_to_diff(self.project.repository.active_branch.commit)
+            finally:
+                temp_patch_path.unlink()
 
-                logger.error("failed to apply patch")
+            repo.git.add(A=True)
+            repo.index.commit("undo minimal changes")
+            repo.git.rebase(primary_branch)
 
+            # grab the head commit, which should undo the badness, turn that into a diff
+            return commit_to_diff(self.project.repository.active_branch.commit)
+
+        except subprocess.CalledProcessError:
+            logger.exception("failed to apply patch")
         except git.exc.GitCommandError:
             logger.exception("failed to create branch or rebase")
         finally:

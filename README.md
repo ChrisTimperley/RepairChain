@@ -43,6 +43,19 @@ To find more details about the available options for the `repair` verb, run the 
 poetry run repairchain repair --help
 ```
 
+## Environment Variables
+
+| **Environment Variable** | **Default** | **Description** |
+| ------------------------ | ----------- | --------------- |
+| `REPAIRCHAIN_LOG_LEVEL` | `INFO` | controls the verbosity of logging output (options: TRACE, DEBUG, INFO, WARNING, ERROR, CRITICAL) |
+| `REPAIRCHAIN_WORKERS` | `1` | specifies the number of workers that should be used for parallel tasks |
+| `REPAIRCHAIN_STOP_EARLY` | `true` | instructs repair to stop upon discovery of first acceptable patch |
+| `REPAIRCHAIN_MINIMIZE_FAILURE` | `true` | uses delta-debugging to minimize the failing changes |
+| `REPAIRCHAIN_SANITY_CHECK` | `true` | enables (or disables) sanity checking of the program under repair |
+| `REPAIRCHAIN_EVALUATION_CACHE` | `` | if specified, saves the results of patch evaluations to the given file |
+| `REPAIRCHAIN_KASKARA_CACHE` | `` | if specified, saves the results of Kaskara indexing to the given file |
+
+
 ## Input Format
 
 Below is an example of a JSON input file that is provided to RepairChain as input.

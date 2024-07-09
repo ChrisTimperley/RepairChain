@@ -12,7 +12,6 @@ from loguru import logger
 
 from repairchain.actions.commit_to_diff import commit_to_diff
 from repairchain.actions.determine_bug_type import determine_bug_type
-from repairchain.actions.index_functions import index_functions
 from repairchain.actions.localize_diff import diff_to_functions
 from repairchain.actions.map_functions import map_functions
 from repairchain.models.diagnosis import Diagnosis
@@ -67,14 +66,13 @@ def diagnose(project: Project) -> Diagnosis:
         len(crash_version_implicated_files),
         "\n".join(crash_version_implicated_files),
     )
-    crash_version_function_index = index_functions(
-        project=project,
-        version=project.triggering_commit,
+    index_at_crash_version = project.indexer.run(
+        version=triggering_commit,
         restrict_to_files=crash_version_implicated_files,
     )
     crash_version_implicated_functions = diff_to_functions(
         implicated_diff,
-        crash_version_function_index,
+        index_at_crash_version.functions,
     )
     logger.info(
         "implicated functions in crash version ({}):\n{}",
@@ -85,14 +83,13 @@ def diagnose(project: Project) -> Diagnosis:
     # FIXME there's an assumption here that these files haven't moved!
     # work on relaxing this assumption
     current_version_implicated_files = crash_version_implicated_files
-    current_version_function_index = index_functions(
-        project=project,
-        version=project.head,
+    index_at_head = project.indexer.run(
+        version=None,
         restrict_to_files=current_version_implicated_files,
     )
     current_version_implicated_functions = map_functions(
         functions=crash_version_implicated_functions,
-        new_function_index=current_version_function_index,
+        new_function_index=index_at_head.functions,
     )
     logger.info(
         "implicated functions in current version ({}):\n{}",
@@ -103,6 +100,8 @@ def diagnose(project: Project) -> Diagnosis:
     return Diagnosis(
         project=project,
         bug_type=bug_type,
+        index_at_head=index_at_head,
+        index_at_crash_version=index_at_crash_version,
         implicated_diff=implicated_diff,
         implicated_functions_at_head=current_version_implicated_functions,
         implicated_functions_at_crash_version=crash_version_implicated_functions,

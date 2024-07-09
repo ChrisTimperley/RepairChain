@@ -15,6 +15,7 @@ from repairchain.actions.validate import (
     PatchValidator,
     ThreadedPatchValidator,
 )
+from repairchain.indexer import KaskaraIndexer
 from repairchain.models.container import ProjectContainer
 from repairchain.models.patch_outcome import PatchOutcomeCache
 from repairchain.models.sanitizer_report import SanitizerReport
@@ -32,7 +33,7 @@ class ProjectKind(enum.StrEnum):
 
 @dataclass
 class Project:
-    docker_daemon: dockerblade.DockerDaemon
+    docker_daemon: dockerblade.DockerDaemon = field(repr=False)
     kind: ProjectKind
     image: str
     repository: git.Repo
@@ -44,14 +45,16 @@ class Project:
     regression_test_command: str
     crash_command_template: str
     sanitizer_report: SanitizerReport
-    pov_payload: bytes
+    pov_payload: bytes = field(repr=False)
     settings: Settings
-    evaluation_cache: PatchOutcomeCache = field(init=False)
-    validator: PatchValidator = field(init=False)
+    evaluation_cache: PatchOutcomeCache = field(init=False, repr=False)
+    validator: PatchValidator = field(init=False, repr=False)
+    indexer: KaskaraIndexer = field(init=False, repr=False)
 
     def __post_init__(self) -> None:
         self.evaluation_cache = PatchOutcomeCache.for_settings(self.settings)
         self.validator = ThreadedPatchValidator.for_project(self)
+        self.indexer = KaskaraIndexer.for_project(self)
 
     @classmethod
     @contextlib.contextmanager
@@ -168,6 +171,7 @@ class Project:
             try:
                 yield project
             finally:
+                project.indexer.save_cache()
                 project.evaluation_cache.save()
 
     @property

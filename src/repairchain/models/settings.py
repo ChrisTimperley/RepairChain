@@ -2,11 +2,10 @@ from __future__ import annotations
 
 __all__ = ("Settings",)
 
+import os
 import typing as t
 from dataclasses import dataclass, field
-
-if t.TYPE_CHECKING:
-    from pathlib import Path
+from pathlib import Path
 
 
 @dataclass
@@ -26,9 +25,59 @@ class Settings:
     cache_evaluations_to_file: Path | None
         The path to a file used to persist the evaluations of patches.
         If :code:`None`, caching to disk is disabled.
+    cache_index_to_file: Path | None
+        The path to a file used to persist the kaskara indices.
+        If :code:`None`, caching to disk is disabled.
     """
     workers: int = field(default=1)
     stop_early: bool = field(default=True)
     minimize_failure: bool = field(default=True)
     sanity_check: bool = field(default=True)
     cache_evaluations_to_file: Path | None = field(default=None)
+    cache_index_to_file: Path | None = field(default=None)
+
+    @classmethod
+    def from_env(cls, **kwargs: t.Any) -> Settings:  # noqa: ANN401
+        """Create a settings object from environment variables.
+
+        Parameters
+        ----------
+        **kwargs: t.Any
+            Additional keyword arguments to pass to the constructor.
+
+        Returns
+        -------
+        Settings
+            The settings object.
+        """
+        def fetch(name: str, envvar: str) -> t.Any:  # noqa: ANN401
+            value = kwargs.get(name, os.environ.get(envvar, None))
+            if not value:
+                value = None
+            kwargs[name] = value
+            return value
+
+        def fetch_path(name: str, envvar: str) -> None:
+            value = fetch(name, envvar)
+            if isinstance(value, str):
+                kwargs[name] = Path(value)
+
+        def fetch_bool(name: str, envvar: str) -> None:
+            value = fetch(name, envvar)
+            if isinstance(value, str):
+                value = value.lower()
+                kwargs[name] = value in {"true", "1", "yes"}
+
+        def fetch_int(name: str, envvar: str) -> None:
+            value = fetch(name, envvar)
+            if isinstance(value, str):
+                kwargs[name] = int(value)
+
+        fetch_int("workers", "REPAIRCHAIN_WORKERS")
+        fetch_bool("stop_early", "REPAIRCHAIN_STOP_EARLY")
+        fetch_bool("minimize_failure", "REPAIRCHAIN_MINIMIZE_FAILURE")
+        fetch_bool("sanity_check", "REPAIRCHAIN_SANITY_CHECK")
+        fetch_path("cache_evaluations_to_file", "REPAIRCHAIN_EVALUATION_CACHE")
+        fetch_path("cache_index_to_file", "REPAIRCHAIN_KASKARA_CACHE")
+
+        return cls(**kwargs)
