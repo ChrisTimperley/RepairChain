@@ -52,7 +52,7 @@ class MinimalPatchReversion(PatchGenerationStrategy):
         # compute a diff that reverses the changes introduces by the triggering commit
         reverse_diff = Diff.from_unidiff(
             repo.git.diff(triggering_commit, triggering_commit_parent, unified=True),
-        )
+        ).strip(1)
 
         def tester(hunks: t.Sequence[FileHunk]) -> bool:
             as_diff = Diff.from_file_hunks(list(hunks))
