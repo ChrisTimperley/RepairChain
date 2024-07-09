@@ -8,7 +8,7 @@ import typing as t
 
 from loguru import logger
 
-# from repairchain.strategies.generation.reversion import MinimalPatchReversion
+from repairchain.strategies.generation.reversion import MinimalPatchReversion
 from repairchain.strategies.generation.sequence import SequenceStrategy
 
 if t.TYPE_CHECKING:
@@ -22,10 +22,9 @@ def determine_patch_generation_strategy(
     logger.info("determining patch generation strategy...")
 
     # TODO add settings to enable and disable certain strategies
-    # yolo = SimpleYolo.build(diagnosis)
-    # reversion = MinimalPatchReversion.build(diagnosis)
+    reversion = MinimalPatchReversion.build(diagnosis)
     yolo = YoloLLMStrategy.build(diagnosis)
-    strategies = [yolo]
+    strategies = [reversion, yolo]
 
     strategy = SequenceStrategy(strategies)
     logger.info(f"determined patch generation strategy: {strategy}")
