@@ -149,6 +149,11 @@ class Project:
         repository = git.Repo(local_repository_path)
         head = repository.head.commit
         commit = repository.commit(triggering_commit_sha)
+
+        if not commit.parents:
+            message = f"triggering commit ({commit}) is the initial commit"
+            raise ValueError(message)
+
         sanitizer_report = SanitizerReport.load(sanitizer_report_path)
 
         with dockerblade.DockerDaemon(url=docker_url) as docker_daemon:
