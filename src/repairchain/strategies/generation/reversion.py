@@ -88,10 +88,12 @@ class MinimalPatchReversion(PatchGenerationStrategy):
             with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8") as temp_diff_file:
                 temp_diff_file.write(str(minimized))
                 temp_diff_file_path = temp_diff_file.name
+                temp_diff_file.flush()
                 temp_diff_file.close()
                 repo_path = Path.resolve(self.project.local_repository_path)
 
-                command_args = ["patch", "-p1", "-i", temp_diff_file_path]
+                command_args = ["patch", "-u", "-p0", "-i", temp_diff_file_path]
+                logger.debug(f"applying patch: {command_args}")
                 result = subprocess.run(command_args, cwd=repo_path, check=False)
                 if result.returncode == 0:
                     repo.git.add(A=True)
