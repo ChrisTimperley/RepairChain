@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from repairchain.strategies.generation.llm.yolo_llm import YoloLLMStrategy
+from repairchain.strategies.generation.llm.yolo_llm import YoloLLMStrategy, BoundsCheckStrategy, TemplateBasedRepair
 
 __all__ = ("determine_patch_generation_strategy",)
 
@@ -24,7 +24,10 @@ def determine_patch_generation_strategy(
     # TODO add settings to enable and disable certain strategies
     reversion = MinimalPatchReversion.build(diagnosis)
     yolo = YoloLLMStrategy.build(diagnosis)
-    strategies = [reversion, yolo]
+    templates = TemplateBasedRepair.build(diagnosis)
+
+    # strategies = [reversion, yolo]
+    strategies = [templates]
 
     strategy = SequenceStrategy(strategies)
     logger.info(f"determined patch generation strategy: {strategy}")

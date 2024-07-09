@@ -7,21 +7,17 @@ import typing as t
 from dataclasses import dataclass
 
 from sourcelocation.fileline import FileLine
-from sourcelocation.location import FileLocationRange, LocationRange
 
-from extern.darjeeling.src.darjeeling.core import Replacement
-from extern.darjeeling.src.darjeeling.snippet import StatementSnippet
 from repairchain.actions.commit_to_diff import get_file_contents_at_commit
 from repairchain.models.bug_type import BugType
-from repairchain.models.diagnosis import Diagnosis
-from repairchain.models.sanitizer_report import StackTrace
+from repairchain.models.diff import Diff
 from repairchain.strategies.generation.base import PatchGenerationStrategy
 
 if t.TYPE_CHECKING:
     import kaskara.functions
 
-    from repairchain.models.diff import Diff
-    from repairchain.models.sanitizer_report import SanitizerReport
+    from repairchain.models.diagnosis import Diagnosis
+    from repairchain.models.sanitizer_report import SanitizerReport, StackTrace
 
 
 class TemplateGenerationStrategy(abc.ABC):
@@ -39,12 +35,6 @@ def function_in_trace(stack_trace: list[SanitizerReport.StackTrace], f: kaskara.
     return any(stack_trace_ele.fname == f.name for stack_trace_ele in stack_trace)
 
 
-
-        # convert into map of functions to lines
-        # next step is, per line, to get variables read at that line
-        # probably create a template, per
-        # do I want to do cleanup of file handles and such? Or just insert checks at start of implicated functions?
-        # I think per checked variable, put bounds check immediately after most recent write
 
 @dataclass
 class BoundsCheckStrategy(TemplateGenerationStrategy):
@@ -119,3 +109,9 @@ class TemplateBasedRepair(PatchGenerationStrategy):
             diagnosis=diagnosis,
             generators=generators,
         )
+
+    def run(self) -> list[Diff]:
+        diffs = []
+        for g in self.generators:
+            diffs += g.generate()
+        return diffs
