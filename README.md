@@ -54,6 +54,7 @@ poetry run repairchain repair --help
 | `REPAIRCHAIN_SANITY_CHECK` | `true` | enables (or disables) sanity checking of the program under repair |
 | `REPAIRCHAIN_EVALUATION_CACHE` | `` | if specified, saves the results of patch evaluations to the given file |
 | `REPAIRCHAIN_KASKARA_CACHE` | `` | if specified, saves the results of Kaskara indexing to the given file |
+| `REPAIRCHAIN_BUILD_TIME_LIMIT` | `60` | time limit (in seconds) on building projects |
 
 
 ## Input Format

@@ -134,9 +134,14 @@ class ProjectContainer:
         BuildFailure
             If the build fails.
         """
+        time_limit = self.project.settings.build_time_limit
         command = self.project.build_command
         try:
-            self._shell.check_output(command, text=True)
+            self._shell.check_output(
+                command,
+                text=True,
+                time_limit=time_limit,
+            )
         except dockerblade.exceptions.CalledProcessError as err:
             assert err.output is not None  # noqa: PT017
             if isinstance(err.output, bytes):  # noqa: SIM108

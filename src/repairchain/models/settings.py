@@ -28,6 +28,8 @@ class Settings:
     cache_index_to_file: Path | None
         The path to a file used to persist the kaskara indices.
         If :code:`None`, caching to disk is disabled.
+    build_time_limit: int
+        The maximum time in seconds to allow for building a container.
     """
     workers: int = field(default=1)
     stop_early: bool = field(default=True)
@@ -35,6 +37,7 @@ class Settings:
     sanity_check: bool = field(default=True)
     cache_evaluations_to_file: Path | None = field(default=None)
     cache_index_to_file: Path | None = field(default=None)
+    build_time_limit: int = field(default=60)
 
     @classmethod
     def from_env(cls, **kwargs: t.Any) -> Settings:  # noqa: ANN401
@@ -79,5 +82,6 @@ class Settings:
         fetch_bool("sanity_check", "REPAIRCHAIN_SANITY_CHECK")
         fetch_path("cache_evaluations_to_file", "REPAIRCHAIN_EVALUATION_CACHE")
         fetch_path("cache_index_to_file", "REPAIRCHAIN_KASKARA_CACHE")
+        fetch_path("build_time_limit", "REPAIRCHAIN_BUILD_TIME_LIMIT")
 
         return cls(**kwargs)
