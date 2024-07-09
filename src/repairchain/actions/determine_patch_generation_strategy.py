@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-from repairchain.strategies.generation.llm.simple_yolo import SimpleYolo
-from repairchain.strategies.generation.llm.summarize_code import ReportSummary
+from repairchain.strategies.generation.llm.yolo_llm import YoloLLMStrategy
 
 __all__ = ("determine_patch_generation_strategy",)
 
@@ -22,12 +21,10 @@ def determine_patch_generation_strategy(
 ) -> PatchGenerationStrategy:
     logger.info("determining patch generation strategy...")
 
-    summary = ReportSummary()
-    print(summary._get_llm_code_report(diagnosis))
-
     # TODO add settings to enable and disable certain strategies
-    yolo = SimpleYolo.build(diagnosis)
+    # yolo = SimpleYolo.build(diagnosis)
     # reversion = MinimalPatchReversion.build(diagnosis)
+    yolo = YoloLLMStrategy.build(diagnosis)
     strategies = [yolo]
 
     strategy = SequenceStrategy(strategies)
