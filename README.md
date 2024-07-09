@@ -47,6 +47,7 @@ poetry run repairchain repair --help
 
 | **Environment Variable** | **Default** | **Description** |
 | ------------------------ | ----------- | --------------- |
+| `REPAIRCHAIN_LOG_LEVEL` | `INFO` | controls the verbosity of logging output (options: TRACE, DEBUG, INFO, WARNING, ERROR, CRITICAL) |
 | `REPAIRCHAIN_WORKERS` | `1` | specifies the number of workers that should be used for parallel tasks |
 | `REPAIRCHAIN_STOP_EARLY` | `true` | instructs repair to stop upon discovery of first acceptable patch |
 | `REPAIRCHAIN_MINIMIZE_FAILURE` | `true` | uses delta-debugging to minimize the failing changes |
