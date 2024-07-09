@@ -28,9 +28,10 @@ class StackTrace:
 def parse_asan_output(asan_output: str) -> dict[str, list[StackTrace]]:
     # Regular expressions to match different parts of the ASan output
     error_regex = re.compile(r".*ERROR: AddressSanitizer: (.+)")
-    stack_trace_regex = re.compile(r"\s*#(?P<frame>\d+) 0x(?P<address>[0-9a-f]+) in (?P<function>[\w_]+) (?P<filename>[\w/\.]+):(?P<line>\d+):(?P<offset>\d+)")
+    stack_trace_regex = re.compile(r"\s*#(?P<frame>\d+) 0x(?P<address>[0-9a-f]+) in (?P<function>[^\s]+) (?P<filename>[\w/\.]+):(?P<line>\d+):(?P<offset>\d+)")
     # possible FIXME: error handling on this, possibly no offset for example
 
+    memory_regex = re.compile(r".*is located (?P<bytes_after>\d+) bytes after (?P<size>\d+)-byte region.*")
     newline_regex = re.compile(r"^\n", re.MULTILINE)
     # Data structure to hold parsed information
     parsed_data: dict[str, list[StackTrace]] = {}
@@ -42,7 +43,7 @@ def parse_asan_output(asan_output: str) -> dict[str, list[StackTrace]]:
         error_match = error_regex.match(line)
         stack_trace_match = stack_trace_regex.match(line)
         newline_match = newline_regex.match(line)
-
+        memory_match = memory_regex.match(line)
         if error_match:
             if current_error:
                 parsed_data[current_error] = current_stack_trace
@@ -70,6 +71,8 @@ def parse_asan_output(asan_output: str) -> dict[str, list[StackTrace]]:
                     lineno,
                     offset),
                 )
+        elif memory_match:
+            break
 
     if current_error:
         parsed_data[current_error] = current_stack_trace
