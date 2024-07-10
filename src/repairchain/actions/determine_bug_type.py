@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from loguru import logger
-
 from repairchain.models.sanitizer_report import Sanitizer
 
 __all__ = ("determine_bug_type",)
@@ -16,52 +14,57 @@ if t.TYPE_CHECKING:
 # Why yes, CLG did ask GPT to tell her what all the text that goes with each type of error
 # each sanitizer can report
 
+# NOTE: for consideration, I am not distinguishing between the different types of
+# out of bounds accesses here (global, stack, etc).  Can revisit if given appropriate
+# guidance from securit yfolks.
 kasan_bug_map = {
     "KASan: use-after-free in": BugType.USE_AFTER_FREE,
-    "KASAN: slab-out-of-bounds": BugType.OUT_OF_BOUNDS_WRITE,  #  FIXME: heap, right? 
-    "KASan: stack-out-of-bounds": BugType.UNKNOWN,  # FIXME: fix
-    "KASan: global-out-of-bounds": BugType.UNKNOWN,  # FIXME: fix
-    "KASan: stack-use-after-return": BugType.UNKNOWN,  # FIXME: fix
-    "KASan: invalid-free": BugType.UNKNOWN,  # FIXME: fix
+    "KASAN: slab-out-of-bounds": BugType.OUT_OF_BOUNDS_WRITE,
+    "KASan: stack-out-of-bounds": BugType.OUT_OF_BOUNDS_WRITE,
+    "KASan: global-out-of-bounds": BugType.OUT_OF_BOUNDS_WRITE,
+    "KASan: stack-use-after-return": BugType.USE_AFTER_RETURN_OR_SCOPE,
+    "KASan: invalid-free": BugType.INVALID_FREE,
     "KASan: double-free": BugType.DOUBLE_FREE,
-    "KASan: use-after-scope": BugType.UNKNOWN,  # FIXME: fix
-    "KASan: uninit-value": BugType.UNKNOWN,  # FIXME: fix
-    "KASan: wild-access": BugType.UNKNOWN,  # FIXME: fix
+    "KASan: use-after-scope": BugType.USE_AFTER_RETURN_OR_SCOPE,
+    "KASan: uninit-value": BugType.LOAD_UNINIT_VALUE,
+    "KASan: wild-access": BugType.WILD_ACCESS,
 }
 
 
 kfence_bug_map = {
     "KFENCE: use-after-free": BugType.USE_AFTER_FREE,
-    "KFENCE: out-of-bounds access": BugType.UNKNOWN,  # FIXME: fix
-    "KFENCE: memory corruption detected": BugType.UNKNOWN,  # FIXME: fix
+    "KFENCE: out-of-bounds access": BugType.OUT_OF_BOUNDS_WRITE,
+    "KFENCE: memory corruption detected": BugType.MEMORY_CORRUPTION,
     "KFENCE: double-free detected": BugType.DOUBLE_FREE,
-    "KFENCE: invalid-free detected": BugType.UNKNOWN,  # FIXME: use after free or never allocated
+    "KFENCE: invalid-free detected": BugType.INVALID_FREE,
 }
 
 
 asan_bug_map = {
     "AddressSanitizer: heap-buffer-overflow": BugType.OUT_OF_BOUNDS_WRITE,
     "AddressSanitizer: global-buffer-overflow": BugType.OUT_OF_BOUNDS_WRITE,
-    "AddressSanitizer: stack-buffer-overflow": BugType.UNKNOWN,  # FIXME: fix
+    "AddressSanitizer: stack-buffer-overflow": BugType.OUT_OF_BOUNDS_WRITE,
     "AddressSanitizer: use-after-free on address": BugType.USE_AFTER_FREE,
-    "AddressSanitizer: stack-use-after-return": BugType.UNKNOWN,  # FIXME: fix
-    "AddressSanitizer: stack-use-after-scope": BugType.UNKNOWN,  # FIXME: fix
-    "AddressSanitizer: initialization-order-fiasco": BugType.UNKNOWN,  # FIXME: fix
-    "LeakSanitizer: detected memory leaks": BugType.UNKNOWN,  # FIXME: fix
+    "AddressSanitizer: stack-use-after-return": BugType.USE_AFTER_RETURN_OR_SCOPE,
+    "AddressSanitizer: stack-use-after-scope": BugType.USE_AFTER_RETURN_OR_SCOPE,
+    "AddressSanitizer: initialization-order-fiasco": BugType.INIT_ORDER_FIASCO,
+    "LeakSanitizer: detected memory leaks": BugType.MEMORY_LEAK,
     "AddressSanitizer: attempting double-free": BugType.DOUBLE_FREE,
-    "AddressSanitizer: attempting free on address which": BugType.UNKNOWN,  # FIXME: fix
-    "AddressSanitizer: incorrect allocation size": BugType.UNKNOWN,  # FIXME: fix
-    "AddressSanitizer: use-after-memory-pool-return": BugType.UNKNOWN,  # FIXME: fix
+    "AddressSanitizer: attempting free on address which": BugType.INVALID_FREE,
+    "AddressSanitizer: incorrect allocation size": BugType.INCORRECT_ALLOC_SIZE,
+    "AddressSanitizer: use-after-memory-pool-return": BugType.USE_AFTER_RETURN_OR_SCOPE,
 }
 
 
+# NOTE: not distinguishing between different types of uninitialized memory
+# can revisit if appropriate.
 memsan_bug_map = { 
-    "WARNING: MemorySanitizer: use-of-uninitialized-value": BugType.UNKNOWN,  # FIXME: fix
-    "WARNING: MemorySanitizer: conditional jump or move": BugType.UNKNOWN,  # FIXME: fix
-    "WARNING: MemorySanitizer: uninitialized memory read": BugType.UNKNOWN,  # FIXME: fix
-    "WARNING: MemorySanitizer: use-of-uninitialized-stack-memory": BugType.UNKNOWN,  # FIXME: fix
-    "WARNING: MemorySanitizer: use-of-uninitialized-heap-memory": BugType.UNKNOWN,  # FIXME: fix
-    "WARNING: MemorySanitizer: use-of-uninitialized-global-memory": BugType.UNKNOWN,  # FIXME: fix
+    "WARNING: MemorySanitizer: use-of-uninitialized-value": BugType.LOAD_UNINIT_VALUE,
+    "WARNING: MemorySanitizer: conditional jump or move": BugType.LOAD_UNINIT_VALUE,
+    "WARNING: MemorySanitizer: uninitialized memory read": BugType.LOAD_UNINIT_VALUE,
+    "WARNING: MemorySanitizer: use-of-uninitialized-stack-memory": BugType.LOAD_UNINIT_VALUE,
+    "WARNING: MemorySanitizer: use-of-uninitialized-heap-memory": BugType.LOAD_UNINIT_VALUE,
+    "WARNING: MemorySanitizer: use-of-uninitialized-global-memory": BugType.LOAD_UNINIT_VALUE,
 }
 
 
@@ -90,17 +93,28 @@ ubsan_bug_map = {
 
 
 jazzer_bug_map = {
-    "SEVERE: NullPointerException": BugType.UNKNOWN,  # FIXME: fix
-    "SEVERE: ArrayIndexOutOfBoundsException": BugType.UNKNOWN,  # FIXME: fix
-    "SEVERE: ClassCastException": BugType.UNKNOWN,  # FIXME: fix
-    "SEVERE: NumberFormatException": BugType.UNKNOWN,  # FIXME: fix
-    "SEVERE: IllegalArgumentException": BugType.UNKNOWN,  # FIXME: fix
-    "SEVERE: IllegalStateException": BugType.UNKNOWN,  # FIXME: fix
-    "SEVERE: IOException": BugType.UNKNOWN,  # FIXME: fix
-    "SEVERE: AssertionError": BugType.UNKNOWN,  # FIXME: fix
-    "== Java Exception: com.code_intelligence.jazzer.api.FuzzerSecurityIssueCritical: OS Command Injection": BugType.OS_COMMAND_INJECTION,
+    "SEVERE: NullPointerException": BugType.NULL_DEREFERENCE,
+    "SEVERE: ArrayIndexOutOfBoundsException": BugType.ARRAY_OOB,
+    "SEVERE: ClassCastException": BugType.CLASS_CAST,
+    "SEVERE: NumberFormatException": BugType.NUMBER_FORMAT,
+    "SEVERE: IllegalArgumentException": BugType.ILLEGAL_ARGUMENT,
+    "SEVERE: IllegalStateException": BugType.ILLEGAL_STATE,
+    "SEVERE: IOException": BugType.IOEXCEPTION,
+    "SEVERE: AssertionError": BugType.ASSERTION_ERROR,
+    "com.code_intelligence.jazzer.api.FuzzerSecurityIssueCritical: OS Command Injection": BugType.OS_COMMAND_INJECTION,
  }
 
+# FIXME: The above is the generic stuff Jazzer can find
+# The Actual Jazzer CWEs per the competition are below; don't know how to 
+# grok them from the sanitizer report
+# CWE-22 ("Improper Limitation of a Pathname to a Restricted Directory ('Path Traversal')"): BugType.PATH_TRAVERSAL
+# CWE-77 ("Improper Neutralization of Special Elements used in a Command ('Command Injection')"): BugType.COMMAND_INJECTION  # noqa: E501
+# CWE-78 ("Improper Neutralization of Special Elements used in an OS Command ('OS Command Injection')"): BugType.OS_COMMAND_INJECTION,  # noqa: E501
+# CWE-94 ("Improper Control of Generation of Code ('Code Injection')"): BugType.CODE_INJECTION
+# CWE-190 ("Integer Overflow or Wraparound"): BugType.INTEGER_OVERFLOW_OR_WRAPAROUND
+# CWE-434 ("Unrestricted Upload of File with Dangerous Type"): BugType.UNRESTRICTED_UPLOAD_OF_FILE_WITH_DANGEROUS_TYPE
+# CWE-502 ("Deserialization of Untrusted Data") : BugType.DESERIALIZATION_OF_UNTRUSTED_DATA
+# CWE-918 ("Server-Side Request Forgery (SSRF)"): BugType.SERVER_SIDE_REQUEST_FORGERY
 
 sanitizer_type_maps = {
     Sanitizer.KASAN: kasan_bug_map,
