@@ -51,13 +51,11 @@ class BoundsCheckStrategy(TemplateGenerationStrategy):
         report = diagnosis.project.sanitizer_report
         implicated_functions = diagnosis.implicated_functions_at_head
         logger.debug(f"implicated_functions:{len(implicated_functions)}")
-        condensed_trace = list(itertools.chain(*report.stack_trace.values()))
-        logger.debug(f"stack trace {condensed_trace}")
 
-        localized_functions = [f for f in implicated_functions if function_in_trace(condensed_trace, f)]
+        localized_functions = [f for f in implicated_functions if function_in_trace(report.stack_trace, f)]
         logger.debug(f"localized_functions: {len(localized_functions)}")
 
-        filtered_trace = [ele for ele in condensed_trace if trace_in_function(ele.funcname, implicated_functions)]
+        filtered_trace = [ele for ele in report.stack_trace if trace_in_function(ele.funcname, implicated_functions)]
         logger.debug(f"filtered trace:{filtered_trace}")
 
         info = [ele for ele in filtered_trace if ele.funcname in localized_functions]
@@ -66,7 +64,6 @@ class BoundsCheckStrategy(TemplateGenerationStrategy):
                    stack_info=info,)
 
     def generate(self) -> list[Diff]:
-        logger.debug("Here? debugging this way sucks")
         head_index = self.diagnosis.index_at_head
         diffs = []
         for f in self.funcs:

@@ -11,73 +11,81 @@ import enum
 import re
 import typing as t
 from dataclasses import dataclass, field
+import contextlib
 
 if t.TYPE_CHECKING:
     from pathlib import Path
 
 @dataclass
 class StackTrace:
-    frame: int
-    address: str
     funcname: str
     filename: str
     lineno: int
     offset: int
 
 
-def parse_asan_output(asan_output: str) -> dict[str, list[StackTrace]]:
+def process_stack_trace_line(line: str) -> StackTrace:
+    split_index = line.find(" in ")  # FIXME: error handle
+    rhs = line[split_index + 4:]
+    sig_index = rhs.find(")") if "(" in rhs else rhs.find(" ")
+
+    funcname = rhs[:sig_index]
+    filename_part = rhs[sig_index + 1:]
+
+    line_index = filename_part.find(":")
+    filename = filename_part
+    lineno = -1
+    offset = -1
+    if line_index != -1:
+        filename = filename_part[:line_index]
+        linenostr = filename_part[line_index + 1:]
+        offset_index = linenostr.find(":")
+        if offset_index != -1:
+            offset = int(linenostr[offset_index + 1:])
+            lineno = int(linenostr[:offset_index])
+        else:
+            with contextlib.suppress(ValueError):
+                lineno = int(linenostr)
+
+    return StackTrace(funcname,
+                    filename,
+                    lineno,
+                    offset)
+
+
+def parse_asan_output(asan_output: str) -> tuple[str, list[StackTrace]]:
     # Regular expressions to match different parts of the ASan output
     error_regex = re.compile(r".*ERROR: AddressSanitizer: (.+)")
-    stack_trace_regex = re.compile(r"\s*#(?P<frame>\d+) 0x(?P<address>[0-9a-f]+) in (?P<function>[^\s]+) (?P<filename>[\w/\.]+):(?P<line>\d+):(?P<offset>\d+)")
+
+    stack_trace_regex = re.compile(r"\s*#(?P<frame>\d+) "
+                                   r"0x(?P<address>[0-9a-f]+) in ")
+#                                   r"(?P<function>[^\s]+"
+#                                   r"|[a-zA-Z_][a-zA-Z0-9_]*(::[a-zA-Z_][a-zA-Z0-9_]*)*\(.*\)) "
+#                                   r"(?P<filename>[\w/\.]+):"
+#                                   r"(?P<line>\d+):"
+#                                   r"(?P<offset>\d+)\s*")
     # possible FIXME: error handling on this, possibly no offset for example
 
     memory_regex = re.compile(r".*is located (?P<bytes_after>\d+) bytes after (?P<size>\d+)-byte region.*")
-    newline_regex = re.compile(r"^\n", re.MULTILINE)
-    # Data structure to hold parsed information
-    parsed_data: dict[str, list[StackTrace]] = {}
 
-    current_error = ""
-    current_stack_trace: list[StackTrace] = []
+    error_name = ""
+    stack_trace: list[StackTrace] = []
+    processing_stack_trace = False
 
     for line in asan_output.splitlines():
         error_match = error_regex.match(line)
         stack_trace_match = stack_trace_regex.match(line)
-        newline_match = newline_regex.match(line)
         memory_match = memory_regex.match(line)
         if error_match:
-            if current_error:
-                parsed_data[current_error] = current_stack_trace
-            current_error = error_match.group(1)
-            current_stack_trace = []
-        elif newline_match:  # hopefully the end of the thread
-            if current_error:
-                parsed_data[current_error] = current_stack_trace
-                current_error = ""
-                current_stack_trace = []
-        elif stack_trace_match:
-            if current_error:
-                frame = int(stack_trace_match.group("frame"))
-                address = stack_trace_match.group("address")
-                function = stack_trace_match.group("function")
-                filename = stack_trace_match.group("filename")
-                lineno = int(stack_trace_match.group("line"))
-                offset = int(stack_trace_match.group("offset"))
-
-                current_stack_trace.append(
-                    StackTrace(frame,
-                    address,
-                    function,
-                    filename,
-                    lineno,
-                    offset),
-                )
-        elif memory_match:
+            error_name = error_match.group(1)
+        elif memory_match or "__libc_start_main" in line:
             break
+        elif stack_trace_match:
+            processing_stack_trace = True
+        if processing_stack_trace:
+            stack_trace.append(process_stack_trace_line(line))
 
-    if current_error:
-        parsed_data[current_error] = current_stack_trace
-
-    return parsed_data
+    return (error_name, stack_trace)
 
 
 class Sanitizer(enum.StrEnum):
@@ -94,7 +102,8 @@ class Sanitizer(enum.StrEnum):
 class SanitizerReport:
     contents: str = field(repr=False)
     sanitizer: Sanitizer
-    stack_trace: dict[str, list[StackTrace]]
+    error_type: str
+    stack_trace: list[StackTrace]
 
     @classmethod
     def _find_sanitizer(cls, report_text: str) -> Sanitizer:
@@ -118,10 +127,11 @@ class SanitizerReport:
     def from_report_text(cls, text: str) -> t.Self:
         sanitizer = cls._find_sanitizer(text)
         logger.debug(f"from report text, sanitizer {sanitizer}")
-        stack_trace = parse_asan_output(text)  # asan only for now
+        error_type, stack_trace = parse_asan_output(text)  # asan only for now
         return cls(
             contents=text,
             sanitizer=sanitizer,
+            error_type=error_type,
             stack_trace=stack_trace
         )
 
