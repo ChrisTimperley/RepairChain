@@ -21,17 +21,21 @@ def determine_patch_generation_strategy(
     diagnosis: Diagnosis,
 ) -> PatchGenerationStrategy:
     logger.info("determining patch generation strategy...")
+    settings = diagnosis.project.settings
     strategies: list[PatchGenerationStrategy] = []
 
-    # TODO add settings to enable and disable certain strategies
-    reversion = MinimalPatchReversion.build(diagnosis)  # noqa: F841
-    yolo = YoloLLMStrategy.build(diagnosis)  # noqa: F841
+    if settings.enable_reversion_repair:
+        strategies.append(MinimalPatchReversion.build(diagnosis))
 
-    match diagnosis.bug_type:
-        case BugType.OUT_OF_BOUNDS_READ | BugType.OUT_OF_BOUNDS_WRITE:
-            strategies.append(BoundsCheckStrategy.build(diagnosis))
-        case _:
-            logger.warning(f"no templates available for bug type: {diagnosis.bug_type}")
+    if settings.enable_yolo_repair:
+        strategies.append(YoloLLMStrategy.build(diagnosis))
+
+    if settings.enable_template_repair:
+        match diagnosis.bug_type:
+            case BugType.OUT_OF_BOUNDS_READ | BugType.OUT_OF_BOUNDS_WRITE:
+                strategies.append(BoundsCheckStrategy.build(diagnosis))
+            case _:
+                logger.warning(f"no templates available for bug type: {diagnosis.bug_type}")
 
     strategy = SequenceStrategy(strategies)
     logger.info(f"determined patch generation strategy: {strategy}")

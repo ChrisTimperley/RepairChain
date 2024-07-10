@@ -46,6 +46,9 @@ class Settings:
     pov_time_limit: int = field(default=60)
     litellm_url: str = field(default="http://0.0.0.0:4000")
     litellm_key: str = field(default="sk-1234", repr=False)
+    enable_reversion_repair: bool = field(default=True)
+    enable_yolo_repair: bool = field(default=True)
+    enable_template_repair: bool = field(default=True)
 
     @classmethod
     def from_env(cls, **kwargs: t.Any) -> Settings:  # noqa: ANN401
@@ -91,6 +94,9 @@ class Settings:
         fetch_bool("stop_early", "REPAIRCHAIN_STOP_EARLY")
         fetch_bool("minimize_failure", "REPAIRCHAIN_MINIMIZE_FAILURE")
         fetch_bool("sanity_check", "REPAIRCHAIN_SANITY_CHECK")
+        fetch_bool("enable_reversion_repair", "REPAIRCHAIN_ENABLE_REVERSION_REPAIR")
+        fetch_bool("enable_yolo_repair", "REPAIRCHAIN_ENABLE_YOLO_REPAIR")
+        fetch_bool("enable_template_repair", "REPAIRCHAIN_ENABLE_TEMPLATE_REPAIR")
         fetch_path("cache_evaluations_to_file", "REPAIRCHAIN_EVALUATION_CACHE")
         fetch_path("cache_index_to_file", "REPAIRCHAIN_KASKARA_CACHE")
         fetch("litellm_url", "AIXCXX_LITELLM_HOSTNAME")
