@@ -5,14 +5,21 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "repair: nginx",
+            "name": "generate: nginx",
             "type": "debugpy",
-            "args": ["repair", "project.json", "--save-to-dir", "./patches"],
+            "args": ["generate", "project.json", "-o", "./patches"],
             "cwd": "${workspaceFolder}/examples/nginx",
             "console": "integratedTerminal",
             "module": "repairchain",
             "request": "launch",
-            "showReturnValue": true
+            "showReturnValue": true,
+            "env": {
+                "REPAIRCHAIN_WORKERS": "-1",
+                "REPAIRCHAIN_LOG_LEVEL": "DEBUG",
+                "REPAIRCHAIN_MINIMIZE_FAILURE": "true",
+                "REPAIRCHAIN_EVALUATION_CACHE": "./.caches/evaluation.pkl",
+                "REPAIRCHAIN_KASKARA_CACHE": "./.caches/kaskara.pkl",
+            }
         }
     ]
 }
