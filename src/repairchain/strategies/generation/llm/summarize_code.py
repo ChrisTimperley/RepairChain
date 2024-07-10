@@ -143,7 +143,7 @@ class ReportSummary:
         user_prompt = self._create_user_prompt(diagnosis, files, diff,
                                                Util.implied_functions_to_str(diagnosis))
         system_prompt = self._create_system_prompt()
-        llm = LLM(self.model)
+        llm = LLM.from_settings(diagnosis.project.settings, model=self.model)
 
         logger.info(f"system prompt tokens: {Util.count_tokens(system_prompt, self.model)}")
         logger.debug(f"system prompt: {system_prompt}")

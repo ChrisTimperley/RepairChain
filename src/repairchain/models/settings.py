@@ -44,6 +44,8 @@ class Settings:
     build_time_limit: int = field(default=120)
     regression_time_limit: int = field(default=120)
     pov_time_limit: int = field(default=60)
+    litellm_url: str = field(default="http://0.0.0.0:4000")
+    litellm_key: str = field(default="sk-1234", repr=False)
 
     @classmethod
     def from_env(cls, **kwargs: t.Any) -> Settings:  # noqa: ANN401
@@ -91,5 +93,7 @@ class Settings:
         fetch_bool("sanity_check", "REPAIRCHAIN_SANITY_CHECK")
         fetch_path("cache_evaluations_to_file", "REPAIRCHAIN_EVALUATION_CACHE")
         fetch_path("cache_index_to_file", "REPAIRCHAIN_KASKARA_CACHE")
+        fetch("litellm_url", "AIXCXX_LITELLM_HOSTNAME")
+        fetch("litellm_key", "LITELLM_KEY")
 
         return cls(**kwargs)

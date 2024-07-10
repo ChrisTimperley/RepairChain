@@ -78,7 +78,7 @@ class YoloLLMStrategy(PatchGenerationStrategy):
         diagnosis: Diagnosis,
     ) -> YoloLLMStrategy:
         model = "oai-gpt-4o"
-        llm = LLM(model)
+        llm = LLM.from_settings(diagnosis.project.settings, model=model)
         diff = commit_to_diff.commit_to_diff(diagnosis.project.triggering_commit)
         files = commit_to_diff.commit_to_files(diagnosis.project.triggering_commit, diff)
 
@@ -159,12 +159,12 @@ class YoloLLMStrategy(PatchGenerationStrategy):
                 logger.info(f"Contents of context: {code_context}")
 
         return CONTEXT_YOLO.format(
-        diff=self.diff,
-        code_files=list(self.files.keys()),
-        analyst_report=sanitizer_prompt,
-        code_context=code_context,
-        code_functions=function_names,
-        number_patches=number_patches,
+            diff=self.diff,
+            code_files=list(self.files.keys()),
+            analyst_report=sanitizer_prompt,
+            code_context=code_context,
+            code_functions=function_names,
+            number_patches=number_patches,
         )
 
     # FIXME: create some examples for few-shot of format

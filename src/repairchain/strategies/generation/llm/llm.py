@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import os
 import time
 import typing as t
 from dataclasses import dataclass
@@ -11,6 +10,7 @@ from loguru import logger
 from repairchain.strategies.generation.llm.util import Util
 
 if t.TYPE_CHECKING:
+    from repairchain.models.settings import Settings
     from repairchain.strategies.generation.llm.util import MessagesIterable
 
 
@@ -20,20 +20,18 @@ class LLM:
     litellm_url: str | None
     master_key: str | None
 
-    def __init__(self, model: str = "oai-gpt-4o", litellm_url: str | None = os.getenv("AIXCC_LITELLM_HOSTNAME"),
-                 master_key: str | None = os.getenv("LITELLM_KEY")) -> None:
-        self.model = model
-        if litellm_url is None:
-            self.litellm_url = "http://0.0.0.0:4000"
-            logger.info(f"litellm_url has no OS environment variable. Defaulting to {self.litellm_url}")
-        else:
-            self.litellm_url = litellm_url
-
-        if master_key is None:
-            self.master_key = "sk-1234"
-            logger.info(f"master_key has no OS environment variable. Defaulting to {self.master_key}")
-        else:
-            self.master_key = master_key
+    @classmethod
+    def from_settings(
+        cls,
+        settings: Settings,
+        *,
+        model: str = "oai-gpt-4o",
+    ) -> t.Self:
+        return cls(
+            model=model,
+            litellm_url=settings.litellm_url,
+            master_key=settings.litellm_key,
+        )
 
     def _call_llm_json(self, messages: MessagesIterable) -> str:
         model = self.model
