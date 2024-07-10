@@ -14,13 +14,13 @@ def repair(
     project: Project,
     *,
     stop_early: bool = True,
-) -> list[Diff]:
-    """Repairs the given project and returns a list of valid patches.
+) -> t.Iterator[Diff]:
+    """Repairs the given project and yields valid patches.
 
     If `stop_early` is True, the repair process will stop as soon as a valid patch is found.
     """
     candidates = generate(project)
-    return validate(
+    yield from validate(
         project,
         candidates,
         stop_early=stop_early,

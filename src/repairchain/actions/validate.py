@@ -184,18 +184,14 @@ def validate(
     *,
     commit: git.Commit | None = None,
     stop_early: bool = False,
-) -> list[Diff]:
+) -> t.Iterator[Diff]:
     """Validates the generated patches and returns a list of valid patches.
 
     If `stop_early` is True, the validation process will stop as soon as a valid patch is found.
     """
     validator = project.validator
-    patches: list[Diff] = []
-
     for candidate, outcome in validator.run(candidates, commit=commit, stop_early=stop_early):
         if outcome == PatchOutcome.PASSED:
-            patches.append(candidate)
+            yield candidate
             if stop_early:
                 break
-
-    return patches
