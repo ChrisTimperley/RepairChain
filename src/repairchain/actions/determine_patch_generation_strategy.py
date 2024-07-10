@@ -26,8 +26,6 @@ def determine_patch_generation_strategy(
     reversion = MinimalPatchReversion.build(diagnosis)  # noqa: F841
     yolo = YoloLLMStrategy.build(diagnosis)  # noqa: F841
     templates = TemplateBasedRepair.build(diagnosis)
-
-    # strategies = [reversion, yolo]
     strategies = [templates]
 
     strategy = SequenceStrategy(strategies)
