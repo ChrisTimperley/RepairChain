@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import abc
 import difflib
-import itertools
 import typing as t
 from dataclasses import dataclass
 
