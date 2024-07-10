@@ -1,6 +1,8 @@
 candidates.yml
 .openapi.key
 
+test/test_templates.py
+
 .python-version
 
 # Byte-compiled / optimized / DLL files
