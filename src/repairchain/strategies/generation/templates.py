@@ -17,7 +17,7 @@ if t.TYPE_CHECKING:
     import kaskara.functions
 
     from repairchain.models.diagnosis import Diagnosis
-    from repairchain.models.sanitizer_report import SanitizerReport, StackTrace
+    from repairchain.models.sanitizer_report import StackTrace
 
 
 class TemplateGenerationStrategy(abc.ABC):
