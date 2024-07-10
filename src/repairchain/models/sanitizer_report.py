@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from loguru import logger
-
 __all__ = (
     "Sanitizer",
     "SanitizerReport",
@@ -13,19 +11,48 @@ import re
 import typing as t
 from dataclasses import dataclass, field
 
+from loguru import logger
+from sourcelocation.fileline import FileLine
+
 if t.TYPE_CHECKING:
     from pathlib import Path
 
 
 @dataclass
-class StackTrace:
+class StackFrame:
     funcname: str
     filename: str
     lineno: int
     offset: int
 
+    @property
+    def file_line(self) -> FileLine:
+        return FileLine(self.filename, self.lineno)
 
-def process_stack_trace_line(line: str) -> StackTrace:
+
+@dataclass
+class StackTrace(t.Sequence[StackFrame]):
+    frames: t.Sequence[StackFrame]
+
+    @t.overload
+    def __getitem__(self, index_or_slice: int) -> StackFrame:
+        ...
+
+    @t.overload
+    def __getitem__(self, index_or_slice: slice) -> t.Sequence[StackFrame]:
+        ...
+
+    def __getitem__(self, index_or_slice: int | slice) -> t.Sequence[StackFrame] | StackFrame:
+        return self.frames[index_or_slice]
+
+    def __len__(self) -> int:
+        return len(self.frames)
+
+    def __iter__(self) -> t.Iterator[StackFrame]:
+        yield from self.frames
+
+
+def extract_stack_frame_from_line(line: str) -> StackFrame:
     split_index = line.find(" in ")  # FIXME: error handle
     rhs = line[split_index + 4:]
     sig_index = rhs.find(")") if "(" in rhs else rhs.find(" ")
@@ -48,34 +75,30 @@ def process_stack_trace_line(line: str) -> StackTrace:
             with contextlib.suppress(ValueError):
                 lineno = int(linenostr)
 
-    return StackTrace(funcname,
-                    filename,
-                    lineno,
-                    offset)
+    return StackFrame(
+        funcname,
+        filename,
+        lineno,
+        offset,
+    )
 
 
-def parse_asan_output(asan_output: str) -> tuple[str, list[StackTrace]]:
+def parse_asan_output(asan_output: str) -> tuple[str, list[StackFrame]]:
     # Regular expressions to match different parts of the ASan output
     error_regex = re.compile(r".*ERROR: AddressSanitizer: (.+)")
-
-    stack_trace_regex = re.compile(r"\s*#(?P<frame>\d+) "
-                                   r"0x(?P<address>[0-9a-f]+) in ")
-#                                   r"(?P<function>[^\s]+"
-#                                   r"|[a-zA-Z_][a-zA-Z0-9_]*(::[a-zA-Z_][a-zA-Z0-9_]*)*\(.*\)) "
-#                                   r"(?P<filename>[\w/\.]+):"
-#                                   r"(?P<line>\d+):"
-#                                   r"(?P<offset>\d+)\s*")
-    # possible FIXME: error handling on this, possibly no offset for example
-
+    stack_frame_regex = re.compile(
+        r"\s*#(?P<frame>\d+) "
+        r"0x(?P<address>[0-9a-f]+) in ",
+    )
     memory_regex = re.compile(r".*is located (?P<bytes_after>\d+) bytes after (?P<size>\d+)-byte region.*")
 
     error_name = ""
-    stack_trace: list[StackTrace] = []
+    stack_trace: list[StackFrame] = []
     processing_stack_trace = False
 
     for line in asan_output.splitlines():
         error_match = error_regex.match(line)
-        stack_trace_match = stack_trace_regex.match(line)
+        stack_trace_match = stack_frame_regex.match(line)
         memory_match = memory_regex.match(line)
         if error_match:
             error_name = error_match.group(1)
@@ -84,7 +107,7 @@ def parse_asan_output(asan_output: str) -> tuple[str, list[StackTrace]]:
         elif stack_trace_match:
             processing_stack_trace = True
         if processing_stack_trace:
-            stack_trace.append(process_stack_trace_line(line))
+            stack_trace.append(extract_stack_frame_from_line(line))
 
     return (error_name, stack_trace)
 
@@ -104,7 +127,7 @@ class SanitizerReport:
     contents: str = field(repr=False)
     sanitizer: Sanitizer
     error_type: str
-    stack_trace: list[StackTrace]
+    stack_trace: list[StackFrame]
 
     @classmethod
     def _find_sanitizer(cls, report_text: str) -> Sanitizer:

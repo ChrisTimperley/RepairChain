@@ -18,10 +18,10 @@ if t.TYPE_CHECKING:
     import kaskara.functions
 
     from repairchain.models.diagnosis import Diagnosis
-    from repairchain.models.sanitizer_report import StackTrace
+    from repairchain.models.sanitizer_report import StackFrame
 
 
-def function_in_trace(stack_trace: list[StackTrace], f: kaskara.functions.Function) -> bool:
+def function_in_trace(stack_trace: list[StackFrame], f: kaskara.functions.Function) -> bool:
     return any(stack_trace_ele.funcname == f.name for stack_trace_ele in stack_trace)
 
 
@@ -33,7 +33,7 @@ def trace_in_function(ele_name: str, funcs: list[kaskara.functions.Function]) ->
 class BoundsCheckStrategy(TemplateGenerationStrategy):
     funcs: list[kaskara.functions.Function]
     diagnosis: Diagnosis
-    stack_info: list[StackTrace]
+    stack_info: list[StackFrame]
 
     @classmethod
     def build(cls, diagnosis: Diagnosis) -> t.Self:
