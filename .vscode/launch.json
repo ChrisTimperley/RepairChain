@@ -14,7 +14,7 @@
             "request": "launch",
             "showReturnValue": true,
             "env": {
-                "REPAIRCHAIN_WORKERS": "-1",
+                "REPAIRCHAIN_WORKERS": "1",
                 "REPAIRCHAIN_LOG_LEVEL": "DEBUG",
                 "REPAIRCHAIN_MINIMIZE_FAILURE": "true",
                 "REPAIRCHAIN_EVALUATION_CACHE": "./.caches/evaluation.pkl",

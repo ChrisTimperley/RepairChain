@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from loguru import logger
-
 __all__ = (
     "Sanitizer",
     "SanitizerReport",
@@ -13,19 +11,70 @@ import re
 import typing as t
 from dataclasses import dataclass, field
 
+import kaskara.functions
+from loguru import logger
+from sourcelocation.fileline import FileLine
+
 if t.TYPE_CHECKING:
     from pathlib import Path
 
 
 @dataclass
-class StackTrace:
+class StackFrame:
     funcname: str
     filename: str
     lineno: int
     offset: int
 
+    @property
+    def file_line(self) -> FileLine:
+        return FileLine(self.filename, self.lineno)
 
-def process_stack_trace_line(line: str) -> StackTrace:
+    def is_in_function(self, function: kaskara.functions.Function | str) -> bool:
+        """Determines if the stack frame is in the given function."""
+        if isinstance(function, kaskara.functions.Function):
+            function = function.name
+        return self.funcname == function
+
+
+@dataclass
+class StackTrace(t.Sequence[StackFrame]):
+    frames: t.Sequence[StackFrame]
+
+    @t.overload
+    def __getitem__(self, index_or_slice: int) -> StackFrame:
+        ...
+
+    @t.overload
+    def __getitem__(self, index_or_slice: slice) -> t.Sequence[StackFrame]:
+        ...
+
+    def __getitem__(self, index_or_slice: int | slice) -> t.Sequence[StackFrame] | StackFrame:
+        return self.frames[index_or_slice]
+
+    def __len__(self) -> int:
+        return len(self.frames)
+
+    def __iter__(self) -> t.Iterator[StackFrame]:
+        yield from self.frames
+
+    def restrict_to_functions(self, functions: list[str] | list[kaskara.functions.Function]) -> StackTrace:
+        """Filter the stack trace to only include frames in the given functions."""
+        function_names: list[str] = []
+        for function in functions:
+            if isinstance(function, kaskara.functions.Function):
+                function_names.append(function.name)
+            else:
+                function_names.append(function)
+        frames = [frame for frame in self.frames if frame.funcname in function_names]
+        return StackTrace(frames)
+
+    def functions(self) -> set[str]:
+        """Returns the set of function names in the stack trace."""
+        return {frame.funcname for frame in self.frames}
+
+
+def extract_stack_frame_from_line(line: str) -> StackFrame:
     split_index = line.find(" in ")  # FIXME: error handle
     rhs = line[split_index + 4:]
     sig_index = rhs.find(")") if "(" in rhs else rhs.find(" ")
@@ -48,10 +97,12 @@ def process_stack_trace_line(line: str) -> StackTrace:
             with contextlib.suppress(ValueError):
                 lineno = int(linenostr)
 
-    return StackTrace(funcname,
-                    filename,
-                    lineno,
-                    offset)
+    return StackFrame(
+        funcname,
+        filename,
+        lineno,
+        offset,
+    )
 
 
 def parse_kasan(kasan_output: str) -> None:
@@ -62,28 +113,22 @@ def parse_kfence(kfence_output: str) -> None:
     raise NotImplementedError
 
 
-def parse_asan(asan_output: str) -> tuple[str, list[StackTrace]]:
+def parse_asan(asan_output: str) -> tuple[str, StackTrace]:
     # Regular expressions to match different parts of the ASan output
     error_regex = re.compile(r".*ERROR: AddressSanitizer: (.+)")
-
-    stack_trace_regex = re.compile(r"\s*#(?P<frame>\d+) "
-                                   r"0x(?P<address>[0-9a-f]+) in ")
-#                                   r"(?P<function>[^\s]+"
-#                                   r"|[a-zA-Z_][a-zA-Z0-9_]*(::[a-zA-Z_][a-zA-Z0-9_]*)*\(.*\)) "
-#                                   r"(?P<filename>[\w/\.]+):"
-#                                   r"(?P<line>\d+):"
-#                                   r"(?P<offset>\d+)\s*")
-    # possible FIXME: error handling on this, possibly no offset for example
-
+    stack_frame_regex = re.compile(
+        r"\s*#(?P<frame>\d+) "
+        r"0x(?P<address>[0-9a-f]+) in ",
+    )
     memory_regex = re.compile(r".*is located (?P<bytes_after>\d+) bytes after (?P<size>\d+)-byte region.*")
 
     error_name = ""
-    stack_trace: list[StackTrace] = []
+    stack_frames: list[StackFrame] = []
     processing_stack_trace = False
 
     for line in asan_output.splitlines():
         error_match = error_regex.match(line)
-        stack_trace_match = stack_trace_regex.match(line)
+        stack_trace_match = stack_frame_regex.match(line)
         memory_match = memory_regex.match(line)
         if error_match:
             error_name = error_match.group(1)
@@ -92,9 +137,9 @@ def parse_asan(asan_output: str) -> tuple[str, list[StackTrace]]:
         elif stack_trace_match:
             processing_stack_trace = True
         if processing_stack_trace:
-            stack_trace.append(process_stack_trace_line(line))
-
-    return (error_name, stack_trace)
+            stack_frames.append(extract_stack_frame_from_line(line))
+    stack_trace = StackTrace(stack_frames)
+    return error_name, stack_trace
 
 
 def parse_memsan(memsan_output: str) -> None:
@@ -123,8 +168,9 @@ class Sanitizer(enum.StrEnum):
 class SanitizerReport:
     contents: str = field(repr=False)
     sanitizer: Sanitizer
-    error_type: str
-    stack_trace: list[StackTrace]
+    # FIXME move this into a separate subclass
+    stack_trace: StackTrace | None = field(default=None)
+    error_type: str | None = field(default=None)
 
     @classmethod
     def _find_sanitizer(cls, report_text: str) -> Sanitizer:
@@ -148,13 +194,13 @@ class SanitizerReport:
     def from_report_text(cls, text: str) -> t.Self:
         sanitizer = cls._find_sanitizer(text)
         logger.debug(f"from report text, sanitizer {sanitizer}")
-        error_type, stack_trace = parse_asan(text)  # asan only for now
-        return cls(
+        report = cls(
             contents=text,
             sanitizer=sanitizer,
-            error_type=error_type,
-            stack_trace=stack_trace,
         )
+        if sanitizer == Sanitizer.ASAN:
+            report.error_type, report.stack_trace = parse_asan(text)
+        return report
 
     @classmethod
     def load(cls, path: Path) -> t.Self:
