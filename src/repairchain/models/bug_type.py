@@ -157,6 +157,9 @@ jazzer_bug_map = {
     "SEVERE: IOException": BugType.IOEXCEPTION,
     "SEVERE: AssertionError": BugType.ASSERTION_ERROR,
     "com.code_intelligence.jazzer.api.FuzzerSecurityIssueCritical: OS Command Injection": BugType.OS_COMMAND_INJECTION,
+    "File read/write hook path": BugType.PATH_TRAVERSAL,
+    "Integer Overflow(addition) detected": BugType.INTEGER_OVERFLOW_OR_WRAPAROUND,
+    "Server Side Request Forgery (SSRF)": BugType.SERVER_SIDE_REQUEST_FORGERY,
  }
 
 # FIXME: The above is the generic stuff Jazzer can find
@@ -164,12 +167,9 @@ jazzer_bug_map = {
 # grok them from the sanitizer report
 # CWE-22 ("Improper Limitation of a Pathname to a Restricted Directory ('Path Traversal')"): BugType.PATH_TRAVERSAL
 # CWE-77 ("Improper Neutralization of Special Elements used in a Command ('Command Injection')"): BugType.COMMAND_INJECTION  # noqa: E501
-# CWE-78 ("Improper Neutralization of Special Elements used in an OS Command ('OS Command Injection')"): BugType.OS_COMMAND_INJECTION,  # noqa: E501
 # CWE-94 ("Improper Control of Generation of Code ('Code Injection')"): BugType.CODE_INJECTION
-# CWE-190 ("Integer Overflow or Wraparound"): BugType.INTEGER_OVERFLOW_OR_WRAPAROUND
 # CWE-434 ("Unrestricted Upload of File with Dangerous Type"): BugType.UNRESTRICTED_UPLOAD_OF_FILE_WITH_DANGEROUS_TYPE
 # CWE-502 ("Deserialization of Untrusted Data") : BugType.DESERIALIZATION_OF_UNTRUSTED_DATA
-# CWE-918 ("Server-Side Request Forgery (SSRF)"): BugType.SERVER_SIDE_REQUEST_FORGERY
 
 sanitizer_type_maps = {
     Sanitizer.KASAN: kasan_bug_map,
