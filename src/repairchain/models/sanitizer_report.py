@@ -11,6 +11,7 @@ import re
 import typing as t
 from dataclasses import dataclass, field
 
+import kaskara.functions
 from loguru import logger
 from sourcelocation.fileline import FileLine
 
@@ -28,6 +29,12 @@ class StackFrame:
     @property
     def file_line(self) -> FileLine:
         return FileLine(self.filename, self.lineno)
+
+    def is_in_function(self, function: kaskara.functions.Function | str) -> bool:
+        """Determines if the stack frame is in the given function."""
+        if isinstance(function, kaskara.functions.Function):
+            function = function.name
+        return self.funcname == function
 
 
 @dataclass
@@ -50,6 +57,21 @@ class StackTrace(t.Sequence[StackFrame]):
 
     def __iter__(self) -> t.Iterator[StackFrame]:
         yield from self.frames
+
+    def restrict_to_functions(self, functions: list[str] | list[kaskara.functions.Function]) -> StackTrace:
+        """Filter the stack trace to only include frames in the given functions."""
+        function_names: list[str] = []
+        for function in functions:
+            if isinstance(function, kaskara.functions.Function):
+                function_names.append(function.name)
+            else:
+                function_names.append(function)
+        frames = [frame for frame in self.frames if frame.funcname in function_names]
+        return StackTrace(frames)
+
+    def functions(self) -> set[str]:
+        """Returns the set of function names in the stack trace."""
+        return {frame.funcname for frame in self.frames}
 
 
 def extract_stack_frame_from_line(line: str) -> StackFrame:
@@ -83,7 +105,7 @@ def extract_stack_frame_from_line(line: str) -> StackFrame:
     )
 
 
-def parse_asan_output(asan_output: str) -> tuple[str, list[StackFrame]]:
+def parse_asan_output(asan_output: str) -> tuple[str, StackTrace]:
     # Regular expressions to match different parts of the ASan output
     error_regex = re.compile(r".*ERROR: AddressSanitizer: (.+)")
     stack_frame_regex = re.compile(
@@ -93,7 +115,7 @@ def parse_asan_output(asan_output: str) -> tuple[str, list[StackFrame]]:
     memory_regex = re.compile(r".*is located (?P<bytes_after>\d+) bytes after (?P<size>\d+)-byte region.*")
 
     error_name = ""
-    stack_trace: list[StackFrame] = []
+    stack_frames: list[StackFrame] = []
     processing_stack_trace = False
 
     for line in asan_output.splitlines():
@@ -107,9 +129,10 @@ def parse_asan_output(asan_output: str) -> tuple[str, list[StackFrame]]:
         elif stack_trace_match:
             processing_stack_trace = True
         if processing_stack_trace:
-            stack_trace.append(extract_stack_frame_from_line(line))
+            stack_frames.append(extract_stack_frame_from_line(line))
 
-    return (error_name, stack_trace)
+    stack_trace = StackTrace(stack_frames)
+    return error_name, stack_trace
 
 
 class Sanitizer(enum.StrEnum):
@@ -126,8 +149,9 @@ class Sanitizer(enum.StrEnum):
 class SanitizerReport:
     contents: str = field(repr=False)
     sanitizer: Sanitizer
-    error_type: str
-    stack_trace: list[StackFrame]
+    # FIXME move this into a separate subclass
+    stack_trace: StackTrace | None = field(default=None)
+    error_type: str | None = field(default=None)
 
     @classmethod
     def _find_sanitizer(cls, report_text: str) -> Sanitizer:
@@ -151,13 +175,13 @@ class SanitizerReport:
     def from_report_text(cls, text: str) -> t.Self:
         sanitizer = cls._find_sanitizer(text)
         logger.debug(f"from report text, sanitizer {sanitizer}")
-        error_type, stack_trace = parse_asan_output(text)  # asan only for now
-        return cls(
+        report = cls(
             contents=text,
             sanitizer=sanitizer,
-            error_type=error_type,
-            stack_trace=stack_trace,
         )
+        if sanitizer == Sanitizer.ASAN:
+            report.error_type, report.stack_trace = parse_asan_output(text)
+        return report
 
     @classmethod
     def load(cls, path: Path) -> t.Self:

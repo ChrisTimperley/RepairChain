@@ -18,42 +18,39 @@ if t.TYPE_CHECKING:
     import kaskara.functions
 
     from repairchain.models.diagnosis import Diagnosis
-    from repairchain.models.sanitizer_report import StackFrame
-
-
-def function_in_trace(stack_trace: list[StackFrame], f: kaskara.functions.Function) -> bool:
-    return any(stack_trace_ele.funcname == f.name for stack_trace_ele in stack_trace)
-
-
-def trace_in_function(ele_name: str, funcs: list[kaskara.functions.Function]) -> bool:
-    return any(ele_name == f.name for f in funcs)
+    from repairchain.models.sanitizer_report import StackTrace
 
 
 @dataclass
 class BoundsCheckStrategy(TemplateGenerationStrategy):
-    funcs: list[kaskara.functions.Function]
     diagnosis: Diagnosis
-    stack_info: list[StackFrame]
+    functions_to_repair: list[kaskara.functions.Function]
+    stack_trace: StackTrace
 
     @classmethod
     def build(cls, diagnosis: Diagnosis) -> t.Self:
         report = diagnosis.project.sanitizer_report
+
         implicated_functions = diagnosis.implicated_functions_at_head
         logger.debug(f"implicated_functions:{len(implicated_functions)}")
 
-        localized_functions = [f for f in implicated_functions if function_in_trace(report.stack_trace, f)]
+        # filter the stack trace to only those functions that are implicated
+        assert report.stack_trace
+        stack_trace = report.stack_trace
+        stack_trace = stack_trace.restrict_to_functions(implicated_functions)
+        logger.debug(f"filtered stack trace: {stack_trace}")
+
+        # find the set of localized functions
+        functions_in_trace = stack_trace.functions()
+        localized_functions = [
+            f for f in implicated_functions if f.name in functions_in_trace
+        ]
         logger.debug(f"localized_functions: {len(localized_functions)}")
 
-        # filter the trace to only those lines that relate to the localized functions
-        filtered_trace = [
-            element for element in report.stack_trace if trace_in_function(element.funcname, localized_functions)
-        ]
-        logger.debug(f"filtered trace:{filtered_trace}")
-
         return cls(
-            funcs=localized_functions,
             diagnosis=diagnosis,
-            stack_info=filtered_trace,
+            functions_to_repair=list(localized_functions),
+            stack_trace=stack_trace,
         )
 
     def _generate_for_statement(
@@ -86,7 +83,7 @@ class BoundsCheckStrategy(TemplateGenerationStrategy):
         diffs: list[Diff] = []
         logger.debug(f"generating bounds check repairs in function: {function}")
         head_index = self.diagnosis.index_at_head
-        lines = [element for element in self.stack_info if element.funcname == function.name]
+        lines = [element for element in self.stack_trace if element.funcname == function.name]
 
         file_contents = get_file_contents_at_commit(
             self.diagnosis.project.repository.active_branch.commit,
@@ -108,6 +105,6 @@ class BoundsCheckStrategy(TemplateGenerationStrategy):
     @overrides
     def run(self) -> list[Diff]:
         diffs: list[Diff] = []
-        for function in self.funcs:
+        for function in self.functions_to_repair:
             diffs += self._generate_for_function(function)
         return diffs
