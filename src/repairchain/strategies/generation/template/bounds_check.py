@@ -89,8 +89,9 @@ class BoundsCheckStrategy(TemplateGenerationStrategy):
             function.filename,
         )
 
-        # FIXME: if we don't have a line, we don't have a line
         for frame in self.stack_trace.restrict_to_function(function):
+            if not frame.is_valid():
+                continue
             for statement in head_index.statements.at_line(frame.file_line):
                 diffs += self._generate_for_statement(statement, frame.file_line, file_contents)
 
