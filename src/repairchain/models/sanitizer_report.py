@@ -7,14 +7,15 @@ __all__ = (
     "SanitizerReport",
 )
 
+import contextlib
 import enum
 import re
 import typing as t
 from dataclasses import dataclass, field
-import contextlib
 
 if t.TYPE_CHECKING:
     from pathlib import Path
+
 
 @dataclass
 class StackTrace:
@@ -132,7 +133,7 @@ class SanitizerReport:
             contents=text,
             sanitizer=sanitizer,
             error_type=error_type,
-            stack_trace=stack_trace
+            stack_trace=stack_trace,
         )
 
     @classmethod

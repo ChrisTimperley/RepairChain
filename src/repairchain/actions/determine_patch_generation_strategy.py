@@ -23,8 +23,8 @@ def determine_patch_generation_strategy(
     logger.info("determining patch generation strategy...")
 
     # TODO add settings to enable and disable certain strategies
-    reversion = MinimalPatchReversion.build(diagnosis)
-    yolo = YoloLLMStrategy.build(diagnosis)
+    reversion = MinimalPatchReversion.build(diagnosis)  # noqa: F841
+    yolo = YoloLLMStrategy.build(diagnosis)  # noqa: F841
     templates = TemplateBasedRepair.build(diagnosis)
 
     # strategies = [reversion, yolo]

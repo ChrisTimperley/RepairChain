@@ -31,7 +31,7 @@ class TemplateGenerationStrategy(abc.ABC):
         raise NotImplementedError
 
 
-def function_in_trace(stack_trace: list[SanitizerReport.StackTrace], f: kaskara.functions.Function) -> bool: 
+def function_in_trace(stack_trace: list[SanitizerReport.StackTrace], f: kaskara.functions.Function) -> bool:
     return any(stack_trace_ele.funcname == f.name for stack_trace_ele in stack_trace)
 
 
@@ -59,7 +59,7 @@ class BoundsCheckStrategy(TemplateGenerationStrategy):
 
         return cls(funcs=localized_functions,
                    diagnosis=diagnosis,
-                   stack_info=filtered_trace,)
+                   stack_info=filtered_trace)
 
     def generate(self) -> list[Diff]:
         head_index = self.diagnosis.index_at_head
@@ -76,15 +76,17 @@ class BoundsCheckStrategy(TemplateGenerationStrategy):
             for line in lines:
                 fileline = FileLine(f.filename, line.lineno)
                 stmts = head_index.statements.at_line(fileline)
-                file_contents = get_file_contents_at_commit(self.diagnosis.project.repository.active_branch.commit, f.filename)
+                file_contents = get_file_contents_at_commit(
+                                    self.diagnosis.project.repository.active_branch.commit,
+                                    f.filename)
 
                 for stmt in stmts:
                     # feeling uncomfy with this, but maybe it does what I'm hoping it does
                     reads = frozenset(stmt.reads if hasattr(stmt, "reads") else [])
                     for varname in reads:  # would be super cool to know the type, but who has the time, honestly.
-                        source =["if( " + varname + " > 500) { return; }\n"]
+                        source = ["if( " + varname + " > 500) { return; }\n"]
                         file_lines = file_contents.split("\n")
-                        modified_lines = file_lines[:stmt.location.start.line - 1] + source + file_lines[stmt.location.start.line:]
+                        modified_lines = file_lines[:stmt.location.start.line - 1] + source + file_lines[stmt.location.start.line:]  # noqa: E501
                         modified_file_content = "\n".join(modified_lines)
                         diff = difflib.unified_diff(
                             file_contents.splitlines(keepends=True),
@@ -96,6 +98,7 @@ class BoundsCheckStrategy(TemplateGenerationStrategy):
                         diffs.append(Diff.from_unidiff(diff_patch))
 
         return diffs
+
 
 @dataclass
 class TemplateBasedRepair(PatchGenerationStrategy):
