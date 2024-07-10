@@ -22,7 +22,7 @@ repairchain = 'repairchain.cli:cli'
 
 [tool.poetry.dependencies]
 python = ">=3.11,<3.13"
-darjeeling = { path = "./extern/darjeeling", develop = true }
+# darjeeling = { path = "./extern/darjeeling", develop = true }
 dockerblade = { path = "./extern/dockerblade", develop = true }
 kaskara = { path = "./extern/kaskara", develop = true }
 sourcelocation = { path = "./extern/sourcelocation", develop = true }

@@ -29,6 +29,7 @@ bundle:
 		src/repairchain/__main__.py \
 		--noconfirm \
 		--onefile \
-		--name repairchain
+		--name repairchain \
+		--exclude-module typing
 
 check: lint type test
