@@ -31,6 +31,7 @@ class StackFrame:
 
     @property
     def file_line(self) -> FileLine:
+        assert self.lineno is not None
         return FileLine(self.filename, self.lineno)
 
     def is_in_function(self, function: kaskara.functions.Function | str) -> bool:
