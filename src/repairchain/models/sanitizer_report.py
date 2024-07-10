@@ -54,7 +54,15 @@ def process_stack_trace_line(line: str) -> StackTrace:
                     offset)
 
 
-def parse_asan_output(asan_output: str) -> tuple[str, list[StackTrace]]:
+def parse_kasan(kasan_output: str) -> None:
+    raise NotImplementedError
+
+
+def parse_kfence(kfence_output: str) -> None:
+    raise NotImplementedError
+
+
+def parse_asan(asan_output: str) -> tuple[str, list[StackTrace]]:
     # Regular expressions to match different parts of the ASan output
     error_regex = re.compile(r".*ERROR: AddressSanitizer: (.+)")
 
@@ -87,6 +95,18 @@ def parse_asan_output(asan_output: str) -> tuple[str, list[StackTrace]]:
             stack_trace.append(process_stack_trace_line(line))
 
     return (error_name, stack_trace)
+
+
+def parse_memsan(memsan_output: str) -> None:
+    raise NotImplementedError
+
+
+def parse_ubsan(ubsan_output: str) -> None:
+    raise NotImplementedError
+
+
+def parse_jazzer(jazzer_output: str) -> None:
+    raise NotImplementedError
 
 
 class Sanitizer(enum.StrEnum):
@@ -128,7 +148,7 @@ class SanitizerReport:
     def from_report_text(cls, text: str) -> t.Self:
         sanitizer = cls._find_sanitizer(text)
         logger.debug(f"from report text, sanitizer {sanitizer}")
-        error_type, stack_trace = parse_asan_output(text)  # asan only for now
+        error_type, stack_trace = parse_asan(text)  # asan only for now
         return cls(
             contents=text,
             sanitizer=sanitizer,
