@@ -23,8 +23,11 @@ if t.TYPE_CHECKING:
 class StackFrame:
     funcname: str
     filename: str
-    lineno: int
-    offset: int
+    lineno: int | None
+    offset: int | None
+
+    def is_valid(self) -> bool:
+        return self.lineno is not None and self.offset is not None
 
     @property
     def file_line(self) -> FileLine:
@@ -69,12 +72,24 @@ class StackTrace(t.Sequence[StackFrame]):
         frames = [frame for frame in self.frames if frame.funcname in function_names]
         return StackTrace(frames)
 
+    def restrict_to_function(self, function: kaskara.functions.Function | str) -> StackTrace:
+        """Filter the stack trace to only include frames in the given function."""
+        if isinstance(function, kaskara.functions.Function):
+            function = function.name
+        frames = [frame for frame in self.frames if frame.funcname == function]
+        return StackTrace(frames)
+
     def functions(self) -> set[str]:
         """Returns the set of function names in the stack trace."""
         return {frame.funcname for frame in self.frames}
 
+    def is_valid(self) -> bool:
+        """Determines if all stack frames are valid."""
+        return all(frame.is_valid() for frame in self.frames)
+
 
 def extract_stack_frame_from_line(line: str) -> StackFrame:
+    # TODO prefer partition
     split_index = line.find(" in ")  # FIXME: error handle
     rhs = line[split_index + 4:]
     sig_index = rhs.find(")") if "(" in rhs else rhs.find(" ")
@@ -84,8 +99,8 @@ def extract_stack_frame_from_line(line: str) -> StackFrame:
 
     line_index = filename_part.find(":")
     filename = filename_part
-    lineno = -1
-    offset = -1
+    lineno: int | None = None
+    offset: int | None = None
     if line_index != -1:
         filename = filename_part[:line_index]
         linenostr = filename_part[line_index + 1:]
@@ -98,10 +113,10 @@ def extract_stack_frame_from_line(line: str) -> StackFrame:
                 lineno = int(linenostr)
 
     return StackFrame(
-        funcname,
-        filename,
-        lineno,
-        offset,
+        funcname=funcname,
+        filename=filename,
+        lineno=lineno,
+        offset=offset,
     )
 
 
@@ -198,6 +213,8 @@ class SanitizerReport:
             contents=text,
             sanitizer=sanitizer,
         )
+        # TODO need to deal with stack traces that may contain a mix of relative
+        # and absolute paths
         if sanitizer == Sanitizer.ASAN:
             report.error_type, report.stack_trace = parse_asan(text)
         return report
