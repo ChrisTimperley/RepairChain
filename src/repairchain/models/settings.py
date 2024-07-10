@@ -32,6 +32,8 @@ class Settings:
         The maximum time in seconds to allow for building a container.
     regression_time_limit: int
         The maximum time in seconds to allow for running regression tests.
+    pov_time_limit: int
+        The maximum time in seconds to allow for running a PoV.
     """
     workers: int = field(default=1)
     stop_early: bool = field(default=True)
@@ -39,8 +41,9 @@ class Settings:
     sanity_check: bool = field(default=True)
     cache_evaluations_to_file: Path | None = field(default=None)
     cache_index_to_file: Path | None = field(default=None)
-    build_time_limit: int = field(default=60)
-    regression_time_limit: int = field(default=60)
+    build_time_limit: int = field(default=120)
+    regression_time_limit: int = field(default=120)
+    pov_time_limit: int = field(default=60)
 
     @classmethod
     def from_env(cls, **kwargs: t.Any) -> Settings:  # noqa: ANN401
@@ -82,6 +85,7 @@ class Settings:
         fetch_int("workers", "REPAIRCHAIN_WORKERS")
         fetch_int("build_time_limit", "REPAIRCHAIN_BUILD_TIME_LIMIT")
         fetch_int("regression_time_limit", "REPAIRCHAIN_REGRESSION_TIME_LIMIT")
+        fetch_int("pov_time_limit", "REPAIRCHAIN_POV_TIME_LIMIT")
         fetch_bool("stop_early", "REPAIRCHAIN_STOP_EARLY")
         fetch_bool("minimize_failure", "REPAIRCHAIN_MINIMIZE_FAILURE")
         fetch_bool("sanity_check", "REPAIRCHAIN_SANITY_CHECK")

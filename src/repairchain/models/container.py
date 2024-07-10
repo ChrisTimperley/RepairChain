@@ -177,6 +177,7 @@ class ProjectContainer:
         bool
             :code:`True` if no sanitizers are encountered, :code:`False` otherwise.
         """
+        time_limit = self.project.settings.pov_time_limit
         if payload is None:
             payload = self.project.pov_payload
 
@@ -188,17 +189,13 @@ class ProjectContainer:
             "__PAYLOAD_FILE__",
             container_payload_filename,
         )
-
-        # TODO inject time limit!
         outcome = self._shell.run(
             crash_command,
             stdout=True,
             stderr=True,
             text=True,
+            time_limit=time_limit,
         )
-
-        # TODO we're going to have to detect time limits
-        # outcome.duration >= time_limit
         return self._check_pov_outcome(outcome)
 
     def _check_pov_outcome(self, outcome: dockerblade.CompletedProcess) -> bool:
