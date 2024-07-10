@@ -57,6 +57,8 @@ poetry run repairchain repair --help
 | `REPAIRCHAIN_BUILD_TIME_LIMIT` | `120` | time limit (in seconds) on building projects |
 | `REPAIRCHAIN_REGRESSION_TIME_LIMIT` | `120` | time limit (in seconds) on running regression test suite |
 | `REPAIRCHAIN_POV_TIME_LIMIT` | `60` | time limit (in seconds) on running PoV |
+| `AIXCC_LITELLM_HOSTNAME` | `http://0.0.0.0:4000` | the URL of the LiteLLM server |
+| `LITELLM_KEY` | `sk-1234` | the secret key to use for LiteLLM |
 
 ## Input Format
 
