@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from repairchain.models.bug_type import determine_bug_type
 from repairchain.models.patch_outcome import PatchOutcome
 from repairchain.util import dd_minimize
 
@@ -26,8 +25,7 @@ if t.TYPE_CHECKING:
 
 
 def diagnose(project: Project) -> Diagnosis:
-    bug_type = determine_bug_type(project.sanitizer_report)
-    logger.info(f"determined bug type: {bug_type}")
+    logger.info(f"bug type from sanitizer report: {project.sanitizer_report.bug_type}")
 
     triggering_commit = project.triggering_commit
     implicated_diff = commit_to_diff(triggering_commit)
@@ -99,7 +97,7 @@ def diagnose(project: Project) -> Diagnosis:
 
     return Diagnosis(
         project=project,
-        bug_type=bug_type,
+        bug_type=project.sanitizer_report.bug_type,
         index_at_head=index_at_head,
         index_at_crash_version=index_at_crash_version,
         implicated_diff=implicated_diff,

@@ -1,12 +1,13 @@
 from __future__ import annotations
 
+from repairchain.models.bug_type import BugType, Sanitizer, determine_bug_type
+
 __all__ = (
     "Sanitizer",
     "SanitizerReport",
 )
 
 import contextlib
-import enum
 import re
 import typing as t
 from dataclasses import dataclass, field
@@ -170,23 +171,14 @@ def parse_jazzer(jazzer_output: str) -> None:
     raise NotImplementedError
 
 
-class Sanitizer(enum.StrEnum):
-    UNKNOWN = "unknown"
-    KASAN = "kasan"
-    KFENCE = "kfence"
-    ASAN = "asan"
-    MEMSAN = "msan"
-    UBSAN = "ubsan"
-    JAZZER = "jazzer"
-
-
 @dataclass
 class SanitizerReport:
     contents: str = field(repr=False)
     sanitizer: Sanitizer
+    error_title: str | None = field(default=None)
+    bug_type: BugType = BugType.UNKNOWN
     # FIXME move this into a separate subclass
     stack_trace: StackTrace | None = field(default=None)
-    error_type: str | None = field(default=None)
 
     @classmethod
     def _find_sanitizer(cls, report_text: str) -> Sanitizer:
@@ -209,15 +201,17 @@ class SanitizerReport:
     @classmethod
     def from_report_text(cls, text: str) -> t.Self:
         sanitizer = cls._find_sanitizer(text)
+        bug_type = determine_bug_type(text, sanitizer)
         logger.debug(f"from report text, sanitizer {sanitizer}")
         report = cls(
             contents=text,
             sanitizer=sanitizer,
+            bug_type=bug_type,
         )
         # TODO need to deal with stack traces that may contain a mix of relative
         # and absolute paths
         if sanitizer == Sanitizer.ASAN:
-            report.error_type, report.stack_trace = parse_asan(text)
+            report.error_title, report.stack_trace = parse_asan(text)
         return report
 
     @classmethod

@@ -1,10 +1,18 @@
 from __future__ import annotations
 
-from repairchain.models.sanitizer_report import Sanitizer, SanitizerReport
-
 __all__ = ("BugType",)
 
 import enum
+
+
+class Sanitizer(enum.StrEnum):
+    UNKNOWN = "unknown"
+    KASAN = "kasan"
+    KFENCE = "kfence"
+    ASAN = "asan"
+    MEMSAN = "msan"
+    UBSAN = "ubsan"
+    JAZZER = "jazzer"
 
 
 class BugType(enum.StrEnum):
@@ -180,14 +188,13 @@ def find_bug_type_for_sanitizer(sanitizer_map: dict[str, BugType], report_text: 
     return BugType.UNKNOWN
 
 
-def determine_bug_type(report: SanitizerReport) -> BugType:
-    report_text = report.contents
+def determine_bug_type(report_text: str, sanitizer: Sanitizer) -> BugType:
     #  FIXME: consider error handling here, if something isn't found that we expect
 
-    bug_map = sanitizer_type_maps[report.sanitizer]
+    bug_map = sanitizer_type_maps[sanitizer]
     bt = find_bug_type_for_sanitizer(bug_map, report_text)
 
     #  Special casing things that don't work exactly with string matching
-    if report.sanitizer == Sanitizer.KASAN and bt == BugType.OUT_OF_BOUNDS_WRITE:
+    if sanitizer == Sanitizer.KASAN and bt == BugType.OUT_OF_BOUNDS_WRITE:
         return bt if "Write of size" in report_text else BugType.UNKNOWN  # likely FIXME
     return bt
