@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from repairchain.strategies.generation.llm.yolo_llm import YoloLLMStrategy
-from repairchain.strategies.generation.templates import TemplateBasedRepair
+from repairchain.strategies.generation.template.strategy import TemplateBasedRepair
 
 __all__ = ("determine_patch_generation_strategy",)
 
