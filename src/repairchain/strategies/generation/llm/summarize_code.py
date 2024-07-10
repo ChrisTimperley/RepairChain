@@ -78,7 +78,7 @@ class ReportSummary:
                             files: dict[str, str],
                             diff: Diff, function_names: list[str]) -> str:
         code_context = "\n".join(
-            f"<file: {filename}>\n{contents}\n</file: {filename}>"
+            f"<file:{filename}>\n{contents}\n</file:{filename}>"
             for filename, contents in files.items()
         )
 

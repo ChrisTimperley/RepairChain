@@ -34,6 +34,7 @@ class LLM:
         )
 
     def _call_llm_json(self, messages: MessagesIterable) -> str:
+        logger.info(f"Calling LLM with model={self.model}")
         model = self.model
         client = openai.OpenAI(
             api_key=self.master_key,

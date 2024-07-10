@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import math
 import time
 import typing as t
 from dataclasses import dataclass
@@ -63,6 +64,13 @@ There must be {number_patches} children, each corresponding to a modified code.
 
 
 @dataclass
+class FunctionContext:
+    context: str
+    size: int
+    max_function_size: int
+
+
+@dataclass
 class YoloLLMStrategy(PatchGenerationStrategy):
     diagnosis: Diagnosis
     model: str
@@ -80,7 +88,7 @@ class YoloLLMStrategy(PatchGenerationStrategy):
         model = "oai-gpt-4o"
         llm = LLM.from_settings(diagnosis.project.settings, model=model)
         diff = commit_to_diff.commit_to_diff(diagnosis.project.triggering_commit)
-        files = commit_to_diff.commit_to_files(diagnosis.project.triggering_commit, diff)
+        files = commit_to_diff.commit_to_files(diagnosis.project.head, diff)
 
         return cls(
             diagnosis=diagnosis,
@@ -108,55 +116,92 @@ class YoloLLMStrategy(PatchGenerationStrategy):
             return ""
 
         # TODO: see if cwe has an impact on the prompt ; seems unreliable
-        code_summary = "\nA security analyst analyzed the code and gave the following recommendations to fix it:\n"
+        code_summary = (
+            "\n<analyst-report>\n"
+            "A security analyst analyzed the code and gave the following recommendations to fix it:\n"
+            )
         for code in summary:
             code_summary += (
-                f"<function: {code.function_name}>\n"
+                f"<function:{code.function_name}>\n"
                 f"<filename> {code.filename} </filename>\n"
                 f"<function-summary>\n{code.summary}\n</function-summary>\n"
                 f"<analyst-recommendations>\n{code.recommendations}\n</analyst-recommendations>\n"
-                f"</function: {code.function_name}>\n"
+                f"</function:{code.function_name}>\n"
             )
 
+        code_summary += "</analyst-report>\n"
         return code_summary
+
+    def _create_function_context(self, function_names: list[str]) -> FunctionContext:
+        code_context = "\n"
+        max_function_size = 0
+        max_function_name = ""
+        max_function_filename = ""
+
+        for name in function_names:
+            fl: FileLines | None = Util.extract_begin_end_lines(self.diagnosis, name)
+            filename: str | None = Util.function_to_filename(self.diagnosis, name)
+            if fl is None:
+                logger.info(f"function was not found: {name}")
+                continue
+
+            if filename is None:
+                logger.info(f"filename was not found: {filename}")
+                continue
+
+            # Check if the key 'filename' exists in the dictionary files
+            if filename in self.files:
+                contents = Util.extract_lines_between_indices(self.files[filename], fl.begin, fl.end)
+            else:
+                # Handle the case where the key 'name' does not exist
+                logger.info(f"Key {name} does not exist in the dictionary files.")
+                logger.info(f"keys {print(list(self.files.keys()))}")
+                contents = ""
+
+            if contents is None:
+                logger.info(f"Could not extract function {name} from {filename}")
+                contents = ""
+
+            logger.debug(f"Contents of function: {contents}")
+
+            current_function_size = Util.count_tokens(contents, self.model)
+            if current_function_size > max_function_size:
+                max_function_size = current_function_size
+                max_function_name = name
+                max_function_filename = filename
+
+            code_context += (rf"<file:{filename}>\n{contents}\</file:{filename}>\n")
+            logger.debug(f"Contents of context: {code_context}")
+
+        logger.info(f"Function {max_function_name} in {max_function_filename} needs {max_function_size} tokens")
+
+        return FunctionContext(code_context,
+                               Util.count_tokens(code_context, self.model),
+                               max_function_size)
 
     def _create_user_prompt(self, function_names: list[str], sanitizer_prompt: str, number_patches: int) -> str:
 
         code_context = "\n"
+        function_context: FunctionContext = self._create_function_context(function_names)
+
         if self.use_context_files:
             code_context = "\n".join(
-                f"BEGIN FILE: {filename}\n{contents}\nEND FILE"
+                f"<file:{filename}>\n{contents}\n</file:{filename}>"
                 for filename, contents in self.files.items()
             )
         else:
-            for name in function_names:
-                fl: FileLines | None = Util.extract_begin_end_lines(self.diagnosis, name)
-                filename: str | None = Util.function_to_filename(self.diagnosis, name)
-                if fl is None:
-                    logger.info(f"function was not found: {name}")
-                    continue
+            code_context = function_context.context
 
-                if filename is None:
-                    logger.info(f"filename was not found: {filename}")
-                    continue
-
-                # Check if the key 'filename' exists in the dictionary files
-                if filename in self.files:
-                    contents = Util.extract_lines_between_indices(self.files[filename], fl.begin, fl.end)
-                else:
-                    # Handle the case where the key 'name' does not exist
-                    logger.info(f"Key {name} does not exist in the dictionary files.")
-                    logger.info(f"keys {print(list(self.files.keys()))}")
-                    contents = ""
-
-                if contents is None:
-                    logger.info(f"Could not extract function {name} from {filename}")
-                    contents = ""
-
-                logger.info(f"Contents of function: {contents}")
-
-                code_context += (f"BEGIN FILE: {filename}\n{contents}\nEND FILE")
-                logger.info(f"Contents of context: {code_context}")
+        local_number_patches = number_patches
+        llm_limit = (Util.limit_llm_output / 2)  # being conservative since output has more than code
+        if function_context.max_function_size * number_patches > llm_limit:
+            logger.info(f"Function too large to ask for {number_patches} patches")
+            if function_context.max_function_size > llm_limit:
+                logger.info("Function too large to ask for one patch!")
+                local_number_patches = 0
+            else:
+                local_number_patches = max(1, math.floor(llm_limit / function_context.max_function_size))
+                logger.info(f"Changed the number of patches to {local_number_patches}")
 
         return CONTEXT_YOLO.format(
             diff=self.diff,
@@ -164,7 +209,7 @@ class YoloLLMStrategy(PatchGenerationStrategy):
             analyst_report=sanitizer_prompt,
             code_context=code_context,
             code_functions=function_names,
-            number_patches=number_patches,
+            number_patches=local_number_patches,
         )
 
     # FIXME: create some examples for few-shot of format
