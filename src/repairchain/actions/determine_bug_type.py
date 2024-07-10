@@ -135,7 +135,7 @@ def find_bug_type_for_sanitizer(sanitizer_map: dict[str, BugType], report_text: 
 
 def determine_bug_type(report: SanitizerReport) -> BugType:
     report_text = report.contents
-    #  FIXME: error handling here, if something isn't found that we expect
+    #  FIXME: consider error handling here, if something isn't found that we expect
 
     bug_map = sanitizer_type_maps[report.sanitizer]
     bt = find_bug_type_for_sanitizer(bug_map, report_text)
