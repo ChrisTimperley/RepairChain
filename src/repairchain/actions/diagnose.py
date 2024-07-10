@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from repairchain.models.bug_type import determine_bug_type
 from repairchain.models.patch_outcome import PatchOutcome
 from repairchain.util import dd_minimize
 
@@ -11,7 +12,6 @@ from dockerblade.stopwatch import Stopwatch
 from loguru import logger
 
 from repairchain.actions.commit_to_diff import commit_to_diff
-from repairchain.actions.determine_bug_type import determine_bug_type
 from repairchain.actions.localize_diff import diff_to_functions
 from repairchain.actions.map_functions import map_functions
 from repairchain.models.diagnosis import Diagnosis
