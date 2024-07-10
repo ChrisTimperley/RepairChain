@@ -31,7 +31,7 @@ class TemplateGenerationStrategy(abc.ABC):
         raise NotImplementedError
 
 
-def function_in_trace(stack_trace: list[SanitizerReport.StackTrace], f: kaskara.functions.Function) -> bool:
+def function_in_trace(stack_trace: list[StackTrace], f: kaskara.functions.Function) -> bool:
     return any(stack_trace_ele.funcname == f.name for stack_trace_ele in stack_trace)
 
 
