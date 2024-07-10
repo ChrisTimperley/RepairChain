@@ -58,7 +58,7 @@ asan_bug_map = {
 
 # NOTE: not distinguishing between different types of uninitialized memory
 # can revisit if appropriate.
-memsan_bug_map = { 
+memsan_bug_map = {
     "WARNING: MemorySanitizer: use-of-uninitialized-value": BugType.LOAD_UNINIT_VALUE,
     "WARNING: MemorySanitizer: conditional jump or move": BugType.LOAD_UNINIT_VALUE,
     "WARNING: MemorySanitizer: uninitialized memory read": BugType.LOAD_UNINIT_VALUE,
@@ -105,7 +105,7 @@ jazzer_bug_map = {
  }
 
 # FIXME: The above is the generic stuff Jazzer can find
-# The Actual Jazzer CWEs per the competition are below; don't know how to 
+# The Actual Jazzer CWEs per the competition are below; don't know how to
 # grok them from the sanitizer report
 # CWE-22 ("Improper Limitation of a Pathname to a Restricted Directory ('Path Traversal')"): BugType.PATH_TRAVERSAL
 # CWE-77 ("Improper Neutralization of Special Elements used in a Command ('Command Injection')"): BugType.COMMAND_INJECTION  # noqa: E501
@@ -122,7 +122,7 @@ sanitizer_type_maps = {
     Sanitizer.ASAN: asan_bug_map,
     Sanitizer.MEMSAN: memsan_bug_map,
     Sanitizer.UBSAN: ubsan_bug_map,
-    Sanitizer.JAZZER: jazzer_bug_map
+    Sanitizer.JAZZER: jazzer_bug_map,
 }
 
 
