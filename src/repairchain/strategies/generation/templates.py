@@ -54,34 +54,35 @@ class BoundsCheckStrategy(TemplateGenerationStrategy):
         localized_functions = [f for f in implicated_functions if function_in_trace(report.stack_trace, f)]
         logger.debug(f"localized_functions: {len(localized_functions)}")
 
-        filtered_trace = [ele for ele in report.stack_trace if trace_in_function(ele.funcname, implicated_functions)]
+        filtered_trace = [ele for ele in report.stack_trace if trace_in_function(ele.funcname, localized_functions)]
         logger.debug(f"filtered trace:{filtered_trace}")
 
-        info = [ele for ele in filtered_trace if ele.funcname in localized_functions]
         return cls(funcs=localized_functions,
                    diagnosis=diagnosis,
-                   stack_info=info,)
+                   stack_info=filtered_trace,)
 
     def generate(self) -> list[Diff]:
         head_index = self.diagnosis.index_at_head
         diffs = []
         for f in self.funcs:
             logger.debug(f"func: {f}")
-            lines = [ele for ele in self.stack_info if ele.funcname == f]
+            lines = [ele for ele in self.stack_info if ele.funcname == f.name]
             # K need to turn the line into a file-line
             # absolute vs. relative path here is going to be A Thing, but let's start with what we have
             # and see what happens
 
+            # FIXME: if we don't have a line, we don't have a line
+
             for line in lines:
-                fileline = FileLine(line.filename, line.lineno)
+                fileline = FileLine(f.filename, line.lineno)
                 stmts = head_index.statements.at_line(fileline)
-                file_contents = get_file_contents_at_commit(self.diagnosis.project.repository.active_branch.commit, line.filename)
+                file_contents = get_file_contents_at_commit(self.diagnosis.project.repository.active_branch.commit, f.filename)
 
                 for stmt in stmts:
                     # feeling uncomfy with this, but maybe it does what I'm hoping it does
                     reads = frozenset(stmt.reads if hasattr(stmt, "reads") else [])
                     for varname in reads:  # would be super cool to know the type, but who has the time, honestly.
-                        source = "if( " + varname + " > 500) { return; }\n"
+                        source =["if( " + varname + " > 500) { return; }\n"]
                         file_lines = file_contents.split("\n")
                         modified_lines = file_lines[:stmt.location.start.line - 1] + source + file_lines[stmt.location.start.line:]
                         modified_file_content = "\n".join(modified_lines)
@@ -120,7 +121,6 @@ class TemplateBasedRepair(PatchGenerationStrategy):
 
     def run(self) -> list[Diff]:
         diffs = []
-        logger.debug("ahoy!")
         for g in self.generators:
             diffs += g.generate()
         return diffs
