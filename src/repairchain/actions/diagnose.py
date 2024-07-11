@@ -52,20 +52,10 @@ def _minimize(project: Project) -> Diff:
     return implicated_diff
 
 
-def diagnose(project: Project) -> Diagnosis:
-    logger.info(f"bug type from sanitizer report: {project.sanitizer_report.bug_type}")
-
+def _index_and_localize(partial_diagnosis: Diagnosis) -> Diagnosis:
+    project = partial_diagnosis.project
     triggering_commit = project.triggering_commit
-    implicated_diff = project.original_implicated_diff
-
-    if project.settings.sanity_check:
-        project.sanity_check()
-
-    if project.settings.minimize_failure:
-        try:
-            implicated_diff = _minimize(project)
-        except Exception:  # noqa: BLE001
-            logger.exception("failed to minimize implicated diff; continuing with original")
+    implicated_diff = partial_diagnosis.implicated_diff
 
     crash_version_implicated_files = implicated_diff.files
     logger.info(
@@ -73,8 +63,6 @@ def diagnose(project: Project) -> Diagnosis:
         len(crash_version_implicated_files),
         "\n".join(crash_version_implicated_files),
     )
-
-    # TODO don't do the below if kaskara is disabled
 
     index_at_crash_version = project.indexer.run(
         version=triggering_commit,
@@ -116,3 +104,45 @@ def diagnose(project: Project) -> Diagnosis:
         implicated_functions_at_head=current_version_implicated_functions,
         implicated_functions_at_crash_version=crash_version_implicated_functions,
     )
+
+
+def diagnose(project: Project) -> Diagnosis:
+    logger.info(f"bug type from sanitizer report: {project.sanitizer_report.bug_type}")
+
+    implicated_diff = project.original_implicated_diff
+
+    if project.settings.sanity_check:
+        project.sanity_check()
+    else:
+        logger.info("skipping sanity check")
+
+    if project.settings.minimize_failure:
+        try:
+            implicated_diff = _minimize(project)
+        except Exception:  # noqa: BLE001
+            logger.exception("failed to minimize implicated diff; continuing with original")
+    else:
+        logger.info("skipping minimization of implicated diff")
+
+    diagnosis = Diagnosis(
+        project=project,
+        bug_type=project.sanitizer_report.bug_type,
+        implicated_diff=implicated_diff,
+        index_at_head=None,
+        index_at_crash_version=None,
+        implicated_functions_at_head=None,
+        implicated_functions_at_crash_version=None,
+    )
+
+    if project.settings.enable_kaskara:
+        logger.info("indexing and localizing with kaskara...")
+        try:
+            diagnosis = _index_and_localize(diagnosis)
+        except Exception:  # noqa: BLE001
+            logger.exception("failed to index with kaskara; continuing without indexing")
+        else:
+            logger.info("indexed and localized with kaskara")
+    else:
+        logger.info("skipping indexing and localization with kaskara")
+
+    return diagnosis

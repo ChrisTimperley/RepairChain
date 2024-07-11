@@ -12,6 +12,7 @@ export REPAIRCHAIN_SANITY_CHECK="${REPAIRCHAIN_SANITY_CHECK:-false}"
 export REPAIRCHAIN_MINIMIZE_FAILURE="${REPAIRCHAIN_MINIMIZE_FAILURE:-true}"
 export REPAIRCHAIN_EVALUATION_CACHE="${REPAIRCHAIN_EVALUATION_CACHE:-./.caches/evaluation.pkl}"
 export REPAIRCHAIN_KASKARA_CACHE="${REPAIRCHAIN_KASKARA_CACHE:-./.caches/kaskara.pkl}"
+export REPAIRCHAIN_ENABLE_KASKARA="${REPAIRCHAIN_ENABLE_KASKARA:-true}"
 
 if ! poetry run which litellm &> /dev/null; then
   echo "LiteLLM is not installed. Please install LiteLLM before running this script."
