@@ -13,6 +13,7 @@ import git
 from dockerblade import Stopwatch
 from loguru import logger
 
+from repairchain.actions.commit_to_diff import commit_to_diff
 from repairchain.actions.validate import (
     PatchValidator,
     ThreadedPatchValidator,
@@ -199,9 +200,22 @@ class Project:
         return self._time_elapsed.duration
 
     @property
+    def original_implicated_diff(self) -> Diff:
+        """Returns the (unminimized) implicated diff."""
+        return commit_to_diff(self.triggering_commit)
+
+    @property
     def time_left(self) -> float:
         """Returns the time left in seconds."""
+        assert self.settings.time_limit is not None
         return max(self.settings.time_limit - self.time_elapsed, 0)
+
+    def sanity_check(self) -> None:
+        """Ensures that this project is valid."""
+        with self.provision() as container:
+            logger.info("running sanity check")
+            assert container.run_regression_tests()
+            assert not container.run_pov()
 
     @contextlib.contextmanager
     def provision(

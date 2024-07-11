@@ -76,44 +76,44 @@ class Settings:
         Settings
             The settings object.
         """
-        def fetch(name: str, envvar: str) -> t.Any:  # noqa: ANN401
-            value = kwargs.get(name, os.environ.get(envvar, None))
+        def fetch(name: str, envvar: str, default: t.Any) -> t.Any:  # noqa: ANN401
+            value = kwargs.get(name, os.environ.get(envvar, default))
             if not value:
                 value = None
             kwargs[name] = value
             return value
 
-        def fetch_path(name: str, envvar: str) -> None:
-            value = fetch(name, envvar)
+        def fetch_path(name: str, envvar: str, default: Path | None) -> None:
+            value = fetch(name, envvar, default)
             if isinstance(value, str):
                 kwargs[name] = Path(value)
 
-        def fetch_bool(name: str, envvar: str) -> None:
-            value = fetch(name, envvar)
+        def fetch_bool(name: str, envvar: str, default: bool | None) -> None:
+            value = fetch(name, envvar, default)
             if isinstance(value, str):
                 value = value.lower()
                 kwargs[name] = value in {"true", "1", "yes"}
 
-        def fetch_int(name: str, envvar: str) -> None:
-            value = fetch(name, envvar)
+        def fetch_int(name: str, envvar: str, default: int | None) -> None:
+            value = fetch(name, envvar, default)
             if isinstance(value, str):
                 kwargs[name] = int(value)
 
-        fetch_int("workers", "REPAIRCHAIN_WORKERS")
-        fetch_int("time_limit", "REPAIRCHAIN_TIME_LIMIT")
-        fetch_int("build_time_limit", "REPAIRCHAIN_BUILD_TIME_LIMIT")
-        fetch_int("regression_time_limit", "REPAIRCHAIN_REGRESSION_TIME_LIMIT")
-        fetch_int("pov_time_limit", "REPAIRCHAIN_POV_TIME_LIMIT")
-        fetch_bool("stop_early", "REPAIRCHAIN_STOP_EARLY")
-        fetch_bool("minimize_failure", "REPAIRCHAIN_MINIMIZE_FAILURE")
-        fetch_bool("sanity_check", "REPAIRCHAIN_SANITY_CHECK")
-        fetch_bool("enable_reversion_repair", "REPAIRCHAIN_ENABLE_REVERSION_REPAIR")
-        fetch_bool("enable_yolo_repair", "REPAIRCHAIN_ENABLE_YOLO_REPAIR")
-        fetch_bool("enable_template_repair", "REPAIRCHAIN_ENABLE_TEMPLATE_REPAIR")
-        fetch_bool("enable_kaskara", "REPAIRCHAIN_ENABLE_KASKARA")
-        fetch_path("cache_evaluations_to_file", "REPAIRCHAIN_EVALUATION_CACHE")
-        fetch_path("cache_index_to_file", "REPAIRCHAIN_KASKARA_CACHE")
-        fetch("litellm_url", "AIXCXX_LITELLM_HOSTNAME")
-        fetch("litellm_key", "LITELLM_KEY")
+        fetch_int("workers", "REPAIRCHAIN_WORKERS", default=1)
+        fetch_int("time_limit", "REPAIRCHAIN_TIME_LIMIT", default=3600)
+        fetch_int("build_time_limit", "REPAIRCHAIN_BUILD_TIME_LIMIT", default=120)
+        fetch_int("regression_time_limit", "REPAIRCHAIN_REGRESSION_TIME_LIMIT", default=120)
+        fetch_int("pov_time_limit", "REPAIRCHAIN_POV_TIME_LIMIT", default=60)
+        fetch_bool("stop_early", "REPAIRCHAIN_STOP_EARLY", default=True)
+        fetch_bool("minimize_failure", "REPAIRCHAIN_MINIMIZE_FAILURE", default=True)
+        fetch_bool("sanity_check", "REPAIRCHAIN_SANITY_CHECK", default=True)
+        fetch_bool("enable_reversion_repair", "REPAIRCHAIN_ENABLE_REVERSION_REPAIR", default=True)
+        fetch_bool("enable_yolo_repair", "REPAIRCHAIN_ENABLE_YOLO_REPAIR", default=True)
+        fetch_bool("enable_template_repair", "REPAIRCHAIN_ENABLE_TEMPLATE_REPAIR", default=True)
+        fetch_bool("enable_kaskara", "REPAIRCHAIN_ENABLE_KASKARA", default=True)
+        fetch_path("cache_evaluations_to_file", "REPAIRCHAIN_EVALUATION_CACHE", default=None)
+        fetch_path("cache_index_to_file", "REPAIRCHAIN_KASKARA_CACHE", default=None)
+        fetch("litellm_url", "AIXCXX_LITELLM_HOSTNAME", default="http://0.0.0.0:4000")
+        fetch("litellm_key", "LITELLM_KEY", default="sk-1234")
 
         return cls(**kwargs)
