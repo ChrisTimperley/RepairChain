@@ -10,6 +10,7 @@ from pathlib import Path
 
 import dockerblade
 import git
+from dockerblade import Stopwatch
 from loguru import logger
 
 from repairchain.actions.validate import (
@@ -51,8 +52,11 @@ class Project:
     evaluation_cache: PatchOutcomeCache = field(init=False, repr=False)
     validator: PatchValidator = field(init=False, repr=False)
     indexer: KaskaraIndexer = field(init=False, repr=False)
+    _time_elapsed: Stopwatch = field(init=False, repr=False)
 
     def __post_init__(self) -> None:
+        self._time_elapsed = Stopwatch()
+        self._time_elapsed.start()
         self.evaluation_cache = PatchOutcomeCache.for_settings(self.settings)
         self.validator = ThreadedPatchValidator.for_project(self)
         self.indexer = KaskaraIndexer.for_project(self)
@@ -183,6 +187,21 @@ class Project:
     @property
     def local_repository_path(self) -> Path:
         return Path(self.repository.working_dir)
+
+    @property
+    def time_limit(self) -> int:
+        """Returns the time limit in seconds."""
+        return self.settings.time_limit
+
+    @property
+    def time_elapsed(self) -> float:
+        """Returns the time elapsed in seconds."""
+        return self._time_elapsed.duration
+
+    @property
+    def time_left(self) -> float:
+        """Returns the time left in seconds."""
+        return max(self.settings.time_limit - self.time_elapsed, 0)
 
     @contextlib.contextmanager
     def provision(
