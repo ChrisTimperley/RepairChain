@@ -95,11 +95,13 @@ class SimpleYolo(PatchGenerationStrategy):
         ]
 
     def _implied_functions_to_str(self) -> list[str]:
+        assert self.diagnosis.implicated_functions_at_head is not None
         return [
             function_diagnosis.name for function_diagnosis in self.diagnosis.implicated_functions_at_head
         ]
 
     def _extract_begin_end_lines(self, function_name: str) -> FileLines | None:
+        assert self.diagnosis.implicated_functions_at_head is not None
         for function_diagnosis in self.diagnosis.implicated_functions_at_head:
             if function_diagnosis.name == function_name:
                 return FileLines(
