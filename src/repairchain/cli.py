@@ -233,47 +233,11 @@ def do_validate(  # noqa: PLR0917
     help="the file to which the diagnosis should be saved",
     default="diagnosis.json",
 )
-@click.option(
-    "--workers",
-    type=int,
-    default=1,
-    envvar="REPAIRCHAIN_WORKERS",
-    help="the number of workers to use for parallel operations",
-)
-@click.option(
-    "--minimize-failure/--no-minimize-failure",
-    default=False,
-    help="minimize the failure-inducing diff",
-    envvar="REPAIRCHAIN_MINIMIZE_FAILURE",
-)
-@click.option(
-    "--persist-evaluations-to-file",
-    default=None,
-    type=click.Path(dir_okay=False, writable=True, path_type=Path),
-    help="the file to which evaluations should be saved",
-    envvar="REPAIRCHAIN_EVALUATION_CACHE",
-)
-@click.option(
-    "--persist-kaskara-to-file",
-    default=None,
-    type=click.Path(dir_okay=False, writable=True, path_type=Path),
-    help="the file to which kaskara indices should be saved",
-    envvar="REPAIRCHAIN_KASKARA_CACHE",
-)
-def do_diagnose(  # noqa: PLR0917
+def do_diagnose(
     project_file: Path,
     save_to_file: Path,
-    workers: int,
-    minimize_failure: bool,
-    persist_evaluations_to_file: Path | None,
-    persist_kaskara_to_file: Path | None,
 ) -> None:
-    settings = Settings.from_env(
-        cache_evaluations_to_file=persist_evaluations_to_file,
-        cache_index_to_file=persist_kaskara_to_file,
-        minimize_failure=minimize_failure,
-        workers=workers,
-    )
+    settings = Settings.from_env()
     logger.info(f"loading project: {project_file}")
     logger.info(f"using settings: {settings}")
     with Project.load(project_file, settings) as project:
