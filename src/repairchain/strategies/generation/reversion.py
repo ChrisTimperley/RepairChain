@@ -31,16 +31,20 @@ class MinimalPatchReversion(PatchGenerationStrategy):
     def build(cls, diagnosis: Diagnosis) -> MinimalPatchReversion:
         return cls(diagnosis=diagnosis, project=diagnosis.project)
 
-    # performs cleanup, intended for the temporary branch created to rebase. is
-    # also called before creating the temporary branch, mostly because in
-    # testing, CLG created/failed to clean it up a lot.
-    # silently swallows git command errors, most likely a failure to delete the
-    # branch in question (such as if it doesn't exist).
-    # CLG has thought about this and believes it's the desired outcome.
-    def _cleanup_branch(self, repo: git.Repo, primary_branch: str, branch_name: str) -> None:
+    def _cleanup(
+        self,
+        repo: git.Repo,
+        restore_to_commit: git.Commit,
+        restore_to_branch: str | None,
+        temporary_rebase_branch: str,
+    ) -> None:
+        """Restores the initial state of the Git repo prior to running this strategy."""
         try:
-            repo.git.checkout(primary_branch)
-            repo.git.branch("-D", branch_name)
+            if restore_to_branch:
+                repo.git.checkout(restore_to_branch)
+            else:
+                repo.git.checkout(restore_to_commit)
+            repo.git.branch("-D", temporary_rebase_branch)
         except git.exc.GitCommandError:
             return
 
@@ -73,17 +77,26 @@ class MinimalPatchReversion(PatchGenerationStrategy):
         # and the latter often doesn't for some reason),
         # (3) rebase the change on top of the main branch, and then
         # (4) getting the last commit as a diff.
-        primary_branch = repo.active_branch.name
+        head_is_detached = repo.head.is_detached
+        restore_to_commit = repo.head.commit
+        restore_to_branch: str | None = None
+        if not head_is_detached:
+            restore_to_branch = repo.active_branch.name
 
-        # branch from the broken commit...
+        # branch from the triggering commit...
         commit_sha = triggering_commit.hexsha
-        new_branch_name = f"branch-{commit_sha[:8]}"
-        self._cleanup_branch(repo, primary_branch, new_branch_name)
+        temporary_rebase_branch = f"REPAIRCHAIN-rebase-{commit_sha[:8]}"
+        self._cleanup(
+            repo=repo,
+            restore_to_commit=restore_to_commit,
+            restore_to_branch=restore_to_branch,
+            temporary_rebase_branch=temporary_rebase_branch,
+        )
 
         try:
             repo_path = Path.resolve(self.project.local_repository_path)
-            repo.git.branch(new_branch_name, triggering_commit)
-            repo.git.checkout(new_branch_name)
+            repo.git.branch(temporary_rebase_branch, triggering_commit)
+            repo.git.checkout(temporary_rebase_branch)
 
             # make a commit consisting of only the minimized undo
             temp_patch_path = Path(tempfile.mkstemp(suffix=".diff")[1])
@@ -112,7 +125,11 @@ class MinimalPatchReversion(PatchGenerationStrategy):
 
             repo.git.add(A=True)
             repo.index.commit("undo minimal changes")
-            repo.git.rebase(primary_branch)
+
+            if head_is_detached:
+                repo.git.rebase(restore_to_commit)
+            else:
+                repo.git.rebase(restore_to_branch)
 
             # grab the head commit, which should undo the badness, turn that into a diff
             return commit_to_diff(self.project.repository.active_branch.commit)
@@ -122,7 +139,12 @@ class MinimalPatchReversion(PatchGenerationStrategy):
         except git.exc.GitCommandError:
             logger.exception("failed to create branch or rebase")
         finally:
-            self._cleanup_branch(repo, primary_branch, new_branch_name)
+            self._cleanup(
+                repo=repo,
+                restore_to_commit=restore_to_commit,
+                restore_to_branch=restore_to_branch,
+                temporary_rebase_branch=temporary_rebase_branch,
+            )
 
         return None
 
