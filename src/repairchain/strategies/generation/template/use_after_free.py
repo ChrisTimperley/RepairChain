@@ -17,7 +17,6 @@ class UseAfterFreeStrategy(TemplateGenerationStrategy):
     functions_to_repair: list[kaskara.functions.Function]
     stack_trace: StackTrace
 
-
     @classmethod
     def build(cls, diagnosis: Diagnosis) -> t.Self:
         raise NotImplementedError
