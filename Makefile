@@ -29,7 +29,9 @@ bundle:
 		src/repairchain/__main__.py \
 		--noconfirm \
 		--onefile \
-		--name repairchain
+		--name repairchain \
+		--hidden-import=tiktoken_ext.openai_public \
+		--hidden-import=tiktoken_ext
 	./dist/repairchain --help
 
 check: lint type test
