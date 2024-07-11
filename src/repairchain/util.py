@@ -8,6 +8,7 @@ __all__ = (
 
 import typing as t
 
+from dockerblade.stopwatch import Stopwatch
 from loguru import logger
 
 T = t.TypeVar("T")
@@ -52,6 +53,8 @@ def split(list_: t.Sequence[T], chunks: int) -> list[set[T]]:
 def dd_minimize(
     original: t.Sequence[T],
     tester: t.Callable[[t.Sequence[T]], bool],
+    *,
+    time_limit: float | None = None,
 ) -> list[T]:
     """Finds the minimal portion of a sequence that satisfies a given predicate.
 
@@ -61,12 +64,28 @@ def dd_minimize(
         the original sequence to minimize
     tester: t.Callable[[t.Sequence[T]], bool]
         a function that takes a sequence and returns True if the sequence is valid
+    time_limit: float | None
+        the maximum time to spend on minimizing the sequence.
+        if :code:`None`, no time limit is enforced
 
     Returns:
     -------
     list[T]
         the minimized sequence
+
+    Raises:
+    ------
+    TimeoutError
+        if the time limit is reached
     """
+    timer = Stopwatch()
+    timer.start()
+
+    def check_time() -> None:
+        if time_limit is not None and timer.duration > time_limit:
+            message = f"minimization reached time limit after {timer.duration:.2f} seconds"
+            raise TimeoutError(message)
+
     c_fail = set(range(len(original)))
     logger.debug(f"beginning dd_min. failure indices: {c_fail}")
     assert tester(original)  # property should hold on entry
@@ -78,6 +97,7 @@ def dd_minimize(
         subsets = split(list(c_fail), granularity)
         some_complement_is_failing = False
         for subset in subsets:
+            check_time()
             complement = c_fail - frozenset(subset)
             totest = from_indices(complement, original)
             if tester(totest):
@@ -104,6 +124,8 @@ def dd_minimize(
 def dd_maximize(
     original: t.Sequence[T],
     tester: t.Callable[[t.Sequence[T]], bool],
+    *,
+    time_limit: float | None = None,
 ) -> list[T]:
     """Finds the maximal portion of a sequence that satisfies a given predicate.
 
@@ -113,13 +135,21 @@ def dd_maximize(
         the original sequence to maximize
     tester: t.Callable[[t.Sequence[T]], bool]
         a function that takes a sequence and returns True if the sequence is valid
+    time_limit: float | None
+        the maximum time to spend on maximizing the sequence.
+        if :code:`None`, no time limit is enforced
 
     Returns:
     -------
     list[T]
         the maximized sequence
+
+    Raises:
+    ------
+    TimeoutError
+        if the time limit is reached
     """
     def new_tester(x: t.Sequence[T]) -> bool:
         return not tester(x)
-    minimized = dd_minimize(original, new_tester)
+    minimized = dd_minimize(original, new_tester, time_limit=time_limit)
     return [i for i in original if i not in minimized]
