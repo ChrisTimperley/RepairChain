@@ -30,7 +30,7 @@ def determine_patch_generation_strategy(
     if settings.enable_yolo_repair:
         yolo_gpt4o = YoloLLMStrategy.build(diagnosis)
         yolo_gpt4o._set_model("oai-gpt-4o")
-        strategies.append(yolo_gpt4o)
+        # strategies.append(yolo_gpt4o)
         yolo_claude35 = YoloLLMStrategy.build(diagnosis)
         yolo_claude35._set_model("claude-3.5-sonnet")
         strategies.append(yolo_claude35)

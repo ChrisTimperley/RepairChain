@@ -4,8 +4,9 @@ import difflib
 
 __all__ = ("Util",)
 
+import json
 import typing as t
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field
 
 import tiktoken
 from loguru import logger
@@ -49,6 +50,9 @@ class RepairedFileContents:
 @dataclass
 class PatchFile:
     patch: list[RepairedFileContents]
+
+    def to_json(self) -> str:
+        return json.dumps(asdict(self), indent=4)
 
 
 @dataclass
