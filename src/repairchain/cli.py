@@ -61,48 +61,12 @@ def cli(log_level: str) -> None:
     required=True,
     help="the directory to which repairs should be saved",
 )
-@click.option(
-    "--workers",
-    type=int,
-    default=1,
-    envvar="REPAIRCHAIN_WORKERS",
-    help="the number of workers to use for parallel operations",
-)
-@click.option(
-    "--minimize-failure/--no-minimize-failure",
-    default=False,
-    help="minimize the failure-inducing diff",
-    envvar="REPAIRCHAIN_MINIMIZE_FAILURE",
-)
-@click.option(
-    "--persist-evaluations-to-file",
-    default=None,
-    type=click.Path(dir_okay=False, writable=True, path_type=Path),
-    help="the file to which evaluations should be saved",
-    envvar="REPAIRCHAIN_EVALUATION_CACHE",
-)
-@click.option(
-    "--persist-kaskara-to-file",
-    default=None,
-    type=click.Path(dir_okay=False, writable=True, path_type=Path),
-    help="the file to which kaskara indices should be saved",
-    envvar="REPAIRCHAIN_KASKARA_CACHE",
-)
-def repair(  # noqa: PLR0917
+def repair(
     filename: Path,
     stop_early: bool,
     save_to_dir: Path,
-    workers: int,
-    minimize_failure: bool,
-    persist_evaluations_to_file: Path | None,
-    persist_kaskara_to_file: Path | None,
 ) -> None:
-    settings = Settings.from_env(
-        cache_evaluations_to_file=persist_evaluations_to_file,
-        cache_index_to_file=persist_kaskara_to_file,
-        minimize_failure=minimize_failure,
-        workers=workers,
-    )
+    settings = Settings.from_env()
     logger.info(f"loading project: {filename}")
     logger.info(f"using settings: {settings}")
     with Project.load(filename, settings) as project:
@@ -124,38 +88,11 @@ def repair(  # noqa: PLR0917
     default="candidates",
     help="the directory to which patch candidates should be saved",
 )
-@click.option(
-    "--minimize-failure/--no-minimize-failure",
-    default=False,
-    help="minimize the failure-inducing diff",
-    envvar="REPAIRCHAIN_MINIMIZE_FAILURE",
-)
-@click.option(
-    "--persist-evaluations-to-file",
-    default=None,
-    type=click.Path(dir_okay=False, writable=True, path_type=Path),
-    help="the file to which evaluations should be saved",
-    envvar="REPAIRCHAIN_EVALUATION_CACHE",
-)
-@click.option(
-    "--persist-kaskara-to-file",
-    default=None,
-    type=click.Path(dir_okay=False, writable=True, path_type=Path),
-    help="the file to which kaskara indices should be saved",
-    envvar="REPAIRCHAIN_KASKARA_CACHE",
-)
 def do_generate(
     filename: Path,
     output: Path,
-    minimize_failure: bool,
-    persist_evaluations_to_file: Path | None,
-    persist_kaskara_to_file: Path | None,
 ) -> None:
-    settings = Settings.from_env(
-        cache_evaluations_to_file=persist_evaluations_to_file,
-        cache_index_to_file=persist_kaskara_to_file,
-        minimize_failure=minimize_failure,
-    )
+    settings = Settings.from_env()
     logger.info(f"loading project: {filename}")
     logger.info(f"using settings: {settings}")
     with Project.load(filename, settings) as project:
@@ -185,32 +122,13 @@ def do_generate(
     required=True,
     help="the directory to which repairs should be saved",
 )
-@click.option(
-    "--workers",
-    type=int,
-    default=1,
-    envvar="REPAIRCHAIN_WORKERS",
-    help="the number of workers to use for parallel operations",
-)
-@click.option(
-    "--persist-evaluations-to-file",
-    default=None,
-    type=click.Path(dir_okay=False, writable=True, path_type=Path),
-    help="the file to which evaluations should be saved",
-    envvar="REPAIRCHAIN_EVALUATION_CACHE",
-)
-def do_validate(  # noqa: PLR0917
+def do_validate(
     project_file: Path,
     candidates_directory: Path,
     stop_early: bool,
     save_to_dir: Path,
-    workers: int,
-    persist_evaluations_to_file: Path | None,
 ) -> None:
-    settings = Settings.from_env(
-        cache_evaluations_to_file=persist_evaluations_to_file,
-        workers=workers,
-    )
+    settings = Settings.from_env()
     logger.info(f"loading project: {project_file}")
     logger.info(f"using settings: {settings}")
     with Project.load(project_file, settings) as project:
