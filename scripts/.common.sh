@@ -17,6 +17,7 @@ export REPAIRCHAIN_ENABLE_YOLO_REPAIR="${REPAIRCHAIN_ENABLE_YOLO_REPAIR:-true}"
 export REPAIRCHAIN_ENABLE_TEMPLATE_REPAIR="${REPAIRCHAIN_ENABLE_TEMPLATE_REPAIR:-true}"
 export REPAIRCHAIN_ENABLE_REVERSION_REPAIR="${REPAIRCHAIN_ENABLE_REVERSION_REPAIR:-true}"
 export REPAIRCHAIN_TIME_LIMIT="${REPAIRCHAIN_TIME_LIMIT:-3600}"
+export LITELLM_MODEL="${LITELLM_MODEL:-oai-gpt-4o}"
 
 if ! poetry run which litellm &> /dev/null; then
   echo "LiteLLM is not installed. Please install LiteLLM before running this script."

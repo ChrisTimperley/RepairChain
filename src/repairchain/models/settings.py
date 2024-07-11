@@ -57,6 +57,7 @@ class Settings:
     pov_time_limit: int = field(default=60)
     litellm_url: str = field(default="http://0.0.0.0:4000")
     litellm_key: str = field(default="sk-1234", repr=False)
+    litellm_model: str = field(default="oai-gpt-4o")
     enable_kaskara: bool = field(default=True)
     enable_reversion_repair: bool = field(default=True)
     enable_yolo_repair: bool = field(default=True)
@@ -115,5 +116,6 @@ class Settings:
         fetch_path("cache_index_to_file", "REPAIRCHAIN_KASKARA_CACHE", default=None)
         fetch("litellm_url", "AIXCXX_LITELLM_HOSTNAME", default="http://0.0.0.0:4000")
         fetch("litellm_key", "LITELLM_KEY", default="sk-1234")
+        fetch("litellm_model", "LITELLM_MODEL", default="oai-gpt-4o")
 
         return cls(**kwargs)

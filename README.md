@@ -64,6 +64,7 @@ poetry run repairchain repair --help
 | `REPAIRCHAIN_ENABLE_REVERSION_REPAIR` | `true` | enables (or disables) minimal reversation patching strategy |
 | `REPAIRCHAIN_ENABLE_YOLO_REPAIR` | `true` | enables (or disables) LLM-based patching strategies |
 | `REPAIRCHAIN_ENABLE_TEMPLATE_REPAIR` | `true` | enables (or disables) template-based patching strategies |
+| `LITELLM_MODEL` | `oai-gpt-4o` | specifies the model that should be used by YOLO |
 
 ## Input Format
 
