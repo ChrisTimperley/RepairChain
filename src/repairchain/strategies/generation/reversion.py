@@ -3,6 +3,7 @@ from __future__ import annotations
 import subprocess
 import tempfile
 import typing as t
+from contextlib import suppress
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -39,14 +40,30 @@ class MinimalPatchReversion(PatchGenerationStrategy):
         temporary_rebase_branch: str,
     ) -> None:
         """Restores the initial state of the Git repo prior to running this strategy."""
+        with suppress(git.exc.GitCommandError):
+            repo.git.rebase("--abort")
+        with suppress(git.exc.GitCommandError):
+            repo.git.merge("--abort")
+        with suppress(git.exc.GitCommandError):
+            repo.git.clean("-xdf")
+        with suppress(git.exc.GitCommandError):
+            if not repo.head.is_detached and repo.active_branch.name == restore_to_branch:
+                repo.git.branch("-D", temporary_rebase_branch)
+
         try:
             if restore_to_branch:
+                logger.debug(f"restoring to branch: {restore_to_branch}")
                 repo.git.checkout(restore_to_branch)
             else:
+                logger.debug(f"restoring to commit: {restore_to_commit.hexsha}")
                 repo.git.checkout(restore_to_commit)
-            repo.git.branch("-D", temporary_rebase_branch)
         except git.exc.GitCommandError:
-            return
+            logger.exception("git command failed during reversion cleanup")
+
+        with suppress(git.exc.GitCommandError):
+            logger.debug(f"deleting temporary rebase branch: {temporary_rebase_branch}")
+            if any(branch.name == temporary_rebase_branch for branch in repo.branches):  # type: ignore[attr-defined]
+                repo.git.branch("-D", temporary_rebase_branch)
 
     def _find_minimal_diff(self) -> Diff | None:
         repo = self.project.repository
@@ -80,8 +97,12 @@ class MinimalPatchReversion(PatchGenerationStrategy):
         head_is_detached = repo.head.is_detached
         restore_to_commit = repo.head.commit
         restore_to_branch: str | None = None
+
+        if head_is_detached:
+            logger.warning("head is detached; will rebase on the detached commit")
         if not head_is_detached:
             restore_to_branch = repo.active_branch.name
+            logger.info(f"head is not detached; will rebase on the active branch: {restore_to_branch}")
 
         # branch from the triggering commit...
         commit_sha = triggering_commit.hexsha
