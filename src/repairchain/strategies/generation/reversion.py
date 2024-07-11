@@ -63,7 +63,7 @@ class MinimalPatchReversion(PatchGenerationStrategy):
             return outcome == PatchOutcome.PASSED
 
         to_minimize = list(reverse_diff.file_hunks)
-        minimized_hunks = dd_minimize(to_minimize, tester)
+        minimized_hunks = dd_minimize(to_minimize, tester, time_limit=self.project.time_left)
         minimized = Diff.from_file_hunks(minimized_hunks)
 
         # we have the slice of the undone commit we need, now we need it to

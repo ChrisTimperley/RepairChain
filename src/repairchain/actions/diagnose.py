@@ -43,7 +43,7 @@ def _minimize(project: Project) -> Diff:
         return outcome == PatchOutcome.FAILED
 
     to_minimize: list[FileHunk] = list(implicated_diff.file_hunks)
-    minimized_hunks = dd_minimize(to_minimize, tester)
+    minimized_hunks = dd_minimize(to_minimize, tester, time_limit=project.time_left)
     implicated_diff = Diff.from_file_hunks(minimized_hunks)
     time_taken = stopwatch.duration
     logger.info(
