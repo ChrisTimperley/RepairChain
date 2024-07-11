@@ -181,20 +181,26 @@ sanitizer_type_maps = {
 }
 
 
-def find_bug_type_for_sanitizer(sanitizer_map: dict[str, BugType], report_text: str) -> BugType:
+def _find_bug_type_for_sanitizer(
+    report_text: str,
+    sanitizer: Sanitizer,
+) -> BugType:
+    if sanitizer not in sanitizer_type_maps:
+        return BugType.UNKNOWN
+
+    sanitizer_map = sanitizer_type_maps[sanitizer]
     for key, val in sanitizer_map.items():
         if key in report_text:
             return val
+
     return BugType.UNKNOWN
 
 
 def determine_bug_type(report_text: str, sanitizer: Sanitizer) -> BugType:
-    #  FIXME: consider error handling here, if something isn't found that we expect
-
-    bug_map = sanitizer_type_maps[sanitizer]
-    bt = find_bug_type_for_sanitizer(bug_map, report_text)
+    bug_type = _find_bug_type_for_sanitizer(report_text, sanitizer)
 
     #  Special casing things that don't work exactly with string matching
-    if sanitizer == Sanitizer.KASAN and bt == BugType.OUT_OF_BOUNDS_WRITE:
-        return bt if "Write of size" in report_text else BugType.UNKNOWN  # likely FIXME
-    return bt
+    if sanitizer == Sanitizer.KASAN and bug_type == BugType.OUT_OF_BOUNDS_WRITE:
+        return bug_type if "Write of size" in report_text else BugType.UNKNOWN  # likely FIXME
+
+    return bug_type
