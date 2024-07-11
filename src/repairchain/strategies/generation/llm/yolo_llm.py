@@ -78,7 +78,7 @@ class FunctionContext:
 @dataclass
 class YoloLLMStrategy(PatchGenerationStrategy):
     diagnosis: Diagnosis
-    _model: str
+    model: str
     use_report: bool  # option to use report in context
     use_context_files: bool  # option to use full files in context
     use_one_patch_for_iter: bool
