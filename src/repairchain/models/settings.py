@@ -36,6 +36,14 @@ class Settings:
         The maximum time in seconds to allow for running regression tests.
     pov_time_limit: int
         The maximum time in seconds to allow for running a PoV.
+    enable_kaskara: bool
+        Enables or disables the use of Kaskara for indexing.
+    enable_reversion_repair: bool
+        Enables or disables the use of reversion repair.
+    enable_yolo_repair: bool
+        Enables or disables the use of YOLO repair.
+    enable_template_repair: bool
+        Enables or disables the use of template repair.
     """
     time_limit: int = field(default=3600)
     workers: int = field(default=1)
@@ -49,6 +57,7 @@ class Settings:
     pov_time_limit: int = field(default=60)
     litellm_url: str = field(default="http://0.0.0.0:4000")
     litellm_key: str = field(default="sk-1234", repr=False)
+    enable_kaskara: bool = field(default=True)
     enable_reversion_repair: bool = field(default=True)
     enable_yolo_repair: bool = field(default=True)
     enable_template_repair: bool = field(default=True)
@@ -101,6 +110,7 @@ class Settings:
         fetch_bool("enable_reversion_repair", "REPAIRCHAIN_ENABLE_REVERSION_REPAIR")
         fetch_bool("enable_yolo_repair", "REPAIRCHAIN_ENABLE_YOLO_REPAIR")
         fetch_bool("enable_template_repair", "REPAIRCHAIN_ENABLE_TEMPLATE_REPAIR")
+        fetch_bool("enable_kaskara", "REPAIRCHAIN_ENABLE_KASKARA")
         fetch_path("cache_evaluations_to_file", "REPAIRCHAIN_EVALUATION_CACHE")
         fetch_path("cache_index_to_file", "REPAIRCHAIN_KASKARA_CACHE")
         fetch("litellm_url", "AIXCXX_LITELLM_HOSTNAME")

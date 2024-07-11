@@ -60,6 +60,7 @@ poetry run repairchain repair --help
 | `REPAIRCHAIN_POV_TIME_LIMIT` | `60` | time limit (in seconds) on running PoV |
 | `AIXCC_LITELLM_HOSTNAME` | `http://0.0.0.0:4000` | the URL of the LiteLLM server |
 | `LITELLM_KEY` | `sk-1234` | the secret key to use for LiteLLM |
+| `REPAIRCHAIN_ENABLE_KASKARA` | `true` | enables (or disables) the use of Kaskara for indexing |
 | `REPAIRCHAIN_ENABLE_REVERSION_REPAIR` | `true` | enables (or disables) minimal reversation patching strategy |
 | `REPAIRCHAIN_ENABLE_YOLO_REPAIR` | `true` | enables (or disables) LLM-based patching strategies |
 | `REPAIRCHAIN_ENABLE_TEMPLATE_REPAIR` | `true` | enables (or disables) template-based patching strategies |
