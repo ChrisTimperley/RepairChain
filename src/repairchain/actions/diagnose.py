@@ -64,6 +64,10 @@ def diagnose(project: Project) -> Diagnosis:
         len(crash_version_implicated_files),
         "\n".join(crash_version_implicated_files),
     )
+
+    # TODO don't do the below if kaskara is disabled
+    # TODO don't continue if kaskara fails
+
     index_at_crash_version = project.indexer.run(
         version=triggering_commit,
         restrict_to_files=crash_version_implicated_files,
