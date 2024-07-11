@@ -9,6 +9,7 @@ __all__ = (
 
 import abc
 import concurrent.futures
+import math
 import typing as t
 from dataclasses import dataclass, field
 
@@ -102,6 +103,11 @@ class PatchValidator(abc.ABC):
         ------
         tuple[Diff, PatchOutcome]
             A tuple containing the patch and its outcome.
+
+        Raises:
+        ------
+        TimeoutError
+            If the validation process exceeds the specified timeout.
         """
         raise NotImplementedError
 
@@ -125,7 +131,8 @@ class SimplePatchValidator(PatchValidator):
 
         for candidate in candidates:
             if timeout is not None and timer.duration >= timeout:
-                return
+                message = f"validation process exceeded the specified timeout ({timeout}s)"
+                raise TimeoutError(message)
 
             outcome = self.validate(candidate, commit)
             yield candidate, outcome
@@ -156,31 +163,6 @@ class ThreadedPatchValidator(PatchValidator):
         timeout: int | None = None,
         stop_early: bool = True,
     ) -> t.Iterator[tuple[Diff, PatchOutcome]]:
-        """Validates a list of patches and yields their outcomes.
-
-        Arguments:
-        ---------
-        candidates : list[Diff]
-            The list of patches to validate.
-        commit : git.Commit | None
-            The commit to which the patches should be applied.
-            If None, the project's head commit is used.
-        timeout : int | None
-            The maximum amount of time to spend validating (in seconds).
-            If None, no timeout is set.
-        stop_early : bool
-            Whether to stop the validation process as soon as a valid patch is found.
-
-        Yields:
-        ------
-        tuple[Diff, PatchOutcome]
-            A tuple containing the patch and its outcome
-
-        Raises:
-        ------
-        TimeoutError
-            If the validation process exceeds the specified timeout.
-        """
         executor = concurrent.futures.ThreadPoolExecutor(
             max_workers=self.workers,
         )
@@ -216,7 +198,13 @@ def validate(
     If `stop_early` is True, the validation process will stop as soon as a valid patch is found.
     """
     validator = project.validator
-    for candidate, outcome in validator.run(candidates, commit=commit, stop_early=stop_early):
+    time_left = math.floor(project.time_left)
+    for candidate, outcome in validator.run(
+        candidates,
+        commit=commit,
+        stop_early=stop_early,
+        timeout=int(time_left),
+    ):
         if outcome == PatchOutcome.PASSED:
             yield candidate
             if stop_early:
