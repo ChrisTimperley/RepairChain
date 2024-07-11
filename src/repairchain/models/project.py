@@ -13,6 +13,7 @@ import git
 from dockerblade import Stopwatch
 from loguru import logger
 
+from repairchain.actions.commit_to_diff import commit_to_diff
 from repairchain.actions.validate import (
     PatchValidator,
     ThreadedPatchValidator,
@@ -197,6 +198,11 @@ class Project:
     def time_elapsed(self) -> float:
         """Returns the time elapsed in seconds."""
         return self._time_elapsed.duration
+
+    @property
+    def original_implicated_diff(self) -> Diff:
+        """Returns the (unminimized) implicated diff."""
+        return commit_to_diff(self.triggering_commit)
 
     @property
     def time_left(self) -> float:

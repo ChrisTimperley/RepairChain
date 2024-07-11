@@ -10,7 +10,6 @@ import typing as t
 from dockerblade.stopwatch import Stopwatch
 from loguru import logger
 
-from repairchain.actions.commit_to_diff import commit_to_diff
 from repairchain.actions.localize_diff import diff_to_functions
 from repairchain.actions.map_functions import map_functions
 from repairchain.models.diagnosis import Diagnosis
@@ -24,36 +23,49 @@ if t.TYPE_CHECKING:
     from repairchain.models.project import Project
 
 
+def _minimize(project: Project) -> Diff:
+    """Minimizes the triggering commit's diff."""
+    stopwatch = Stopwatch()
+    stopwatch.start()
+    implicated_diff = project.original_implicated_diff
+    logger.info(f"minimizing implicated diff:\n{implicated_diff}")
+
+    triggering_commit = project.triggering_commit
+    triggering_commit_parent = triggering_commit.parents[0]
+
+    validator = project.validator
+
+    def tester(hunks: t.Sequence[FileHunk]) -> bool:
+        as_diff = Diff.from_file_hunks(list(hunks))
+        logger.debug(f"testing minimization:\n{as_diff}")
+        outcome = validator.validate(as_diff, commit=triggering_commit_parent)
+        logger.debug(f"outcome: {outcome}")
+        return outcome == PatchOutcome.FAILED
+
+    to_minimize: list[FileHunk] = list(implicated_diff.file_hunks)
+    minimized_hunks = dd_minimize(to_minimize, tester)
+    implicated_diff = Diff.from_file_hunks(minimized_hunks)
+    time_taken = stopwatch.duration
+    logger.info(
+        f"minimized implicated diff (took {time_taken:.2f} s):\n{implicated_diff}",
+    )
+    return implicated_diff
+
+
 def diagnose(project: Project) -> Diagnosis:
     logger.info(f"bug type from sanitizer report: {project.sanitizer_report.bug_type}")
 
     triggering_commit = project.triggering_commit
-    implicated_diff = commit_to_diff(triggering_commit)
+    implicated_diff = project.original_implicated_diff
 
     if project.settings.sanity_check:
         project.sanity_check()
 
     if project.settings.minimize_failure:
-        stopwatch = Stopwatch()
-        logger.info(f"minimizing implicated diff:\n{implicated_diff}")
-        stopwatch.start()
-        triggering_commit_parent = triggering_commit.parents[0]
-        validator = project.validator
-
-        def tester(hunks: t.Sequence[FileHunk]) -> bool:
-            as_diff = Diff.from_file_hunks(list(hunks))
-            logger.debug(f"testing minimization:\n{as_diff}")
-            outcome = validator.validate(as_diff, commit=triggering_commit_parent)
-            logger.debug(f"outcome: {outcome}")
-            return outcome == PatchOutcome.FAILED
-
-        to_minimize: list[FileHunk] = list(implicated_diff.file_hunks)
-        minimized_hunks = dd_minimize(to_minimize, tester)
-        implicated_diff = Diff.from_file_hunks(minimized_hunks)
-        time_taken = stopwatch.duration
-        logger.info(
-            f"minimized implicated diff (took {time_taken:.2f} s):\n{implicated_diff}",
-        )
+        try:
+            implicated_diff = _minimize(project)
+        except Exception:  # noqa: BLE001
+            logger.exception("failed to minimize implicated diff; continuing with original")
 
     crash_version_implicated_files = implicated_diff.files
     logger.info(
