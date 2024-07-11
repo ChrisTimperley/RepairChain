@@ -28,6 +28,8 @@ class Settings:
     cache_index_to_file: Path | None
         The path to a file used to persist the kaskara indices.
         If :code:`None`, caching to disk is disabled.
+    time_limit: int
+        The maximum time in seconds to allow for the entire repair process.
     build_time_limit: int
         The maximum time in seconds to allow for building a container.
     regression_time_limit: int
@@ -35,6 +37,7 @@ class Settings:
     pov_time_limit: int
         The maximum time in seconds to allow for running a PoV.
     """
+    time_limit: int = field(default=3600)
     workers: int = field(default=1)
     stop_early: bool = field(default=True)
     minimize_failure: bool = field(default=True)
@@ -88,6 +91,7 @@ class Settings:
                 kwargs[name] = int(value)
 
         fetch_int("workers", "REPAIRCHAIN_WORKERS")
+        fetch_int("time_limit", "REPAIRCHAIN_TIME_LIMIT")
         fetch_int("build_time_limit", "REPAIRCHAIN_BUILD_TIME_LIMIT")
         fetch_int("regression_time_limit", "REPAIRCHAIN_REGRESSION_TIME_LIMIT")
         fetch_int("pov_time_limit", "REPAIRCHAIN_POV_TIME_LIMIT")
