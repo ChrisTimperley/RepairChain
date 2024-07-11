@@ -92,14 +92,13 @@ class YoloLLMStrategy(PatchGenerationStrategy):
         cls,
         diagnosis: Diagnosis,
     ) -> YoloLLMStrategy:
-        model = "oai-gpt-4o"
-        llm = LLM.from_settings(diagnosis.project.settings, model=model)
+        llm = LLM.from_settings(diagnosis.project.settings)
         diff = commit_to_diff.commit_to_diff(diagnosis.project.triggering_commit)
         files = commit_to_diff.commit_to_files(diagnosis.project.head, diff)
 
         return cls(
             diagnosis=diagnosis,
-            _model=model,
+            model=llm.model,
             use_report=True,
             use_context_files=True,
             use_one_patch_for_iter=False,

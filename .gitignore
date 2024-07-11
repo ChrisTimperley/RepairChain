@@ -1,5 +1,6 @@
 candidates.yml
 .openapi.key
+.anthropic.key
 
 .python-version
 

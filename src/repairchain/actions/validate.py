@@ -72,6 +72,7 @@ class PatchValidator(abc.ABC):
             return outcome
 
         outcome = self._validate(candidate, commit)
+        logger.debug(f"outcome: {outcome}")
         self.cache.store(commit, candidate, outcome)
         return outcome
 
