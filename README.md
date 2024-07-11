@@ -11,7 +11,7 @@ make install
 poetry run kaskara clang install
 ```
 
-After running the above, you will need to create a file `.openapi.key` at the root of the repository, which should contain your OpenAPI access key.
+After running the above, you will need to create files `.openapi.key` and `.anthropic.key` at the root of the repository, which should contain your OpenAPI access key and Anthropic key, respectively.
 
 ## Examples
 

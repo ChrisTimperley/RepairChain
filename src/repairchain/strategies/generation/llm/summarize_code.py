@@ -23,6 +23,10 @@ if t.TYPE_CHECKING:
     from repairchain.models.diff import Diff
     from repairchain.strategies.generation.llm.util import MessagesIterable
 
+PREFILL_SUMMARY = ("{\n"
+                   '"report": [\n'
+                   "{\n")
+
 CONTEXT_SUMMARY = """The following Git commit introduces a memory vulnerability:
 <git-commit>
 {diff}
@@ -56,7 +60,7 @@ class FunctionSummary:
     filename: str
     summary: str
     recommendations: str
-    cwe: list[str]
+    cwe: str
 
 
 @dataclass
@@ -68,7 +72,7 @@ class CodeSummary:
 class ReportSummary:
     model: str
 
-    def __init__(self, model: str = "oai-gpt-4o") -> None:
+    def __init__(self, model: str) -> None:
         self.model = model
 
     def _call_llm_summarize_code(self, llm_object: LLM, messages: MessagesIterable) -> str:
@@ -119,22 +123,24 @@ class ReportSummary:
             "filename": "string",
             "summary": "string",
             "recommendations": "string",
-            "cwe": [
-                "string"
-            ]
+            "cwe": "string"
             },
             {
             "function_name": "string",
             "filename": "string",
             "summary": "string",
             "recommendations": "string",
-            "cwe": [
-                "string"
-            ]
+            "cwe": "string"
             }
         ]
         }
         """
+
+    def _check_prefill(self, messages: MessagesIterable) -> None:
+        if self.model == "claude-3.5-sonnet":
+            # force a prefill for clause-3.5
+            prefill_message = ChatCompletionAssistantMessageParam(role="assistant", content=PREFILL_SUMMARY)
+            messages.append(prefill_message)
 
     def _get_llm_code_report(self, diagnosis: Diagnosis) -> list[FunctionSummary] | None:
 
@@ -156,11 +162,20 @@ class ReportSummary:
         messages.append(system_message)
         messages.append(user_message)
 
+        self._check_prefill(messages)
+
         retry_attempts = Util.retry_attempts
         for attempt in range(retry_attempts):
             try:
-                llm_output = llm._call_llm_json(messages)
+                llm_output = ""
+                if self.model == "claude-3.5-sonnet":
+                    llm_output += PREFILL_SUMMARY
+                    llm_output += llm._call_llm_json(messages)
+                else:
+                    llm_output = llm._call_llm_json(messages)
+
                 logger.info(f"output prompt tokens: {Util.count_tokens(llm_output, self.model)}")
+
                 logger.debug(f"LLM output in JSON: {llm_output}")
 
                 # Parse the JSON string into a dictionary
@@ -177,18 +192,23 @@ class ReportSummary:
                     f"The JSON is not valid. Failed to decode JSON: {e}."
                     "Please fix the issue and return a fixed JSON.")
                 messages.append(ChatCompletionUserMessageParam(role="user", content=error_message))
+                self._check_prefill(messages)
+
             except KeyError as e:
                 logger.info(f"Missing expected key in JSON data: {e}. Retrying {attempt + 1}/{retry_attempts}...")
                 messages.append(ChatCompletionAssistantMessageParam(role="assistant", content=llm_output))
                 error_message = (f"The JSON is not valid. Missing expected key in JSON data: {e}."
                                 "Please fix the issue and return a fixed JSON.")
                 messages.append(ChatCompletionUserMessageParam(role="user", content=error_message))
+                self._check_prefill(messages)
+
             except TypeError as e:
                 logger.info(f"Unexpected type encountered: {e}. Retrying {attempt + 1}/{retry_attempts}...")
                 messages.append(ChatCompletionAssistantMessageParam(role="assistant", content=llm_output))
                 error_message = (f"The JSON is not valid. Unexpected type encountered: {e}."
                                 "Please fix the issue and return a fixed JSON.")
                 messages.append(ChatCompletionUserMessageParam(role="user", content=error_message))
+                self._check_prefill(messages)
 
             # Wait briefly before retrying
             time.sleep(Util.short_sleep)

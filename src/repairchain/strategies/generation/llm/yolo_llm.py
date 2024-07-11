@@ -29,6 +29,11 @@ if t.TYPE_CHECKING:
     from repairchain.models.diagnosis import Diagnosis
     from repairchain.models.diff import Diff
 
+PREFILL_YOLO = ("{\n"
+                '"patch": [\n'
+                "{"
+                )
+
 # TODO try a version with conversation
 CONTEXT_YOLO = """The following Git commit introduce a memory vulnerability:
 <git-commit>
@@ -253,10 +258,21 @@ class YoloLLMStrategy(PatchGenerationStrategy):
         messages.append(system_message)
         messages.append(user_message)
 
+        if self.model == "claude-3.5-sonnet":
+            # force a prefill for clause-3.5
+            prefill_message = ChatCompletionAssistantMessageParam(role="assistant", content=PREFILL_YOLO)
+            messages.append(prefill_message)
+
         retry_attempts = Util.retry_attempts
         for attempt in range(retry_attempts):
             try:
-                llm_output = self.llm._call_llm_json(messages)
+                llm_output = ""
+                if self.model == "claude-3.5-sonnet":
+                    llm_output += PREFILL_YOLO
+                    llm_output += self.llm._call_llm_json(messages)
+                else:
+                    llm_output = self.llm._call_llm_json(messages)
+
                 logger.info(f"output prompt tokens: {Util.count_tokens(llm_output, self.model)}")
                 logger.debug(f"LLM output in JSON: {llm_output}")
 
@@ -276,18 +292,35 @@ class YoloLLMStrategy(PatchGenerationStrategy):
                     f"The JSON is not valid. Failed to decode JSON: {e}."
                     "Please fix the issue and return a fixed JSON.")
                 messages.append(ChatCompletionUserMessageParam(role="user", content=error_message))
+
+                if self.model == "claude-3.5-sonnet":
+                    # force a prefill for clause-3.5
+                    prefill_message = ChatCompletionAssistantMessageParam(role="assistant", content=PREFILL_YOLO)
+                    messages.append(prefill_message)
+
             except KeyError as e:
                 logger.info(f"Missing expected key in JSON data: {e}. Retrying {attempt + 1}/{retry_attempts}...")
                 messages.append(ChatCompletionAssistantMessageParam(role="assistant", content=llm_output))
                 error_message = (f"The JSON is not valid. Missing expected key in JSON data: {e}."
                                 "Please fix the issue and return a fixed JSON.")
                 messages.append(ChatCompletionUserMessageParam(role="user", content=error_message))
+
+                if self.model == "claude-3.5-sonnet":
+                    # force a prefill for clause-3.5
+                    prefill_message = ChatCompletionAssistantMessageParam(role="assistant", content=PREFILL_YOLO)
+                    messages.append(prefill_message)
+
             except TypeError as e:
                 logger.info(f"Unexpected type encountered: {e}. Retrying {attempt + 1}/{retry_attempts}...")
                 messages.append(ChatCompletionAssistantMessageParam(role="assistant", content=llm_output))
                 error_message = (f"The JSON is not valid. Unexpected type encountered: {e}."
                                 "Please fix the issue and return a fixed JSON.")
                 messages.append(ChatCompletionUserMessageParam(role="user", content=error_message))
+
+                if self.model == "claude-3.5-sonnet":
+                    # force a prefill for clause-3.5
+                    prefill_message = ChatCompletionAssistantMessageParam(role="assistant", content=PREFILL_YOLO)
+                    messages.append(prefill_message)
 
             # Wait briefly before retrying
             time.sleep(Util.short_sleep)
@@ -296,7 +329,7 @@ class YoloLLMStrategy(PatchGenerationStrategy):
         return None
 
     def run(self) -> list[Diff]:
-        summary: ReportSummary = ReportSummary()
+        summary: ReportSummary = ReportSummary(self.model)
         code_summary: list[FunctionSummary] | None = None
         if self.use_report:
             code_summary = summary._get_llm_code_report(self.diagnosis)
@@ -305,8 +338,6 @@ class YoloLLMStrategy(PatchGenerationStrategy):
 
         sanitizer_prompt = self._create_sanitizer_report_prompt(code_summary)
 
-        # TODO: maybe change the number of patches to be dynamic depending on size
-        # FIXME: check the size of the user context
         user_prompt = self._create_user_prompt(Util.implied_functions_to_str(self.diagnosis),
                                                sanitizer_prompt,
                                                Util.number_patches)
