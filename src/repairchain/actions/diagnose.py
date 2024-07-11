@@ -31,10 +31,7 @@ def diagnose(project: Project) -> Diagnosis:
     implicated_diff = commit_to_diff(triggering_commit)
 
     if project.settings.sanity_check:
-        with project.provision() as container:
-            logger.info("running sanity check")
-            assert container.run_regression_tests()
-            assert not container.run_pov()
+        project.sanity_check()
 
     if project.settings.minimize_failure:
         stopwatch = Stopwatch()
@@ -66,7 +63,6 @@ def diagnose(project: Project) -> Diagnosis:
     )
 
     # TODO don't do the below if kaskara is disabled
-    # TODO don't continue if kaskara fails
 
     index_at_crash_version = project.indexer.run(
         version=triggering_commit,

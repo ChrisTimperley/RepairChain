@@ -201,7 +201,15 @@ class Project:
     @property
     def time_left(self) -> float:
         """Returns the time left in seconds."""
+        assert self.settings.time_limit is not None
         return max(self.settings.time_limit - self.time_elapsed, 0)
+
+    def sanity_check(self) -> None:
+        """Ensures that this project is valid."""
+        with self.provision() as container:
+            logger.info("running sanity check")
+            assert container.run_regression_tests()
+            assert not container.run_pov()
 
     @contextlib.contextmanager
     def provision(
