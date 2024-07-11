@@ -156,6 +156,31 @@ class ThreadedPatchValidator(PatchValidator):
         timeout: int | None = None,
         stop_early: bool = True,
     ) -> t.Iterator[tuple[Diff, PatchOutcome]]:
+        """Validates a list of patches and yields their outcomes.
+
+        Arguments:
+        ---------
+        candidates : list[Diff]
+            The list of patches to validate.
+        commit : git.Commit | None
+            The commit to which the patches should be applied.
+            If None, the project's head commit is used.
+        timeout : int | None
+            The maximum amount of time to spend validating (in seconds).
+            If None, no timeout is set.
+        stop_early : bool
+            Whether to stop the validation process as soon as a valid patch is found.
+
+        Yields:
+        ------
+        tuple[Diff, PatchOutcome]
+            A tuple containing the patch and its outcome
+
+        Raises:
+        ------
+        TimeoutError
+            If the validation process exceeds the specified timeout.
+        """
         executor = concurrent.futures.ThreadPoolExecutor(
             max_workers=self.workers,
         )
@@ -165,17 +190,18 @@ class ThreadedPatchValidator(PatchValidator):
             future = executor.submit(self.validate, candidate, commit)
             future_to_candidate[future] = candidate
 
-        for future in concurrent.futures.as_completed(
-            future_to_candidate.keys(),
-            timeout=timeout,
-        ):
-            candidate = future_to_candidate[future]
-            outcome = future.result()
-            yield candidate, outcome
-            if outcome == PatchOutcome.PASSED and stop_early:
-                break
-
-        executor.shutdown(cancel_futures=True)
+        try:
+            for future in concurrent.futures.as_completed(
+                future_to_candidate.keys(),
+                timeout=timeout,
+            ):
+                candidate = future_to_candidate[future]
+                outcome = future.result()
+                yield candidate, outcome
+                if outcome == PatchOutcome.PASSED and stop_early:
+                    break
+        finally:
+            executor.shutdown(cancel_futures=True)
 
 
 def validate(
