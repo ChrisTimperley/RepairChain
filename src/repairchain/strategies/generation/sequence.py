@@ -5,6 +5,7 @@ __all__ = ("SequenceStrategy",)
 import typing as t
 from dataclasses import dataclass
 
+from loguru import logger
 from overrides import overrides
 
 from repairchain.strategies.generation.base import PatchGenerationStrategy
@@ -20,6 +21,16 @@ class SequenceStrategy(PatchGenerationStrategy):
     @overrides
     def run(self) -> list[Diff]:
         candidates: list[Diff] = []
+
         for strategy in self.strategies:
-            candidates += strategy.run()
+            try:
+                name = strategy.__class__.__name__
+                logger.info(f"generating patches with strategy: {name}...")
+                generated_patches = strategy.run()
+                candidates += generated_patches
+            except Exception:  # noqa: BLE001
+                logger.exception(f"failed to generate patches with strategy: {name}")
+            else:
+                logger.info(f"generated {len(generated_patches)} patches with strategy: {name}")
+
         return candidates
