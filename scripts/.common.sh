@@ -4,6 +4,7 @@ set -eu
 HERE_DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
 PROJECT_DIR="${HERE_DIR}/.."
 OPENAI_KEY_FILE="${PROJECT_DIR}/.openapi.key"
+ANTHROPIC_KEY_FILE="${PROJECT_DIR}/.anthropic.key"
 LITELLM_CONFIG_FILE="${PROJECT_DIR}/litellm.local.yml"
 
 export REPAIRCHAIN_WORKERS="${REPAIRCHAIN_WORKERS:-1}"
@@ -25,9 +26,10 @@ if ! poetry run which litellm &> /dev/null; then
 fi
 
 export OPENAI_API_KEY="$(cat "${OPENAI_KEY_FILE}")"
-export ANTHROPIC_API_KEY=" "
+export ANTHROPIC_API_KEY="$(cat "${ANTHROPIC_KEY_FILE}")"
 export AZURE_API_KEY=" "
 export AZURE_API_BASE=" "
+
 
 cleanup() {
   kill -9 ${LITELLM_PID}
