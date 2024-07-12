@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from repairchain.strategies.generation.llm.superyolo_llm import SuperYoloLLMStrategy
 from repairchain.strategies.generation.llm.yolo_llm import YoloLLMStrategy
+from repairchain.strategies.generation.template.increase_size import IncreaseSizeStrategy
 
 __all__ = ("determine_patch_generation_strategy",)
 
@@ -69,7 +70,7 @@ def determine_patch_generation_strategy(
             logger.info("using template repair strategies")
             match diagnosis.bug_type:
                 case BugType.OUT_OF_BOUNDS_READ | BugType.OUT_OF_BOUNDS_WRITE:
-                    strategies.append(BoundsCheckStrategy.build(diagnosis))
+                    strategies.append(IncreaseSizeStrategy.build(diagnosis))
                 case _:
                     logger.warning(f"no templates available for bug type: {diagnosis.bug_type}")
         else:

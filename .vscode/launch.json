@@ -19,6 +19,10 @@
                 "REPAIRCHAIN_MINIMIZE_FAILURE": "true",
                 "REPAIRCHAIN_EVALUATION_CACHE": "./.caches/evaluation.pkl",
                 "REPAIRCHAIN_KASKARA_CACHE": "./.caches/kaskara.pkl",
+                "REPAIRCHAIN_ENABLE_YOLO_REPAIR": "false",
+                "REPAIRCHAIN_ENABLE_TEMPLATE_REPAIR": "true",
+                "REPAIRCHAIN_ENABLE_REVERSION_REPAIR": "false",
+                "REPAIRCHAIN_SANITY_CHECK": "false"
             }
         }
     ]

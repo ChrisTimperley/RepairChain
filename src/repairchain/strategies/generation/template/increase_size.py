@@ -50,7 +50,7 @@ class IncreaseSizeStrategy(TemplateGenerationStrategy):
     @classmethod
     def _get_overflow_location(cls, report: SanitizerReport, diagnosis: Diagnosis) -> StackFrame:
         location = report.error_location
-
+        assert location is not None
         if not location.has_lineno():
             # FIXME: I think this can only happen when things aren't symbolized
             # punting for now
@@ -61,26 +61,44 @@ class IncreaseSizeStrategy(TemplateGenerationStrategy):
             # if we have the function name but no line number, can cross check with the
             # commit history, maybe???
             implicated_functions = diagnosis.implicated_functions_at_head
+            assert implicated_functions is not None
             for function in implicated_functions:
                 if function.name == location.funcname:
                     location.filename = function.filename
                     return location
             # if that didn't work, try the nuclear option
-            for function in diagnosis.index_at_head.functions:
+            index = diagnosis.index_at_head
+            assert index is not None
+            for function in index.functions:
                 if function.name == location.funcname:
                     location.filename = function.filename
                     return location
         return location
 
     @classmethod
-    def _get_potential_declarations(cls, location: StackFrame, diagnosis: Diagnosis) -> None:
+    def _get_potential_declarations(cls, location: StackFrame, report: SanitizerReport, diagnosis: Diagnosis) -> list[kaskara.statements.Statement]:
         # location is the location of the overflow, should reference at least one variable
         # look for it in the allocation stack
         head_index = diagnosis.index_at_head
-        stmts_read = frozenset([])
+        assert head_index is not None
+
+        vars_read: frozenset[str] = frozenset([])
         for stmt in head_index.statements.at_line(location.file_line):
-            stmts_read.union(frozenset(stmt.reads if hasattr(stmt, "reads") else []))
-            
+            vars_read.union(frozenset(stmt.reads if hasattr(stmt, "reads") else []))
+        # TODO: filter variables by type to cut it down
+
+        allocated_stack = report.alloc_stack_trace
+        declaring_stmts: list[kaskara.statements.Statement] = []
+
+        for frame in allocated_stack.frames:
+            if frame.is_complete():
+                stmts = head_index.statements.at_line(location.file_line)
+                for stmt in stmts:
+                    if isinstance(stmt, kaskara.clang.analysis.ClangStatement) and len(vars_read.intersection(stmt.declares)) > 0:
+                        declaring_stmts.append(stmt)
+        if len(declaring_stmts) == 0:
+            raise NotImplementedError # try something else.  UBSan especially is going to be a problem here 
+        return declaring_stmts
 
     @classmethod
     def build(cls, diagnosis: Diagnosis) -> t.Self:
@@ -96,27 +114,14 @@ class IncreaseSizeStrategy(TemplateGenerationStrategy):
             # this will often involve reconstructing the file, since many of the
             # sanitizers report the function name but not the filename
             # so we need to find the file to have a file-line location
+        stmts = cls._get_potential_declarations(location, report, diagnosis)
         head_index = diagnosis.index_at_head
         assert location is not None
         assert head_index is not None
-
-        file_line = location.file_line
-        potential_reads = frozenset([])
-        for stmt in head_index.statements.at_line(file_line):
-            reads = frozenset(stmt.reads if hasattr(stmt, "reads") else [])
-            potential_reads.union(reads)
-        # potential reads should have variables that might 
-        # OK the allocated stack tells me about the thread that called it
-        # want to cross check the functions in there and the lines specifically 
-        # in
-        # dealing with asan (and in principle kfence and kasan, setting aside the issue
-        # of symbolization) first
-
-
         return cls(
             diagnosis=diagnosis,
-            declarations_to_repair=[],
-            accesses_to_repair=[],
+            declarations_to_repair=stmts,
+            accesses_to_repair=list(head_index.statements.at_line(location.file_line)),
         )
 
     @overrides
