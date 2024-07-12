@@ -379,9 +379,9 @@ class SanitizerReport:
                 return Sanitizer.KFENCE
             if "addresssanitizer" in line or "asan" in line:
                 return Sanitizer.ASAN
-            if "memsan" in report_text or "MemorySanitizer" in report_text:
+            if "memsan" in report_text or "memorysanitizer" in report_text:
                 return Sanitizer.MEMSAN
-            if "ubsan" in report_text or "UndefinedBehaviorSanitizer" in report_text:
+            if "ubsan" in report_text or "undefinedbehaviorsanitizer" in report_text:
                 return Sanitizer.UBSAN
 
         return Sanitizer.UNKNOWN

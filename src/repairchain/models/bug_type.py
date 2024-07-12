@@ -141,7 +141,7 @@ ubsan_bug_map = {
     "is outside the range of representable values of type": BugType.FLOAT_CAST_OVERFLOW,
     "runtime error: misaligned address": BugType.ADDRESS_MISALIGNMENT,
     "runtime error: unaligned atomic operation": BugType.UNALIGNED_ATOMIC,
-    "runtime error: type mismatch in pointer arithmetic or array indexing": BugType.TYPE_MISMATCH,
+    "runtime error: type mismatch in pointer arithmetic": BugType.TYPE_MISMATCH,
     "runtime error: implicit conversion from type": BugType.IMPLICIT_TYPE_CONVERSION,
     "runtime error: load of uninitialized value": BugType.LOAD_UNINIT_VALUE,
 }
@@ -158,7 +158,7 @@ jazzer_bug_map = {
     "SEVERE: AssertionError": BugType.ASSERTION_ERROR,
     "FuzzerSecurityIssueCritical: OS Command Injection": BugType.OS_COMMAND_INJECTION,
     "File read/write hook path": BugType.PATH_TRAVERSAL,
-    "Integer Overflow(addition) detected": BugType.INTEGER_OVERFLOW_OR_WRAPAROUND,
+    "Integer Overflow(addition)": BugType.INTEGER_OVERFLOW_OR_WRAPAROUND,
     "Server Side Request Forgery (SSRF)": BugType.SERVER_SIDE_REQUEST_FORGERY,
  }
 
