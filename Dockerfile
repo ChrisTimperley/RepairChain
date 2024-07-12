@@ -57,9 +57,13 @@ RUN make install \
  && mkdir -p "${INSTALL_TO}/bin" \
  && mv ./dist/repairchain "${INSTALL_TO}/bin"
 
+ENV TIKTOKEN_CACHE_DIR=/opt/tiktoken_cache
+RUN poetry run python -c "import tiktoken; tiktoken.get_encoding('cl100k_base')"
+
 FROM ${BASE_IMAGE} as runtime
 ARG DEBIAN_FRONTEND=noninteractive
 ENV LANG C.UTF-8
 ENV LC_ALL C.UTF-8
 ARG INSTALL_TO
 COPY --from=builder ${INSTALL_TO} ${INSTALL_TO}
+COPY --from=builder /opt/tiktoken_cache /opt/tiktoken_cache
