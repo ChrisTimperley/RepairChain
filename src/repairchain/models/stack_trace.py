@@ -15,8 +15,20 @@ class StackFrame:
     offset: int | None
     bytes_offset: str | None
 
-    def is_valid(self) -> bool:
-        return self.lineno is not None and self.offset is not None
+    def has_funcname(self) -> bool:
+        return self.funcname is not None
+
+    def has_lineno(self) -> bool:
+        return self.lineno is not None
+
+    def has_filename(self) -> bool:
+        return self.filename is not None
+
+    def has_offset(self) -> bool:
+        return self.offset is not None
+
+    def is_complete(self) -> bool:
+        return self.has_filename() and self.has_funcname() and self.has_lineno()
 
     @property
     def file_line(self) -> FileLine:
@@ -73,10 +85,6 @@ class StackTrace(t.Sequence[StackFrame]):
     def functions(self) -> set[str]:
         """Returns the set of function names in the stack trace."""
         return {frame.funcname for frame in self.frames if frame.funcname is not None}
-
-    def is_valid(self) -> bool:  # FIXME: Claire isn't sure we want to reject stack frames without lines/offsets
-        """Determines if all stack frames are valid."""
-        return all(frame.is_valid() for frame in self.frames)
 
 
 def extract_location_symbolized(line: str) -> tuple[str, int | None, int | None]:
