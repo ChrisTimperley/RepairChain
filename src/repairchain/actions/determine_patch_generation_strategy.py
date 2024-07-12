@@ -13,7 +13,7 @@ from loguru import logger
 from repairchain.models.bug_type import BugType
 from repairchain.strategies.generation.reversion import MinimalPatchReversion
 from repairchain.strategies.generation.sequence import SequenceStrategy
-from repairchain.strategies.generation.template.bounds_check import BoundsCheckStrategy
+from repairchain.strategies.generation.template.bounds_check import BoundsCheckStrategy  # noqa: F401
 
 if t.TYPE_CHECKING:
     from repairchain.models.diagnosis import Diagnosis
