@@ -1,0 +1,12 @@
+==12345==WARNING: MemorySanitizer: use-of-uninitialized-value
+    #0 0x4b9b91 in main /path/to/program.c:10:10
+    #1 0x7f0b9bc9f82f in __libc_start_main (/lib/x86_64-linux-gnu/libc.so.6+0x2082f)
+    #2 0x41e308 in _start (/path/to/program+0x41e308)
+
+Uninitialized value was created by a heap allocation
+    #0 0x499640 in malloc (/path/to/program+0x499640)
+    #1 0x4b9a4d in allocate_buffer /path/to/program.c:5:7
+    #2 0x4b9b01 in main /path/to/program.c:9:15
+
+SUMMARY: MemorySanitizer: use-of-uninitialized-value /path/to/program.c:10:10 in main
+Exiting

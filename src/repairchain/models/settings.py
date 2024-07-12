@@ -114,7 +114,7 @@ class Settings:
         fetch_bool("enable_kaskara", "REPAIRCHAIN_ENABLE_KASKARA", default=True)
         fetch_path("cache_evaluations_to_file", "REPAIRCHAIN_EVALUATION_CACHE", default=None)
         fetch_path("cache_index_to_file", "REPAIRCHAIN_KASKARA_CACHE", default=None)
-        fetch("litellm_url", "AIXCXX_LITELLM_HOSTNAME", default="http://0.0.0.0:4000")
+        fetch("litellm_url", "AIXCC_LITELLM_HOSTNAME", default="http://0.0.0.0:4000")
         fetch("litellm_key", "LITELLM_KEY", default="sk-1234")
         fetch("litellm_model", "LITELLM_MODEL", default="oai-gpt-4o")
 

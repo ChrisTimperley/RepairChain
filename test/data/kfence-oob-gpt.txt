@@ -1,0 +1,44 @@
+[ 1234.567890] ==================================================================
+[ 1234.567890] BUG: KFENCE: out-of-bounds in my_function+0x15/0x20
+[ 1234.567890] Out-of-bounds access at 0xffff88801234abcd (area: 0xffff88801234abc0-0xffff88801234abc7)
+[ 1234.567890] ------------------------------------------------------------------
+[ 1234.567890] INFO: Slab 0xffff88801234abc0 objects=1 used=1 fp=0xffff88801234abd8 flags=0x1000000000000000
+[ 1234.567890] CPU: 0 PID: 123 Comm: my_task Tainted: G        W        5.10.0-0-generic #1
+[ 1234.567890] Hardware name: Generic KVM
+[ 1234.567890] Call Trace:
+[ 1234.567890]  dump_stack+0x6b/0x83
+[ 1234.567890]  print_address_description.constprop.0+0x18/0x140
+[ 1234.567890]  ? my_function+0x15/0x20
+[ 1234.567890]  kfence_report_error+0x76/0xc0
+[ 1234.567890]  kfence_guarded_alloc+0x8e/0x100
+[ 1234.567890]  ? my_function+0x15/0x20
+[ 1234.567890]  __kmalloc+0x1a6/0x210
+[ 1234.567890]  my_function+0x15/0x20
+[ 1234.567890]  ? my_task_function+0x50/0x70
+[ 1234.567890]  my_task_function+0x50/0x70
+[ 1234.567890]  kthread+0x127/0x150
+[ 1234.567890]  ? set_kthread_struct+0x50/0x50
+[ 1234.567890]  ret_from_fork+0x1f/0x30
+[ 1234.567890] 
+[ 1234.567890] Allocated by task 123:
+[ 1234.567890]  __kmalloc_track_caller+0x1b6/0x210
+[ 1234.567890]  kfence_guarded_alloc+0x8e/0x100
+[ 1234.567890]  __kmalloc+0x1a6/0x210
+[ 1234.567890]  my_function+0x15/0x20
+[ 1234.567890]  ? my_task_function+0x50/0x70
+[ 1234.567890]  my_task_function+0x50/0x70
+[ 1234.567890]  kthread+0x127/0x150
+[ 1234.567890]  ? set_kthread_struct+0x50/0x50
+[ 1234.567890]  ret_from_fork+0x1f/0x30
+[ 1234.567890] 
+[ 1234.567890] Freed by task 0:
+[ 1234.567890]  (stack is not available)
+[ 1234.567890] 
+[ 1234.567890] Memory state around the buggy address:
+[ 1234.567890]  ffff88801234abc0: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+[ 1234.567890]  ffff88801234abd0: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+[ 1234.567890] >ffff88801234abe0: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+[ 1234.567890]                                            ^
+[ 1234.567890]  ffff88801234abf0: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+[ 1234.567890]  ffff88801234ac00: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+[ 1234.567890] ==================================================================

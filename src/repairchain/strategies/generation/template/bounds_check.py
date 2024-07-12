@@ -36,8 +36,8 @@ class BoundsCheckStrategy(TemplateGenerationStrategy):
         logger.debug(f"implicated_functions: {len(implicated_functions)}")
 
         # filter the stack trace to only those functions that are implicated
-        assert report.stack_trace
-        stack_trace = report.stack_trace
+        assert report.call_stack_trace
+        stack_trace = report.call_stack_trace
         stack_trace = stack_trace.restrict_to_functions(implicated_functions)
         logger.debug(f"filtered stack trace: {stack_trace}")
 

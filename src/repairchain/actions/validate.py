@@ -40,6 +40,7 @@ class PatchValidator(abc.ABC):
         candidate: Diff,
         commit: git.Commit,
     ) -> PatchOutcome:
+        head_commit = self.project.head
         try:
             with self.project.provision(
                 version=commit,
@@ -48,8 +49,11 @@ class PatchValidator(abc.ABC):
                 if not container.run_pov():
                     return PatchOutcome.FAILED
 
-                if not container.run_regression_tests():
-                    return PatchOutcome.FAILED
+                if commit == head_commit:
+                    if not container.run_regression_tests():
+                        return PatchOutcome.FAILED
+                else:
+                    logger.debug("skipping regression tests for non-head commit")
 
                 return PatchOutcome.PASSED
 
