@@ -9,6 +9,7 @@ __all__ = (
 
 import abc
 import concurrent.futures
+import math
 import typing as t
 from dataclasses import dataclass, field
 
@@ -39,6 +40,7 @@ class PatchValidator(abc.ABC):
         candidate: Diff,
         commit: git.Commit,
     ) -> PatchOutcome:
+        head_commit = self.project.head
         try:
             with self.project.provision(
                 version=commit,
@@ -47,8 +49,11 @@ class PatchValidator(abc.ABC):
                 if not container.run_pov():
                     return PatchOutcome.FAILED
 
-                if not container.run_regression_tests():
-                    return PatchOutcome.FAILED
+                if commit == head_commit:
+                    if not container.run_regression_tests():
+                        return PatchOutcome.FAILED
+                else:
+                    logger.debug("skipping regression tests for non-head commit")
 
                 return PatchOutcome.PASSED
 
@@ -71,6 +76,7 @@ class PatchValidator(abc.ABC):
             return outcome
 
         outcome = self._validate(candidate, commit)
+        logger.debug(f"outcome: {outcome}")
         self.cache.store(commit, candidate, outcome)
         return outcome
 
@@ -102,6 +108,11 @@ class PatchValidator(abc.ABC):
         ------
         tuple[Diff, PatchOutcome]
             A tuple containing the patch and its outcome.
+
+        Raises:
+        ------
+        TimeoutError
+            If the validation process exceeds the specified timeout.
         """
         raise NotImplementedError
 
@@ -125,7 +136,8 @@ class SimplePatchValidator(PatchValidator):
 
         for candidate in candidates:
             if timeout is not None and timer.duration >= timeout:
-                return
+                message = f"validation process exceeded the specified timeout ({timeout}s)"
+                raise TimeoutError(message)
 
             outcome = self.validate(candidate, commit)
             yield candidate, outcome
@@ -165,17 +177,18 @@ class ThreadedPatchValidator(PatchValidator):
             future = executor.submit(self.validate, candidate, commit)
             future_to_candidate[future] = candidate
 
-        for future in concurrent.futures.as_completed(
-            future_to_candidate.keys(),
-            timeout=timeout,
-        ):
-            candidate = future_to_candidate[future]
-            outcome = future.result()
-            yield candidate, outcome
-            if outcome == PatchOutcome.PASSED and stop_early:
-                break
-
-        executor.shutdown(cancel_futures=True)
+        try:
+            for future in concurrent.futures.as_completed(
+                future_to_candidate.keys(),
+                timeout=timeout,
+            ):
+                candidate = future_to_candidate[future]
+                outcome = future.result()
+                yield candidate, outcome
+                if outcome == PatchOutcome.PASSED and stop_early:
+                    break
+        finally:
+            executor.shutdown(cancel_futures=True)
 
 
 def validate(
@@ -190,7 +203,13 @@ def validate(
     If `stop_early` is True, the validation process will stop as soon as a valid patch is found.
     """
     validator = project.validator
-    for candidate, outcome in validator.run(candidates, commit=commit, stop_early=stop_early):
+    time_left = math.floor(project.time_left)
+    for candidate, outcome in validator.run(
+        candidates,
+        commit=commit,
+        stop_early=stop_early,
+        timeout=int(time_left),
+    ):
         if outcome == PatchOutcome.PASSED:
             yield candidate
             if stop_early:

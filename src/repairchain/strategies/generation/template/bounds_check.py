@@ -32,6 +32,7 @@ class BoundsCheckStrategy(TemplateGenerationStrategy):
         report = diagnosis.project.sanitizer_report
 
         implicated_functions = diagnosis.implicated_functions_at_head
+        assert implicated_functions is not None
         logger.debug(f"implicated_functions: {len(implicated_functions)}")
 
         # filter the stack trace to only those functions that are implicated
@@ -83,6 +84,7 @@ class BoundsCheckStrategy(TemplateGenerationStrategy):
         diffs: list[Diff] = []
         logger.debug(f"generating bounds check repairs in function: {function}")
         head_index = self.diagnosis.index_at_head
+        assert head_index is not None
 
         file_contents = get_file_contents_at_commit(
             self.diagnosis.project.repository.active_branch.commit,

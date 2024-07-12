@@ -3,7 +3,6 @@ from __future__ import annotations
 __all__ = (
     "commit_to_diff",
     "commit_to_files",
-    "get_commit",
 )
 
 import difflib
@@ -13,11 +12,6 @@ from repairchain.models.diff import Diff, FileDiff
 
 if t.TYPE_CHECKING:
     import git
-
-
-def get_commit(repo: git.Repo, commit_hash: str) -> git.Commit:
-    # Get the commit object
-    return repo.commit(commit_hash)
 
 
 def commit_to_diff(commit: git.Commit) -> Diff:

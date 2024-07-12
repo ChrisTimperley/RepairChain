@@ -11,7 +11,7 @@ make install
 poetry run kaskara clang install
 ```
 
-After running the above, you will need to create a file `.openapi.key` at the root of the repository, which should contain your OpenAPI access key.
+After running the above, you will need to create files `.openapi.key` and `.anthropic.key` at the root of the repository, which should contain your OpenAPI access key and Anthropic key, respectively.
 
 ## Examples
 
@@ -54,14 +54,17 @@ poetry run repairchain repair --help
 | `REPAIRCHAIN_SANITY_CHECK` | `true` | enables (or disables) sanity checking of the program under repair |
 | `REPAIRCHAIN_EVALUATION_CACHE` | `` | if specified, saves the results of patch evaluations to the given file |
 | `REPAIRCHAIN_KASKARA_CACHE` | `` | if specified, saves the results of Kaskara indexing to the given file |
+| `REPAIRCHAIN_TIME_LIMIT` | `3600` | time limit (in seconds) on the entire repair process |
 | `REPAIRCHAIN_BUILD_TIME_LIMIT` | `120` | time limit (in seconds) on building projects |
 | `REPAIRCHAIN_REGRESSION_TIME_LIMIT` | `120` | time limit (in seconds) on running regression test suite |
 | `REPAIRCHAIN_POV_TIME_LIMIT` | `60` | time limit (in seconds) on running PoV |
 | `AIXCC_LITELLM_HOSTNAME` | `http://0.0.0.0:4000` | the URL of the LiteLLM server |
 | `LITELLM_KEY` | `sk-1234` | the secret key to use for LiteLLM |
+| `REPAIRCHAIN_ENABLE_KASKARA` | `true` | enables (or disables) the use of Kaskara for indexing |
 | `REPAIRCHAIN_ENABLE_REVERSION_REPAIR` | `true` | enables (or disables) minimal reversation patching strategy |
 | `REPAIRCHAIN_ENABLE_YOLO_REPAIR` | `true` | enables (or disables) LLM-based patching strategies |
 | `REPAIRCHAIN_ENABLE_TEMPLATE_REPAIR` | `true` | enables (or disables) template-based patching strategies |
+| `LITELLM_MODEL` | `oai-gpt-4o` | specifies the model that should be used by YOLO |
 
 ## Input Format
 

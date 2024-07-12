@@ -62,10 +62,12 @@ class Util:
 
     @staticmethod
     def implied_functions_to_str(diagnosis: Diagnosis) -> list[str]:
+        assert diagnosis.implicated_functions_at_head is not None
         return [function_diagnosis.name for function_diagnosis in diagnosis.implicated_functions_at_head]
 
     @staticmethod
     def extract_begin_end_lines(diagnosis: Diagnosis, function_name: str) -> FileLines | None:
+        assert diagnosis.implicated_functions_at_head is not None
         for function_diagnosis in diagnosis.implicated_functions_at_head:
             if function_diagnosis.name == function_name:
                 return FileLines(
@@ -76,6 +78,7 @@ class Util:
 
     @staticmethod
     def function_to_filename(diagnosis: Diagnosis, function_name: str) -> str | None:
+        assert diagnosis.implicated_functions_at_head is not None
         for function_diagnosis in diagnosis.implicated_functions_at_head:
             if function_diagnosis.name == function_name:
                 return function_diagnosis.location.filename

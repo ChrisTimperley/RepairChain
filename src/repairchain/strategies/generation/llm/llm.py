@@ -25,8 +25,10 @@ class LLM:
         cls,
         settings: Settings,
         *,
-        model: str = "oai-gpt-4o",
+        model: str | None = None,
     ) -> t.Self:
+        if model is None:
+            model = settings.litellm_model
         return cls(
             model=model,
             litellm_url=settings.litellm_url,

@@ -30,6 +30,8 @@ bundle:
 		--noconfirm \
 		--onefile \
 		--name repairchain \
-		--exclude-module typing
+		--hidden-import=tiktoken_ext.openai_public \
+		--hidden-import=tiktoken_ext
+	./dist/repairchain --help
 
 check: lint type test

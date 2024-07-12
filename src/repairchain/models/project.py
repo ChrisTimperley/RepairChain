@@ -10,8 +10,10 @@ from pathlib import Path
 
 import dockerblade
 import git
+from dockerblade import Stopwatch
 from loguru import logger
 
+from repairchain.actions.commit_to_diff import commit_to_diff
 from repairchain.actions.validate import (
     PatchValidator,
     ThreadedPatchValidator,
@@ -51,8 +53,11 @@ class Project:
     evaluation_cache: PatchOutcomeCache = field(init=False, repr=False)
     validator: PatchValidator = field(init=False, repr=False)
     indexer: KaskaraIndexer = field(init=False, repr=False)
+    _time_elapsed: Stopwatch = field(init=False, repr=False)
 
     def __post_init__(self) -> None:
+        self._time_elapsed = Stopwatch()
+        self._time_elapsed.start()
         self.evaluation_cache = PatchOutcomeCache.for_settings(self.settings)
         self.validator = ThreadedPatchValidator.for_project(self)
         self.indexer = KaskaraIndexer.for_project(self)
@@ -183,6 +188,34 @@ class Project:
     @property
     def local_repository_path(self) -> Path:
         return Path(self.repository.working_dir)
+
+    @property
+    def time_limit(self) -> int:
+        """Returns the time limit in seconds."""
+        return self.settings.time_limit
+
+    @property
+    def time_elapsed(self) -> float:
+        """Returns the time elapsed in seconds."""
+        return self._time_elapsed.duration
+
+    @property
+    def original_implicated_diff(self) -> Diff:
+        """Returns the (unminimized) implicated diff."""
+        return commit_to_diff(self.triggering_commit)
+
+    @property
+    def time_left(self) -> float:
+        """Returns the time left in seconds."""
+        assert self.settings.time_limit is not None
+        return max(self.settings.time_limit - self.time_elapsed, 0)
+
+    def sanity_check(self) -> None:
+        """Ensures that this project is valid."""
+        with self.provision() as container:
+            logger.info("running sanity check")
+            assert container.run_regression_tests()
+            assert not container.run_pov()
 
     @contextlib.contextmanager
     def provision(
