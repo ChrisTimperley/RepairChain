@@ -14,8 +14,6 @@ def test_kfence_parsing() -> None:
         assert bug_type == BugType.OUT_OF_BOUNDS_WRITE
         parser_func = parser_dict[sanitizer]
         (_, _, _, _) = parser_func(report_text)
-    sanitizer_report = SanitizerReport.load(Path("/usr0/home/clegoues/RepairChain/test/data/kfence-oob-gpt.txt"))
-    print(sanitizer_report)
     assert True
 
 

@@ -23,6 +23,8 @@ from repairchain.strategies.generation.template.base import TemplateGenerationSt
 [ 1234.567890]  kthread+0x127/0x150
 [ 1234.567890]  ? set_kthread_struct+0x50/0x50
 [ 1234.567890]  ret_from_fork+0x1f/0x30"""
+
+
 def get_declarations(report: SanitizerReport) -> list[kaskara.Statements.Statement]:
     match report.sanitizer:
         case Sanitizer.KASAN:
@@ -64,7 +66,6 @@ class IncreaseSizeStrategy(TemplateGenerationStrategy):
             declarations_to_repair=[],
             accesses_to_repair=[],
         )
-
 
     @overrides
     def run(self) -> list[Diff]:
