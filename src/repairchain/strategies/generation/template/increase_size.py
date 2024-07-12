@@ -1,7 +1,9 @@
+import itertools
 import typing as t
 from dataclasses import dataclass
 
 import kaskara
+import kaskara.functions
 from overrides import overrides
 from sourcelocation.diff import Diff
 from sourcelocation.fileline import FileLine
@@ -10,6 +12,8 @@ from sourcelocation.location import FileLocation, Location
 from repairchain.actions.commit_to_diff import get_file_contents_at_commit
 from repairchain.models.diagnosis import Diagnosis
 from repairchain.models.replacement import Replacement
+from repairchain.strategies.generation.llm.helper_code import CodeHelper
+from repairchain.strategies.generation.llm.llm import LLM
 from repairchain.strategies.generation.template.base import TemplateGenerationStrategy
 
 
@@ -82,18 +86,36 @@ class IncreaseSizeStrategy(TemplateGenerationStrategy):
             accesses_to_repair=accesses,
         )
 
+    def _fn_to_text(self, fn: kaskara.functions.Function) -> str:
+        raise NotImplementedError
+
     def _generate_for_statement(
         self,
         stmt: kaskara.statements.Statement,
+        llm: LLM,
         diagnosis: Diagnosis,
-    ) -> Diff:
+    ) -> list[Diff]:
 
         # this statement should be a declaration statement, so all we need to do
         # is get a new one and replace it
-        source = "PLACEHOLDER if( PLACEHOLDER > 500) { return; }\n"  # FIXME: call out to LLM
-        repl = Replacement(stmt.location, source)
-        return diagnosis.project.sources.replacements_to_diff([repl])
+        helper = CodeHelper(llm)
+        head_index = diagnosis.index_at_head
+        assert head_index is not None
+
+        stmt_loc = FileLocation(stmt.location.filename, stmt.location.start)
+        fn = head_index.functions.encloses(stmt_loc)
+        assert fn is not None
+        fn_src = self._fn_to_text(fn)
+        output = helper.help_with_memory_allocation(fn_src, stmt.content)
+        repls: list[Replacement] = []
+        for line in output.code:
+            repl = Replacement(stmt.location, line.line)
+            repls.append(repl)
+        return [diagnosis.project.sources.replacements_to_diff([repl]) for repl in repls]
 
     @overrides
     def run(self) -> list[Diff]:
-        return [self._generate_for_statement(stmt[0], self.diagnosis) for stmt in self.declarations_to_repair]
+        llm = LLM.from_settings(self.diagnosis.project.settings)
+        diffs = [self._generate_for_statement(stmt[0], llm, self.diagnosis) for stmt in self.declarations_to_repair]
+
+        return list(itertools.chain(*diffs))
