@@ -52,7 +52,7 @@ class PatchFile:
     patch: list[RepairedFileContents]
 
     def to_json(self) -> str:
-        return json.dumps(asdict(self), indent=4)
+        return json.dumps(asdict(self), indent=1)
 
 
 @dataclass
