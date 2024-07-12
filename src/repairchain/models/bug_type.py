@@ -88,7 +88,7 @@ kasan_bug_map = {
 
 kfence_bug_map = {
     "KFENCE: use-after-free": BugType.USE_AFTER_FREE,
-    "KFENCE: out-of-bounds access": BugType.OUT_OF_BOUNDS_WRITE,
+    "KFENCE: out-of-bounds": BugType.OUT_OF_BOUNDS_WRITE,
     "KFENCE: memory corruption detected": BugType.MEMORY_CORRUPTION,
     "KFENCE: double-free detected": BugType.DOUBLE_FREE,
     "KFENCE: invalid-free detected": BugType.INVALID_FREE,

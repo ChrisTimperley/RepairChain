@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import contextlib
 import typing as t
 from dataclasses import dataclass
 
@@ -10,10 +9,11 @@ from sourcelocation.fileline import FileLine
 
 @dataclass
 class StackFrame:
-    funcname: str
-    filename: str
+    funcname: str | None
+    filename: str | None
     lineno: int | None
     offset: int | None
+    bytes_offset: str | None
 
     def is_valid(self) -> bool:
         return self.lineno is not None and self.offset is not None
@@ -21,6 +21,7 @@ class StackFrame:
     @property
     def file_line(self) -> FileLine:
         assert self.lineno is not None
+        assert self.filename is not None
         return FileLine(self.filename, self.lineno)
 
     def is_in_function(self, function: kaskara.functions.Function | str) -> bool:
@@ -71,46 +72,75 @@ class StackTrace(t.Sequence[StackFrame]):
 
     def functions(self) -> set[str]:
         """Returns the set of function names in the stack trace."""
-        return {frame.funcname for frame in self.frames}
+        return {frame.funcname for frame in self.frames if frame.funcname is not None}
 
     def is_valid(self) -> bool:  # FIXME: Claire isn't sure we want to reject stack frames without lines/offsets
         """Determines if all stack frames are valid."""
         return all(frame.is_valid() for frame in self.frames)
 
 
-def extract_location(line: str) -> tuple[str, int | None, int | None]:
+def extract_location_symbolized(line: str) -> tuple[str, int | None, int | None]:
     filename = line
     lineno: int | None = None
     offset: int | None = None
-    line_index = line.find(":")
+    offsetstr = ""
+    if ":" in line:
+        filename, _, linenostr = line.partition(":")
+        if ":" in linenostr:
+            line, _, offsetstr = linenostr.partition(":")
+    try:
+        lineno = int(line)
+    except ValueError:
+        lineno = None
 
-    if line_index != -1:
-        filename = line[:line_index]
-        linenostr = line[line_index + 1:]
-        filename, lineno, offset = extract_location(linenostr)
-        offset_index = linenostr.find(":")
-        if offset_index != -1:
-            offset = int(linenostr[offset_index + 1:])
-            lineno = int(linenostr[:offset_index])
-        else:
-            with contextlib.suppress(ValueError):
-                lineno = int(linenostr)
+    try:
+        if " " in offsetstr:
+            offsetstr, _, _ = offsetstr.partition(" ")
+        offset = int(offsetstr)
+    except ValueError:
+        offset = None
     return filename, lineno, offset
 
 
-def extract_stack_frame_from_line(line: str) -> StackFrame:
-    # TODO prefer partition
-    split_index = line.find(" in ")  # FIXME: error handle
-    rhs = line[split_index + 4:]
-    sig_index = rhs.find(")") if "(" in rhs else rhs.find(" ")
+def extract_stack_frame_from_line_symbolized(line: str) -> StackFrame:
+    _, _, restline = line.partition(" in ")
+    if ")" in restline:
+        funcname, _, restline = restline.partition("(")
+        _, _, restline = restline.partition(") ")
+    else:
+        funcname, _, restline = restline.partition(" ")
 
-    funcname = rhs[:sig_index]
-    filename_part = rhs[sig_index + 1:]
-    filename, lineno, offset = extract_location(filename_part)
+    filename, lineno, offset = extract_location_symbolized(restline)
 
     return StackFrame(
         funcname=funcname,
         filename=filename,
         lineno=lineno,
         offset=offset,
+        bytes_offset=None,
     )
+
+
+def extract_location_not_symbolized(line: str) -> tuple[str, str | None]:
+    # should return function name, byte offset
+    raise NotImplementedError
+
+
+def extract_stack_frame_from_line_not_symbolized(line: str) -> StackFrame:
+    funcname: str | None = None
+    bytes_offset: str | None = None
+
+    if "]" in line:
+        _, _, line = line.partition("] ")
+    if "?" in line.lstrip():
+        _, _, line = line.partition("?")
+    line = line.lstrip()
+    if "+" in line:
+        funcname, _, bytes_offset = line.partition("+")
+
+    return StackFrame(
+        funcname=funcname,
+        filename=None,
+        lineno=None,
+        offset=None,
+        bytes_offset=bytes_offset)
