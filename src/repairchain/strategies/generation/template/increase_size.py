@@ -10,20 +10,6 @@ from repairchain.models.diagnosis import Diagnosis
 from repairchain.models.sanitizer_report import SanitizerReport
 from repairchain.strategies.generation.template.base import TemplateGenerationStrategy
 
-"""def get_kfence_declaration(report: SanitizerReport) -> list[kaskara.Statements.Statement]:
-    
-
-[ 1234.567890] Allocated by task 123:
-[ 1234.567890]  __kmalloc_track_caller+0x1b6/0x210
-[ 1234.567890]  kfence_guarded_alloc+0x8e/0x100
-[ 1234.567890]  __kmalloc+0x1a6/0x210
-[ 1234.567890]  my_function+0x15/0x20
-[ 1234.567890]  ? my_task_function+0x50/0x70
-[ 1234.567890]  my_task_function+0x50/0x70
-[ 1234.567890]  kthread+0x127/0x150
-[ 1234.567890]  ? set_kthread_struct+0x50/0x50
-[ 1234.567890]  ret_from_fork+0x1f/0x30"""
-
 
 def get_declarations(report: SanitizerReport) -> list[kaskara.Statements.Statement]:
     match report.sanitizer:
