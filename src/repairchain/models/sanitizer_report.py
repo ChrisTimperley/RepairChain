@@ -364,9 +364,6 @@ class SanitizerReport:
     contents: str = field(repr=False)
     sanitizer: Sanitizer
     bug_type: BugType = BugType.UNKNOWN
-    # FIXME move this into a separate subclass
-    # possible thought: this information might vary by sanitizer, bug type
-    # possibly condition on that?
     call_stack_trace: StackTrace | None = field(default=None)
     alloc_stack_trace: StackTrace | None = field(default=None)
     error_location: StackFrame | None = field(default=None)
