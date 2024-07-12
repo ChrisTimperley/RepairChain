@@ -81,9 +81,11 @@ class YoloLLMStrategy(PatchGenerationStrategy):
     model: str
     use_report: bool  # option to use report in context
     use_context_files: bool  # option to use full files in context
+    use_one_patch_for_iter: bool
     llm: LLM
     diff: Diff
     files: dict[str, str]
+    number_patches: int
 
     @classmethod
     def build(
@@ -99,20 +101,16 @@ class YoloLLMStrategy(PatchGenerationStrategy):
             model=llm.model,
             use_report=True,
             use_context_files=True,
+            use_one_patch_for_iter=False,
             llm=llm,
             diff=diff,
             files=files,
+            number_patches=Util.number_patches,
         )
 
     def _set_model(self, model: str) -> None:
         self.model = model
         self.llm.model = model
-
-    def _set_use_report(self, report: bool) -> None:
-        self.use_report = report
-
-    def _set_use_context_files(self, files: bool) -> None:
-        self.use_context_files = files
 
     def _create_sanitizer_report_prompt(self, summary: list[FunctionSummary] | None) -> str:
 
@@ -207,6 +205,8 @@ class YoloLLMStrategy(PatchGenerationStrategy):
                 local_number_patches = max(1, math.floor(llm_limit / function_context.max_function_size))
                 logger.info(f"Changed the number of patches to {local_number_patches}")
 
+        self.number_patches = local_number_patches
+
         return CONTEXT_YOLO.format(
             diff=self.diff,
             code_files=list(self.files.keys()),
@@ -245,22 +245,7 @@ class YoloLLMStrategy(PatchGenerationStrategy):
         }
         """
 
-    # TODO: refactor code to minimize duplication
-    def _get_llm_output(self, user_prompt: str, system_prompt: str) -> PatchFile | None:
-
-        logger.info(f"user prompt tokens: {Util.count_tokens(user_prompt, self.model)}")
-        logger.info(f"system prompt tokens: {Util.count_tokens(system_prompt, self.model)}")
-
-        messages: MessagesIterable = []
-        system_message = ChatCompletionSystemMessageParam(role="system", content=system_prompt)
-        user_message = ChatCompletionUserMessageParam(role="user", content=user_prompt)
-        messages.append(system_message)
-        messages.append(user_message)
-
-        if self.model == "claude-3.5-sonnet":
-            # force a prefill for clause-3.5
-            prefill_message = ChatCompletionAssistantMessageParam(role="assistant", content=PREFILL_YOLO)
-            messages.append(prefill_message)
+    def _query_llm(self, messages: MessagesIterable) -> PatchFile | None:
 
         retry_attempts = Util.retry_attempts
         for attempt in range(retry_attempts):
@@ -324,8 +309,50 @@ class YoloLLMStrategy(PatchGenerationStrategy):
             # Wait briefly before retrying
             time.sleep(Util.short_sleep)
 
-        # If all attempts fail, return None
         return None
+
+    # TODO: refactor code to minimize duplication
+    def _get_llm_output(self, user_prompt: str, system_prompt: str) -> PatchFile | None:
+
+        logger.info(f"user prompt tokens: {Util.count_tokens(user_prompt, self.model)}")
+        logger.info(f"system prompt tokens: {Util.count_tokens(system_prompt, self.model)}")
+
+        messages: MessagesIterable = []
+        system_message = ChatCompletionSystemMessageParam(role="system", content=system_prompt)
+        user_message = ChatCompletionUserMessageParam(role="user", content=user_prompt)
+        messages.append(system_message)
+        messages.append(user_message)
+
+        if self.model == "claude-3.5-sonnet":
+            # force a prefill for clause-3.5
+            prefill_message = ChatCompletionAssistantMessageParam(role="assistant", content=PREFILL_YOLO)
+            messages.append(prefill_message)
+
+        if self.use_one_patch_for_iter:
+            llm_patches: PatchFile = PatchFile([])
+            attempt = 0
+            while attempt < Util.number_patches:
+                local_patch = self._query_llm(messages)
+                if local_patch is not None:
+                    llm_patches.patch.extend(local_patch.patch)
+                    logger.debug(f"Successfully generated patch "
+                                 f"{attempt + self.number_patches} / {Util.number_patches} "
+                                 f"with model {self.model}")
+                    last_llm_output = ChatCompletionAssistantMessageParam(role="assistant",
+                                                                          content=local_patch.to_json())
+                    logger.debug(f"Last LLM output: {local_patch.to_json()}")
+                    messages.append(last_llm_output)
+                    user_new_patch = ChatCompletionUserMessageParam(role="user",
+                                                                    content="Can you get me a different patch?")
+                    messages.append(user_new_patch)
+                else:
+                    logger.debug(f"Failed to generate patch "
+                                 f"{attempt + self.number_patches} / {Util.number_patches} "
+                                 f"with model {self.model}")
+                attempt += self.number_patches
+
+            return llm_patches
+        return self._query_llm(messages)
 
     def run(self) -> list[Diff]:
         summary: ReportSummary = ReportSummary(self.model)
@@ -337,9 +364,18 @@ class YoloLLMStrategy(PatchGenerationStrategy):
 
         sanitizer_prompt = self._create_sanitizer_report_prompt(code_summary)
 
+        if self.use_one_patch_for_iter:
+            self.number_patches = 1
+
         user_prompt = self._create_user_prompt(Util.implied_functions_to_str(self.diagnosis),
                                                sanitizer_prompt,
-                                               Util.number_patches)
+                                               self.number_patches)
+
+        if self.number_patches == 0:
+            return []  # function is too large to repair as a whole
+
+        if self.number_patches != Util.number_patches:
+            self.use_one_patch_for_iter = True
 
         logger.info(f"system prompt tokens: {Util.count_tokens(system_prompt, self.model)}")
         logger.debug(f"system prompt: {system_prompt}")
