@@ -6,6 +6,7 @@ import contextlib
 import pickle  # noqa: S403
 import typing as t
 from dataclasses import dataclass, field
+from pathlib import Path
 
 import kaskara
 import kaskara.clang.analyser
@@ -13,8 +14,6 @@ from dockerblade.stopwatch import Stopwatch
 from loguru import logger
 
 if t.TYPE_CHECKING:
-    from pathlib import Path
-
     import git
 
     from repairchain.models.project import Project
@@ -145,7 +144,9 @@ class KaskaraIndexer:
         filename: str | Path,
         version: git.Commit | None = None,
     ) -> kaskara.analysis.ProgramFunctions | None:
-        raise NotImplementedError
+        if isinstance(filename, Path):
+            filename = str(filename)
+        self.run(version=version, restrict_to_files=[filename])
 
     def statements(
         self,
