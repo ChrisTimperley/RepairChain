@@ -36,9 +36,8 @@ class SourceFileVersion:
         filename: Path,
     ) -> SourceFileVersion:
         """Builds a source file from a given commit and filename."""
-        blob = version.tree / filename
-        # NOTE the type annotation gets picked up incorrectly here
-        raw_contents = blob.data_stream.read()  # type: ignore[attr-defined]
+        blob = version.tree / str(filename)
+        raw_contents = blob.data_stream.read()
         contents = raw_contents.decode("utf-8")
         return cls.build_from_contents(
             version=version,
