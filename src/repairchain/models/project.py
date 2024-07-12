@@ -22,6 +22,7 @@ from repairchain.indexer import KaskaraIndexer
 from repairchain.models.container import ProjectContainer
 from repairchain.models.patch_outcome import PatchOutcomeCache
 from repairchain.models.sanitizer_report import SanitizerReport
+from repairchain.sources import ProjectSources
 
 if t.TYPE_CHECKING:
     from repairchain.models.diff import Diff
@@ -53,11 +54,13 @@ class Project:
     evaluation_cache: PatchOutcomeCache = field(init=False, repr=False)
     validator: PatchValidator = field(init=False, repr=False)
     indexer: KaskaraIndexer = field(init=False, repr=False)
+    sources: ProjectSources = field(init=False, repr=False)
     _time_elapsed: Stopwatch = field(init=False, repr=False)
 
     def __post_init__(self) -> None:
         self._time_elapsed = Stopwatch()
         self._time_elapsed.start()
+        self.sources = ProjectSources.for_project(self)
         self.evaluation_cache = PatchOutcomeCache.for_settings(self.settings)
         self.validator = ThreadedPatchValidator.for_project(self)
         self.indexer = KaskaraIndexer.for_project(self)
