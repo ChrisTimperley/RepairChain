@@ -15,7 +15,6 @@ from repairchain.models.stack_trace import (
 __all__ = (
     "Sanitizer",
     "SanitizerReport",
-    "parser_dict",
 )
 
 import re
@@ -91,12 +90,14 @@ def easy_find_loc(find_triggered_loc: str, line: str) -> StackFrame | None:
     return None
 
 
-def parse_report_generic(sanitizer_output: str,  # noqa: PLR0917
-                extra_info_find: Callable[[str], str | None],
-                find_triggered_loc: Callable[[str], StackFrame | None],
-                parse_trace_ele: Callable[[str], StackFrame | None],
-                start_call_trace: str,
-                start_alloc_trace: str) -> tuple[str, StackFrame | None, StackTrace, StackTrace]:
+def parse_report_generic(  # noqa: PLR0917
+    sanitizer_output: str,
+    extra_info_find: Callable[[str], str | None],
+    find_triggered_loc: Callable[[str], StackFrame | None],
+    parse_trace_ele: Callable[[str], StackFrame | None],
+    start_call_trace: str,
+    start_alloc_trace: str,
+) -> tuple[str, StackFrame | None, StackTrace, StackTrace]:
     """Parse generic report info.
 
     Takes a substring indicating where to start parsing the extra info, call trace, and allocated trace.
@@ -171,20 +172,21 @@ def parse_kasan(kasan_output: str) -> tuple[str, StackFrame | None, StackTrace, 
                 # got nothing, probably a functionname?
                 _, _, funcname = info_line.partition("BUG: KFENCE: ")
             return StackFrame(
-            funcname=funcname,
-            filename=filename,
-            lineno=lineno,
-            offset=offset,
-            bytes_offset=bytes_offset,
+                funcname=funcname,
+                filename=filename,
+                lineno=lineno,
+                offset=offset,
+                bytes_offset=bytes_offset,
             )
         return None
-    return parse_report_generic(kasan_output,
-                                kasan_extra_info,
-                                kasan_location,
-                                parse_stack_frame_kernel,
-                                "Call Trace:",
-                                "Allocated by",
-                            )
+    return parse_report_generic(
+        kasan_output,
+        kasan_extra_info,
+        kasan_location,
+        parse_stack_frame_kernel,
+        "Call Trace:",
+        "Allocated by",
+    )
 
 
 # possible TODO: there is additional potentially useful extra info in the line after
@@ -220,22 +222,23 @@ def parse_kfence(kfence_output: str) -> tuple[str, StackFrame | None, StackTrace
                 # got nothing, probably a functionname?
                 _, _, funcname = info_line.partition("BUG: KFENCE: ")
             return StackFrame(
-            funcname=funcname,
-            filename=filename,
-            lineno=lineno,
-            offset=offset,
-            bytes_offset=bytes_offset,
+                funcname=funcname,
+                filename=filename,
+                lineno=lineno,
+                offset=offset,
+                bytes_offset=bytes_offset,
             )
         return None
     # possible fixme:if "Memory state" in line: break
 
-    return parse_report_generic(kfence_output,
-                                kfence_extra_info,
-                                kfence_location,
-                                parse_stack_frame_kernel,
-                                "Call Trace:",
-                                "Allocated by",
-                            )
+    return parse_report_generic(
+        kfence_output,
+        kfence_extra_info,
+        kfence_location,
+        parse_stack_frame_kernel,
+        "Call Trace:",
+        "Allocated by",
+    )
 
 
 def parse_asan(asan_output: str) -> tuple[str, StackFrame | None, StackTrace, StackTrace]:
@@ -246,13 +249,14 @@ def parse_asan(asan_output: str) -> tuple[str, StackFrame | None, StackTrace, St
     """
     find_extra_info = partial(easy_match_extra_info, "ERROR: AddressSanitizer: ")
     find_triggering_loc = partial(easy_find_loc, "SUMMARY: AddressSanitizer: ")
-    return parse_report_generic(asan_output,
-                            find_extra_info,
-                            find_triggering_loc,
-                            parse_stack_frame_simple,
-                            "ERROR: AddressSanitizer: ",
-                            "allocated by thread ",
-                            )
+    return parse_report_generic(
+        asan_output,
+        find_extra_info,
+        find_triggering_loc,
+        parse_stack_frame_simple,
+        "ERROR: AddressSanitizer: ",
+        "allocated by thread ",
+    )
 
 
 def parse_memsan(memsan_output: str) -> tuple[str, StackFrame | None, StackTrace, StackTrace]:
@@ -264,13 +268,14 @@ def parse_memsan(memsan_output: str) -> tuple[str, StackFrame | None, StackTrace
     find_extra_info = partial(easy_match_extra_info, "WARNING: Memory Sanitizer: ")
     find_triggering_loc = partial(easy_find_loc, "SUMMARY: AddressSanitizer: ")
 
-    return parse_report_generic(memsan_output,
-                        find_extra_info,
-                        find_triggering_loc,
-                        parse_stack_frame_simple,
-                        "WARNING: Memory Sanitizer: ",
-                        "value was created by",
-                        )
+    return parse_report_generic(
+        memsan_output,
+        find_extra_info,
+        find_triggering_loc,
+        parse_stack_frame_simple,
+        "WARNING: Memory Sanitizer: ",
+        "value was created by",
+    )
 
 
 def parse_ubsan(ubsan_output: str) -> tuple[str, StackFrame | None, StackTrace, StackTrace]:
@@ -318,11 +323,11 @@ def parse_java_stack_trace(line: str) -> StackFrame:
         funcname = line
     lineno_int = int(lineno) if lineno is not None else None
     return StackFrame(
-            funcname=funcname,
-            filename=filename,
-            lineno=lineno_int,
-            offset=None,
-            bytes_offset=None,
+        funcname=funcname,
+        filename=filename,
+        lineno=lineno_int,
+        offset=None,
+        bytes_offset=None,
     )
 
 
@@ -344,7 +349,7 @@ def parse_jazzer(jazzer_output: str) -> tuple[str, StackFrame | None, StackTrace
     return extra_info, location, StackTrace(stack_trace), StackTrace([])
 
 
-parser_dict: dict[Sanitizer, Callable[[str], tuple[str, StackFrame | None, StackTrace, StackTrace]]] = {
+sanitizer_to_report_parser: dict[Sanitizer, Callable[[str], tuple[str, StackFrame | None, StackTrace, StackTrace]]] = {
     Sanitizer.KASAN: parse_kasan,
     Sanitizer.KFENCE: parse_kfence,
     Sanitizer.ASAN: parse_asan,
@@ -389,22 +394,31 @@ class SanitizerReport:
     @classmethod
     def from_report_text(cls, text: str) -> t.Self:
         sanitizer = cls._find_sanitizer(text)
+        logger.info(f"determined sanitizer from report text: {sanitizer}")
         bug_type = determine_bug_type(text, sanitizer)
-        logger.debug(f"from report text, sanitizer {sanitizer}")
+        logger.info(f"determined bug type from report text: {bug_type}")
         report = cls(
             contents=text,
             sanitizer=sanitizer,
             bug_type=bug_type,
         )
+
+        if sanitizer not in sanitizer_to_report_parser:
+            return report
+
         # TODO need to deal with stack traces that may contain a mix of relative
         # and absolute paths
-        # FIXME: this will choke on unknown, sort of on purpose for testing
-        parser_func = parser_dict[sanitizer]
+        try:
+            parser_func = sanitizer_to_report_parser[sanitizer]
+            (report.extra_info,
+            report.error_location,
+            report.call_stack_trace,
+            report.alloc_stack_trace) = parser_func(text)
 
-        (report.extra_info,
-        report.error_location,
-        report.call_stack_trace,
-        report.alloc_stack_trace) = parser_func(text)
+        # if we can't parse the report, just return the report without the stack trace
+        except Exception:  # noqa: BLE001
+            logger.exception("failed to parse sanitizer report")
+
         return report
 
     @classmethod

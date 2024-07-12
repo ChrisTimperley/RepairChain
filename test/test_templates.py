@@ -2,7 +2,7 @@
 from pathlib import Path
 
 from repairchain.models.bug_type import BugType, Sanitizer, determine_bug_type
-from repairchain.models.sanitizer_report import SanitizerReport, parser_dict
+from repairchain.models.sanitizer_report import SanitizerReport, sanitizer_to_report_parser
 
 
 def test_kasan_parsing() -> None:
@@ -12,7 +12,7 @@ def test_kasan_parsing() -> None:
         assert sanitizer == Sanitizer.KASAN
         bug_type = determine_bug_type(report_text, sanitizer)
         assert bug_type == BugType.OUT_OF_BOUNDS_WRITE
-        parser_func = parser_dict[sanitizer]
+        parser_func = sanitizer_to_report_parser[sanitizer]
         (_, _, _, _) = parser_func(report_text)
     assert True
 
@@ -24,7 +24,7 @@ def test_kfence_parsing() -> None:
         assert sanitizer == Sanitizer.KFENCE
         bug_type = determine_bug_type(report_text, sanitizer)
         assert bug_type == BugType.OUT_OF_BOUNDS_WRITE
-        parser_func = parser_dict[sanitizer]
+        parser_func = sanitizer_to_report_parser[sanitizer]
         (_, _, _, _) = parser_func(report_text)
     assert True
 
@@ -36,7 +36,7 @@ def test_asan_parsing1() -> None:
         assert sanitizer == Sanitizer.ASAN
         bug_type = determine_bug_type(report_text, sanitizer)
         assert bug_type == BugType.OUT_OF_BOUNDS_WRITE
-        parser_func = parser_dict[sanitizer]
+        parser_func = sanitizer_to_report_parser[sanitizer]
         (_, _, _, _) = parser_func(report_text)
     assert True
 
@@ -48,7 +48,7 @@ def test_asan_parsing2() -> None:
         assert sanitizer == Sanitizer.ASAN
         bug_type = determine_bug_type(report_text, sanitizer)
         assert bug_type == BugType.OUT_OF_BOUNDS_WRITE
-        parser_func = parser_dict[sanitizer]
+        parser_func = sanitizer_to_report_parser[sanitizer]
         (_, _, _, _) = parser_func(report_text)
     assert True
 
@@ -60,7 +60,7 @@ def test_memsan_parsing() -> None:
         assert sanitizer == Sanitizer.MEMSAN
         bug_type = determine_bug_type(report_text, sanitizer)
         assert bug_type == BugType.LOAD_UNINIT_VALUE
-        parser_func = parser_dict[sanitizer]
+        parser_func = sanitizer_to_report_parser[sanitizer]
         (_, _, _, _) = parser_func(report_text)
     assert True
 
@@ -72,7 +72,7 @@ def test_ubsan_parsing() -> None:
         assert sanitizer == Sanitizer.UBSAN
         bug_type = determine_bug_type(report_text, sanitizer)
         assert bug_type == BugType.ARRAY_OOB
-        parser_func = parser_dict[sanitizer]
+        parser_func = sanitizer_to_report_parser[sanitizer]
         (_, _, _, _) = parser_func(report_text)
     assert True
 
@@ -84,6 +84,6 @@ def test_jenkins_parsing() -> None:
         assert sanitizer == Sanitizer.JAZZER
         bug_type = determine_bug_type(report_text, sanitizer)
         assert bug_type == BugType.OS_COMMAND_INJECTION
-        parser_func = parser_dict[sanitizer]
+        parser_func = sanitizer_to_report_parser[sanitizer]
         (_, _, _, _) = parser_func(report_text)
     assert True
