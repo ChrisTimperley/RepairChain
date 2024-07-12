@@ -11,7 +11,7 @@ from repairchain.models.sanitizer_report import SanitizerReport
 from repairchain.strategies.generation.template.base import TemplateGenerationStrategy
 
 
-def get_declarations(report: SanitizerReport) -> list[kaskara.Statements.Statement]:
+def get_declarations(report: SanitizerReport) -> list[kaskara.statements.Statement]:
     match report.sanitizer:
         case Sanitizer.KASAN:
             raise NotImplementedError
@@ -38,8 +38,8 @@ class IncreaseSizeStrategy(TemplateGenerationStrategy):
     """
 
     diagnosis: Diagnosis
-    declarations_to_repair: list[kaskara.Statements.Statement]
-    accesses_to_repair: list[kaskara.Statements.Statement]
+    declarations_to_repair: list[kaskara.statements.Statement]
+    accesses_to_repair: list[kaskara.statements.Statement]
 
     @classmethod
     def build(cls, diagnosis: Diagnosis) -> t.Self:
