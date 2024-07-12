@@ -75,3 +75,15 @@ def test_ubsan_parsing() -> None:
         parser_func = parser_dict[sanitizer]
         (_, _, _, _) = parser_func(report_text)
     assert True
+
+
+def test_jenkins_parsing() -> None:
+    with Path.open("./examples/jenkins/sanitizer.txt", "r") as jenkins_report:
+        report_text = jenkins_report.read()
+        sanitizer = SanitizerReport._find_sanitizer(report_text)
+        assert sanitizer == Sanitizer.JAZZER
+        bug_type = determine_bug_type(report_text, sanitizer)
+        assert bug_type == BugType.OS_COMMAND_INJECTION
+        parser_func = parser_dict[sanitizer]
+        (_, _, _, _) = parser_func(report_text)
+    assert True

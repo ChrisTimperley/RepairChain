@@ -304,8 +304,44 @@ def parse_ubsan(ubsan_output: str) -> tuple[str, StackFrame | None, StackTrace, 
     return (extra_information, frame, StackTrace([]), StackTrace([]))
 
 
+def parse_java_stack_trace(line: str) -> StackFrame:
+    funcname = None
+    filename = None
+    lineno = None
+    if "(" in line:
+        funcname, _, filenamepart = line.partition("(")
+        if filenamepart.endswith(")"):
+            filenamepart = filenamepart[:-1]
+        if ":" in filenamepart:
+            filename, _, lineno = filenamepart.partition(":")
+    else:
+        funcname = line
+    lineno_int = int(lineno) if lineno is not None else None
+    return StackFrame(
+            funcname=funcname,
+            filename=filename,
+            lineno=lineno_int,
+            offset=None,
+            bytes_offset=None,
+    )
+
+
+# FIXME: we really need more jazzer examples for the types of bugs it's actually
+# supposed to find, because this will be undertested by what we have
 def parse_jazzer(jazzer_output: str) -> tuple[str, StackFrame | None, StackTrace, StackTrace]:
-    raise NotImplementedError
+    extra_info = ""
+    stack_trace: list[StackFrame] = []
+    location: StackFrame | None = None
+    for line in jazzer_output.splitlines():
+        if "Java Exception:" in line:
+            _, _, extra_info = line.partition("Java Exception: ")
+        if "at " in line:
+            _, _, restline = line.partition("at ")
+            stack_trace.append(parse_java_stack_trace(restline))
+    if len(stack_trace) > 0:
+        location = stack_trace[0]
+
+    return extra_info, location, StackTrace(stack_trace), StackTrace([])
 
 
 parser_dict: dict[Sanitizer, Callable[[str], tuple[str, StackFrame | None, StackTrace, StackTrace]]] = {
@@ -333,7 +369,7 @@ class SanitizerReport:
 
     @classmethod
     def _find_sanitizer(cls, report_text: str) -> Sanitizer:
-        report_text.lower()
+        report_text = report_text.lower()
         for line in report_text.splitlines():
             if "java exception:" in line:
                 return Sanitizer.JAZZER

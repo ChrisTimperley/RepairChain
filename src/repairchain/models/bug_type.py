@@ -156,7 +156,7 @@ jazzer_bug_map = {
     "SEVERE: IllegalStateException": BugType.ILLEGAL_STATE,
     "SEVERE: IOException": BugType.IOEXCEPTION,
     "SEVERE: AssertionError": BugType.ASSERTION_ERROR,
-    "com.code_intelligence.jazzer.api.FuzzerSecurityIssueCritical: OS Command Injection": BugType.OS_COMMAND_INJECTION,
+    "FuzzerSecurityIssueCritical: OS Command Injection": BugType.OS_COMMAND_INJECTION,
     "File read/write hook path": BugType.PATH_TRAVERSAL,
     "Integer Overflow(addition) detected": BugType.INTEGER_OVERFLOW_OR_WRAPAROUND,
     "Server Side Request Forgery (SSRF)": BugType.SERVER_SIDE_REQUEST_FORGERY,
