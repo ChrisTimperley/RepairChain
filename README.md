@@ -14,6 +14,12 @@ After running the above, you will need to create files `.openapi.key` and `.anth
 
 ## Examples
 
+To install all of the examples:
+
+```
+make examples
+```
+
 To run an end-to-end example of RepairChain, run the following:
 
 ```shell

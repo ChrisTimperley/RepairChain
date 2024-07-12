@@ -1,4 +1,4 @@
-.PHONY: all check docker fix install lint test
+.PHONY: all check docker examples fix install lint test
 
 all: install check
 
@@ -10,6 +10,9 @@ type:
 
 lint:
 	poetry run ruff check --preview src
+
+examples:
+	make -C examples
 
 test:
 	poetry run pytest test
