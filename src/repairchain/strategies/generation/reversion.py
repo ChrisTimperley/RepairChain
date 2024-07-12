@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import contextlib
+import enum
 import subprocess
 import tempfile
 import typing as t
@@ -23,6 +25,11 @@ if t.TYPE_CHECKING:
     from repairchain.models.project import Project
 
 
+class ConflictStrategy(enum.StrEnum):
+    ours = "ours"
+    theirs = "theirs"
+
+
 @dataclass
 class MinimalPatchReversion(PatchGenerationStrategy):
     diagnosis: Diagnosis
@@ -32,14 +39,18 @@ class MinimalPatchReversion(PatchGenerationStrategy):
     def build(cls, diagnosis: Diagnosis) -> MinimalPatchReversion:
         return cls(diagnosis=diagnosis, project=diagnosis.project)
 
-    def _cleanup(
-        self,
-        repo: git.Repo,
-        restore_to_commit: git.Commit,
-        restore_to_branch: str | None,
-        temporary_rebase_branch: str,
-    ) -> None:
+    @property
+    def triggering_commit(self) -> git.Commit:
+        return self.project.triggering_commit
+
+    @property
+    def triggering_commit_parent(self) -> git.Commit:
+        return self.triggering_commit.parents[0]
+
+    def _cleanup(self, restore_to: str) -> None:
         """Restores the initial state of the Git repo prior to running this strategy."""
+        repo = self.project.repository
+        temporary_rebase_branch = self.temporary_rebase_branch
         with suppress(git.exc.GitCommandError):
             repo.git.rebase("--abort")
         with suppress(git.exc.GitCommandError):
@@ -47,128 +58,181 @@ class MinimalPatchReversion(PatchGenerationStrategy):
         with suppress(git.exc.GitCommandError):
             repo.git.clean("-xdf")
         with suppress(git.exc.GitCommandError):
-            if not repo.head.is_detached and repo.active_branch.name == restore_to_branch:
+            if not repo.head.is_detached and repo.active_branch.name == restore_to:
                 repo.git.branch("-D", temporary_rebase_branch)
 
         try:
-            if restore_to_branch:
-                logger.debug(f"restoring to branch: {restore_to_branch}")
-                repo.git.checkout(restore_to_branch)
-            else:
-                logger.debug(f"restoring to commit: {restore_to_commit.hexsha}")
-                repo.git.checkout(restore_to_commit)
+            logger.debug(f"restoring to: {restore_to}")
+            repo.git.checkout(restore_to)
         except git.exc.GitCommandError:
-            logger.exception("git command failed during reversion cleanup")
+            logger.exception(f"failed to restore git repo to: {restore_to}")
 
         with suppress(git.exc.GitCommandError):
             logger.debug(f"deleting temporary rebase branch: {temporary_rebase_branch}")
             if any(branch.name == temporary_rebase_branch for branch in repo.branches):  # type: ignore[attr-defined]
                 repo.git.branch("-D", temporary_rebase_branch)
 
-    def _find_minimal_diff(self) -> Diff | None:
-        repo = self.project.repository
-        triggering_commit = self.project.triggering_commit
-        triggering_commit_parent = triggering_commit.parents[0]
+    def _compute_reverse_diff(self) -> Diff:
+        """Computes a diff that reverses the changes introduced by the triggering commit."""
+        unidiff = self.project.repository.git.diff(
+            self.triggering_commit,
+            self.triggering_commit_parent,
+            unified=True,
+        )
+        return Diff.from_unidiff(unidiff).strip(1)
 
-        # compute a diff that reverses the changes introduces by the triggering commit
-        reverse_diff = Diff.from_unidiff(
-            repo.git.diff(triggering_commit, triggering_commit_parent, unified=True),
-        ).strip(1)
-
+    def _minimize_reverse_diff(self, reverse_diff: Diff) -> Diff:
+        """Minimizes the reverse diff to the smallest possible diff that still undoes the triggering commit."""
         def tester(hunks: t.Sequence[FileHunk]) -> bool:
             as_diff = Diff.from_file_hunks(list(hunks))
             outcome = self.project.validator.validate(
                 candidate=as_diff,
-                commit=triggering_commit,
+                commit=self.triggering_commit,
             )
             return outcome == PatchOutcome.PASSED
 
         to_minimize = list(reverse_diff.file_hunks)
         minimized_hunks = dd_minimize(to_minimize, tester, time_limit=self.project.time_left)
-        minimized = Diff.from_file_hunks(minimized_hunks)
+        return Diff.from_file_hunks(minimized_hunks)
+
+    @contextlib.contextmanager
+    def _write_diff_to_file(self, diff: Diff) -> t.Iterator[Path]:
+        """Writes the given diff to a temporary file and yields the path to that file."""
+        temp_patch_path = Path(tempfile.mkstemp(suffix=".diff")[1])
+        contents = str(diff)
+        try:
+            with temp_patch_path.open("w", encoding="utf-8") as temp_patch_file:
+                temp_patch_file.write(contents)
+            yield temp_patch_path
+        finally:
+            temp_patch_path.unlink()
+
+    def _apply_patch(self, patch: Diff) -> None:
+        # make a commit consisting of only the minimized undo
+        repo_path = Path.resolve(self.project.local_repository_path)
+        with self._write_diff_to_file(patch) as temp_patch_path:
+            command_args = [
+                "patch",
+                "-u",
+                "-p0",
+                "-i",
+                str(temp_patch_path),
+                "-d",
+                str(repo_path),
+            ]
+            logger.debug(f"applying patch: {command_args}")
+            subprocess.run(
+                command_args,
+                check=True,
+                stdin=subprocess.DEVNULL,
+            )
+
+    @property
+    def temporary_rebase_branch(self) -> str:
+        commit_sha = self.triggering_commit.hexsha
+        return f"REPAIRCHAIN-rebase-{commit_sha[:8]}"
+
+    @contextlib.contextmanager
+    def reset_repo_after(self, restore_to: str) -> t.Iterator[None]:
+        try:
+            yield
+        finally:
+            self._cleanup(restore_to)
+
+    def _rebase_patch_onto_head(
+        self,
+        minimal_changes: Diff,
+        rebase_onto: str,
+        conflict_strategy: ConflictStrategy | None = None,
+    ) -> Diff | None:
+        """Transforms a commit that transforms the minimal reversion diff into one that applies to HEAD."""
+        repo = self.project.repository
+        triggering_commit = self.project.triggering_commit
+
+        try:
+            repo.git.branch(self.temporary_rebase_branch, triggering_commit)
+            repo.git.checkout(self.temporary_rebase_branch)
+            self._apply_patch(minimal_changes)
+        except subprocess.CalledProcessError:
+            logger.exception("failed to apply minimal changes")
+            return None
+
+        repo.git.add(A=True)
+        repo.index.commit("undo minimal changes")
+
+        match conflict_strategy:
+            case ConflictStrategy.ours | ConflictStrategy.theirs:
+                command = ["git", "rebase", "-s", "recursive", "-X", conflict_strategy.value, rebase_onto]
+                try:
+                    repo.git.execute(command)
+                except git.exc.GitCommandError as e:
+                    logger.error(f"failed to rebase minimal changes ({conflict_strategy} conflict strategy): {e}")
+                    return None
+
+            case None:
+                try:
+                    repo.git.rebase(rebase_onto)
+                except git.exc.GitCommandError as e:
+                    logger.error(f"failed to rebase minimal changes (no conflict strategy): {e}")
+                    return None
+
+        # transform the rebased reversion commit into a diff
+        return commit_to_diff(self.project.repository.active_branch.commit)
+
+    def run(self) -> list[Diff]:
+        repo = self.project.repository
+        reverse_diff = self._compute_reverse_diff()
+        reverse_diff = self._minimize_reverse_diff(reverse_diff)
 
         # we have the slice of the undone commit we need, now we need it to
         # apply to the program at its _current_ commit.  We:
         # (1) branch at the triggering commit,
-        # (2) apply the change (using patch, not git.apply, because the former works
-        # and the latter often doesn't for some reason),
-        # (3) rebase the change on top of the main branch, and then
-        # (4) getting the last commit as a diff.
-        head_is_detached = repo.head.is_detached
-        restore_to_commit = repo.head.commit
-        restore_to_branch: str | None = None
-
-        if head_is_detached:
+        # (2) apply the change  via patch
+        # (3) rebase the change on top of the main branch or HEAD commit, and then
+        # (4) getting the last commit as a diff
+        restore_to: str
+        if repo.head.is_detached:
             logger.warning("head is detached; will rebase on the detached commit")
-        if not head_is_detached:
-            restore_to_branch = repo.active_branch.name
-            logger.info(f"head is not detached; will rebase on the active branch: {restore_to_branch}")
+            restore_to = repo.head.commit.hexsha
+        else:
+            restore_to = repo.active_branch.name
+            logger.info(f"head is not detached; will rebase on the active branch: {restore_to}")
 
-        # branch from the triggering commit...
-        commit_sha = triggering_commit.hexsha
-        temporary_rebase_branch = f"REPAIRCHAIN-rebase-{commit_sha[:8]}"
-        self._cleanup(
-            repo=repo,
-            restore_to_commit=restore_to_commit,
-            restore_to_branch=restore_to_branch,
-            temporary_rebase_branch=temporary_rebase_branch,
-        )
+        self._cleanup(restore_to)
 
-        try:
-            repo_path = Path.resolve(self.project.local_repository_path)
-            repo.git.branch(temporary_rebase_branch, triggering_commit)
-            repo.git.checkout(temporary_rebase_branch)
+        with (
+            suppress(subprocess.CalledProcessError, git.exc.GitCommandError),
+            self.reset_repo_after(restore_to),
+        ):
+            patch_with_no_conflict_strategy = self._rebase_patch_onto_head(reverse_diff, restore_to)
+            if patch_with_no_conflict_strategy:
+                return [patch_with_no_conflict_strategy]
 
-            # make a commit consisting of only the minimized undo
-            temp_patch_path = Path(tempfile.mkstemp(suffix=".diff")[1])
-            try:
-                with temp_patch_path.open("w", encoding="utf-8") as temp_patch_file:
-                    temp_patch_file.write(str(minimized))
+        # try again with different conflict strategies
+        patches: list[Diff] = []
 
-                command_args = [
-                    "patch",
-                    "-u",
-                    "-p0",
-                    "-i",
-                    str(temp_patch_path),
-                    "-d",
-                    str(repo_path),
-                ]
-                logger.debug(f"applying patch: {command_args}")
-                subprocess.run(
-                    command_args,
-                    check=True,
-                    stdin=subprocess.DEVNULL,
-                )
-
-            finally:
-                temp_patch_path.unlink()
-
-            repo.git.add(A=True)
-            repo.index.commit("undo minimal changes")
-
-            if head_is_detached:
-                repo.git.rebase(restore_to_commit)
-            else:
-                repo.git.rebase(restore_to_branch)
-
-            # grab the head commit, which should undo the badness, turn that into a diff
-            return commit_to_diff(self.project.repository.active_branch.commit)
-
-        except subprocess.CalledProcessError:
-            logger.exception("failed to apply patch")
-        except git.exc.GitCommandError:
-            logger.exception("failed to create branch or rebase")
-        finally:
-            self._cleanup(
-                repo=repo,
-                restore_to_commit=restore_to_commit,
-                restore_to_branch=restore_to_branch,
-                temporary_rebase_branch=temporary_rebase_branch,
+        with (
+            suppress(subprocess.CalledProcessError, git.exc.GitCommandError),
+            self.reset_repo_after(restore_to),
+        ):
+            diff_with_ours = self._rebase_patch_onto_head(
+                reverse_diff,
+                restore_to,
+                conflict_strategy=ConflictStrategy.ours,
             )
+            if diff_with_ours:
+                patches.append(diff_with_ours)
 
-        return None
+        with (
+            suppress(subprocess.CalledProcessError, git.exc.GitCommandError),
+            self.reset_repo_after(restore_to),
+        ):
+            diff_with_theirs = self._rebase_patch_onto_head(
+                reverse_diff,
+                restore_to,
+                conflict_strategy=ConflictStrategy.theirs,
+            )
+            if diff_with_theirs:
+                patches.append(diff_with_theirs)
 
-    def run(self) -> list[Diff]:
-        minimal_diff = self._find_minimal_diff()
-        return [minimal_diff] if minimal_diff else []
+        return patches
