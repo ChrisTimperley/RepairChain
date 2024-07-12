@@ -140,6 +140,20 @@ class KaskaraIndexer:
         logger.info(f"indexed {len(analysis.functions)} functions (took {time_taken:.2f}s)")
         return analysis
 
+    def functions(
+        self,
+        filename: str | Path,
+        version: git.Commit | None = None,
+    ) -> kaskara.analysis.ProgramFunctions | None:
+        raise NotImplementedError
+
+    def statements(
+        self,
+        filename: str | Path,
+        version: git.Commit | None = None,
+    ) -> kaskara.analysis.ProgramStatements | None:
+        raise NotImplementedError
+
     def run(
         self,
         version: git.Commit | None,
