@@ -41,10 +41,10 @@ def parse_stack_frame_simple(line: str) -> StackFrame | None:
 
 
 def parse_stack_frame_kernel(line: str) -> StackFrame | None:
-    kernel_pattern = re.compile(
+    kernel_pattern_timestamps = re.compile(
         r"^\[\s*\d+\.\d+\]\s*(\??\s*[a-zA-Z_]+\w*)")
 
-    stack_trace_match = kernel_pattern.match(line)
+    stack_trace_match = kernel_pattern_timestamps.match(line)
     if stack_trace_match and "+" in line:
         return extract_stack_frame_from_line_not_symbolized(line)
     stack_frame_regex = re.compile(
@@ -53,11 +53,11 @@ def parse_stack_frame_kernel(line: str) -> StackFrame | None:
     )
     if stack_frame_regex.match(line):
         return extract_stack_frame_from_line_symbolized(line)
+
+    if "+" in line:
+        line = line.strip()
+        return extract_stack_frame_from_line_not_symbolized(line)
     return None
-
-
-def parse_kasan(kasan_output: str) -> tuple[str, StackFrame | None, StackTrace, StackTrace]:
-    raise NotImplementedError
 
 
 def easy_match_extra_info(find_extra_info: str, line: str) -> str | None:
@@ -117,7 +117,7 @@ def parse_report_generic(sanitizer_output: str,  # noqa: PLR0917
         extra_info = extra_info_find(line) if extra_info is None else extra_info
         loc_triggered = find_triggered_loc(line) if loc_triggered is None else loc_triggered
 
-        # FIXME: when do I break?
+        # FIXME: do I care to break early?  Possibly unimportant
         if processing_call_trace:
             stack_frame = parse_trace_ele(line)
             if stack_frame is not None:
@@ -135,6 +135,56 @@ def parse_report_generic(sanitizer_output: str,  # noqa: PLR0917
     info = "" if extra_info is None else extra_info
 
     return (info, loc_triggered, StackTrace(call_trace), StackTrace(allocated_trace))
+
+
+# FIXME: this is substantially similar to parse_kfence, consider condensing.
+# except kasan may not have timestamps?
+# similarly, too, there may be extra info of note if we want it in the
+# line after the one we're currently grabbing the info from
+def parse_kasan(kasan_output: str) -> tuple[str, StackFrame | None, StackTrace, StackTrace]:
+    """Parse kasan reports.
+
+    Returns the extra bug info, frame describing location error triggered, and call trace
+    and allocated trace as available.
+    """
+    def kasan_extra_info(info_line: str) ->  str | None:
+        if "BUG: KASAN: " in info_line:
+            _, _, second_part = info_line.partition("BUG: KASAN: ")
+            error_info, _, _ = second_part.partition(" in ")
+            return error_info
+        return None
+
+    def kasan_location(info_line: str) -> StackFrame | None:
+        funcname: str | None = None
+        filename: str | None = None
+        bytes_offset: str | None = None
+        offset: int | None = None
+        lineno: int | None = None
+
+        if "BUG: KASAN: " in info_line:
+            _, _, loc_str = info_line.partition(" in ")
+            if "+" in loc_str:  # byte offset
+                funcname, _, bytes_offset = loc_str.partition("+")
+            elif ":" in loc_str:  # symbolized
+                filename, lineno, offset = extract_location_symbolized(loc_str)
+            else:
+                # got nothing, probably a functionname?
+                _, _, funcname = info_line.partition("BUG: KFENCE: ")
+            return StackFrame(
+            funcname=funcname,
+            filename=filename,
+            lineno=lineno,
+            offset=offset,
+            bytes_offset=bytes_offset,
+            )
+        return None
+    return parse_report_generic(kasan_output,
+                                kasan_extra_info,
+                                kasan_location,
+                                parse_stack_frame_kernel,
+                                "Call Trace:",
+                                "Allocated by",
+                            )
 
 
 # possible TODO: there is additional potentially useful extra info in the line after

@@ -5,6 +5,18 @@ from repairchain.models.bug_type import BugType, Sanitizer, determine_bug_type
 from repairchain.models.sanitizer_report import SanitizerReport, parser_dict
 
 
+def test_kasan_parsing() -> None:
+    with Path.open("./test/data/kasan-gpt.txt", "r") as kfence_report:
+        report_text = kfence_report.read()
+        sanitizer = SanitizerReport._find_sanitizer(report_text)
+        assert sanitizer == Sanitizer.KASAN
+        bug_type = determine_bug_type(report_text, sanitizer)
+        assert bug_type == BugType.OUT_OF_BOUNDS_WRITE
+        parser_func = parser_dict[sanitizer]
+        (_, _, _, _) = parser_func(report_text)
+    assert True
+
+
 def test_kfence_parsing() -> None:
     with Path.open("./test/data/kfence-oob-gpt.txt", "r") as kfence_report:
         report_text = kfence_report.read()

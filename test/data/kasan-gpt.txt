@@ -1,0 +1,54 @@
+==================================================================
+BUG: KASAN: slab-out-of-bounds in example_function+0x56/0x100
+Write of size 4 at addr ffff888123456780 by task example_task/1234
+
+CPU: 0 PID: 1234 Comm: example_task Tainted: G        W         5.10.0-0-generic #1
+Hardware name: ExampleVendor ExampleModel/ExampleBoard, BIOS 1.0.0 01/01/2020
+Call Trace:
+ dump_stack+0x64/0x7c
+ print_address_description.constprop.0+0x1a/0x140
+ ? example_function+0x56/0x100
+ kasan_report.cold+0x37/0x7c
+ ? example_function+0x56/0x100
+ example_function+0x56/0x100
+ example_caller_function+0x45/0x70
+ ? another_function+0x10/0x10
+ example_work_handler+0x2a/0x50
+ process_one_work+0x1f1/0x3b0
+ worker_thread+0x4d/0x3b0
+ ? process_one_work+0x3b0/0x3b0
+ kthread+0x116/0x130
+ ? kthread_create_on_node+0x70/0x70
+ ret_from_fork+0x1f/0x30
+
+Allocated by task 1234:
+ kasan_save_stack+0x1e/0x40
+ __kasan_kmalloc+0x7a/0x90
+ kmem_cache_alloc_trace+0x18d/0x200
+ example_allocator_function+0x35/0x80
+
+Freed by task 1234:
+ kasan_save_stack+0x1e/0x40
+ __kasan_slab_free+0x102/0x150
+ kmem_cache_free+0x84/0x3b0
+ example_deallocator_function+0x45/0x90
+
+The buggy address belongs to the object at ffff888123456000
+ which belongs to the cache kmalloc-512 of size 512
+The buggy address is located 128 bytes inside of
+ 512-byte region [ffff888123456000, ffff888123456200)
+The buggy address belongs to the page:
+page:ffffea00048d1600 refcount:1 mapcount:0 mapping:0000000000000000 index:0x0
+flags: 0x2fffc0000000200(slab|head)
+raw: 02fffc0000000200 ffffea00048d1208 ffffea00048d1308 ffff888123456000
+raw: 0000000000000000 0000000000080008 00000001ffffffff 0000000000000000
+page dumped because: kasan: bad access detected
+
+Memory state around the buggy address:
+ ffff888123456680: fc fc fc fc fc fc fc fc fc fc fc fc fc fc fc fc
+ ffff888123456700: fc fc fc fc fc fc fc fc fc fc fc fc fc fc fc fc
+>ffff888123456780: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+                               ^
+ ffff888123456800: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+ ffff888123456880: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+==================================================================
