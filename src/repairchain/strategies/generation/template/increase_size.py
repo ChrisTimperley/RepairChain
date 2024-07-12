@@ -86,36 +86,32 @@ class IncreaseSizeStrategy(TemplateGenerationStrategy):
             accesses_to_repair=accesses,
         )
 
-    def _fn_to_text(self, fn: kaskara.functions.Function) -> str:
-        raise NotImplementedError
-
     def _generate_for_statement(
         self,
         stmt: kaskara.statements.Statement,
         llm: LLM,
-        diagnosis: Diagnosis,
     ) -> list[Diff]:
 
         # this statement should be a declaration statement, so all we need to do
         # is get a new one and replace it
         helper = CodeHelper(llm)
-        head_index = diagnosis.index_at_head
+        head_index = self.diagnosis.index_at_head
         assert head_index is not None
 
         stmt_loc = FileLocation(stmt.location.filename, stmt.location.start)
         fn = head_index.functions.encloses(stmt_loc)
         assert fn is not None
-        fn_src = self._fn_to_text(fn)
+        fn_src = self._fn_to_text(self.diagnosis, fn)
         output = helper.help_with_memory_allocation(fn_src, stmt.content)
-        repls: list[Replacement] = []
+        repls: list[Diff] = []
         for line in output.code:
             repl = Replacement(stmt.location, line.line)
-            repls.append(repl)
-        return [diagnosis.project.sources.replacements_to_diff([repl]) for repl in repls]
+            repls.append(self.diagnosis.project.sources.replacements_to_diff([repl]))
+        return repls
 
     @overrides
     def run(self) -> list[Diff]:
         llm = LLM.from_settings(self.diagnosis.project.settings)
-        diffs = [self._generate_for_statement(stmt[0], llm, self.diagnosis) for stmt in self.declarations_to_repair]
+        diffs = [self._generate_for_statement(stmt[0], llm) for stmt in self.declarations_to_repair]
 
         return list(itertools.chain(*diffs))

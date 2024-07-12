@@ -1,6 +1,7 @@
 __all__ = ("TemplateGenerationStrategy",)
 
 import kaskara
+import kaskara.functions
 from sourcelocation.fileline import FileLine
 from sourcelocation.location import FileLocation, Location
 
@@ -13,6 +14,13 @@ from repairchain.strategies.generation.base import PatchGenerationStrategy
 
 class TemplateGenerationStrategy(PatchGenerationStrategy):
     """Base class for all template-based patch generation strategies."""
+
+    def _fn_to_text(self, diagnosis: Diagnosis, fn: kaskara.functions.Function) -> str:
+        # You can get the range of the function and then plug that into ProjectSources
+        project = diagnosis.project
+        filename = fn.location.filename
+        source_version = project.sources.source(filename)
+        return source_version.read_chars(fn.location.location_range)
 
     @classmethod
     def _get_error_location(cls, report: SanitizerReport, diagnosis: Diagnosis) -> StackFrame:

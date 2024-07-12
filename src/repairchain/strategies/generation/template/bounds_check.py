@@ -1,6 +1,10 @@
 from __future__ import annotations
 
+from sourcelocation.location import FileLocation
+
 from repairchain.models.replacement import Replacement
+from repairchain.strategies.generation.llm.helper_code import CodeHelper
+from repairchain.strategies.generation.llm.llm import LLM
 
 __all__ = ("BoundsCheckStrategy",)
 
@@ -56,18 +60,28 @@ class BoundsCheckStrategy(TemplateGenerationStrategy):
     def _generate_for_statement(
         self,
         stmt: kaskara.statements.Statement,
+        llm: LLM,
     ) -> list[Diff]:
         diffs: list[Diff] = []
+        helper = CodeHelper(llm)
 
-        # feeling uncomfy with this, but maybe it does what I'm hoping it does
+        head_index = self.diagnosis.index_at_head
+        assert head_index is not None
+
+        stmt_loc = FileLocation(stmt.location.filename, stmt.location.start)
+        fn = head_index.functions.encloses(stmt_loc)
+        assert fn is not None
+        fn_src = self._fn_to_text(self.diagnosis, fn)
+
         reads = frozenset(stmt.reads if hasattr(stmt, "reads") else [])
         for varname in reads:  # would be super cool to know the type, but who has the time, honestly.
-            source = "if( " + varname + " > 500) { return; }\n" + stmt.canonical
-            repl = Replacement(stmt.location, source)
-            diffs.append(self.diagnosis.project.sources.replacements_to_diff([repl]))
+            output = helper.help_with_bounds_check(fn_src, stmt.content, varname)
+            for line in output.code:
+                repl = Replacement(stmt.location, line.line)
+                diffs.append(self.diagnosis.project.sources.replacements_to_diff([repl]))
         return diffs
 
-    def _generate_for_function(self, function: kaskara.functions.Function) -> list[Diff]:
+    def _generate_for_function(self, llm: LLM, function: kaskara.functions.Function) -> list[Diff]:
         diffs: list[Diff] = []
         logger.debug(f"generating bounds check repairs in function: {function}")
         head_index = self.diagnosis.index_at_head
@@ -75,13 +89,14 @@ class BoundsCheckStrategy(TemplateGenerationStrategy):
 
         for frame in self.stack_trace.restrict_to_function(function):
             for statement in head_index.statements.at_line(frame.file_line):
-                diffs += self._generate_for_statement(statement)
+                diffs += self._generate_for_statement(statement, llm)
 
         return diffs
 
     @overrides
     def run(self) -> list[Diff]:
+        llm = LLM.from_settings(self.diagnosis.project.settings)
         diffs: list[Diff] = []
         for function in self.functions_to_repair:
-            diffs += self._generate_for_function(function)
+            diffs += self._generate_for_function(llm, function)
         return diffs
