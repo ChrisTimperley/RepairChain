@@ -5,18 +5,19 @@ __all__ = (
     "SourceFileVersion",
 )
 
+import difflib
 import typing as t
 from dataclasses import dataclass, field
 from pathlib import Path
 
 from sourcelocation import Location, LocationRange
 
+from repairchain.models.diff import Diff
 from repairchain.models.replacement import Replacement
 
 if t.TYPE_CHECKING:
     import git
 
-    from repairchain.models.diff import Diff
     from repairchain.models.project import Project
 
 
@@ -201,4 +202,30 @@ class ProjectSources:
         replacements: list[Replacement],
         version: git.Commit | None = None,
     ) -> Diff:
-        raise NotImplementedError
+        if version is None:
+            version = self.project.head
+
+        # group replacements by file
+        file_to_replacements: dict[Path, list[Replacement]] = {}
+        for replacement in replacements:
+            filename = Path(replacement.filename)
+            if filename not in file_to_replacements:
+                file_to_replacements[filename] = []
+            file_to_replacements[filename].append(replacement)
+
+        file_unidiffs: list[str] = []
+        for filename, file_replacements in file_to_replacements.items():
+            file_version = self.source(filename, version)
+            original = file_version.contents
+            mutated = file_version.with_replacements(file_replacements)
+            diff_lines = difflib.unified_diff(
+                original.splitlines(keepends=True),
+                mutated.splitlines(keepends=True),
+                fromfile=str(filename),
+                tofile=str(filename),
+            )
+            unidiff = "".join(diff_lines)
+            file_unidiffs.append(unidiff)
+
+        unidiff = "\n".join(file_unidiffs)
+        return Diff.from_unidiff(unidiff)
