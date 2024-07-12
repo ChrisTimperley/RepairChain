@@ -1,4 +1,5 @@
 import contextlib
+import dataclasses
 import os
 import typing as t
 from pathlib import Path
@@ -18,6 +19,14 @@ MOCK_CP_REPO_DIR = MOCK_CP_DIR / "mock-cp-src/src/samples"
 
 
 @pytest.fixture
+def test_settings() -> t.Iterator[Settings]:
+    yield Settings(
+        cache_evaluations_to_file=None,
+        cache_index_to_file=None,
+    )
+
+
+@pytest.fixture
 def local_repo_mockcp() -> t.Iterator[git.Repo]:
     repo_dir = MOCK_CP_REPO_DIR
 
@@ -28,7 +37,7 @@ def local_repo_mockcp() -> t.Iterator[git.Repo]:
 
 
 @pytest.fixture
-def example_project_factory() -> t.Callable[[str, Settings | None], t.Iterator[Project]]:
+def example_project_factory(test_settings) -> t.Callable[[str, Settings | None], t.Iterator[Project]]:
     """Provides a factory for creating Project instances for example projects."""
 
     @contextlib.contextmanager
@@ -45,7 +54,7 @@ def example_project_factory() -> t.Callable[[str, Settings | None], t.Iterator[P
             pytest.skip(f"skipping test: required file {project_file} does not exist")
 
         if settings is None:
-            settings = Settings.from_env()
+            settings = dataclasses.replace(test_settings)
 
         with Project.load(project_file, settings=settings) as project:
             try:
