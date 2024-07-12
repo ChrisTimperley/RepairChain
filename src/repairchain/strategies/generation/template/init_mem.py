@@ -19,6 +19,8 @@ class InitializeMemoryStrategy(TemplateGenerationStrategy):
 
     @classmethod
     def build(cls, diagnosis: Diagnosis) -> t.Self:
+        # insert call to memset, check header to make sure memset is there
+        # do I want to do this at the declaration or at the access?
         raise NotImplementedError
 
     @overrides

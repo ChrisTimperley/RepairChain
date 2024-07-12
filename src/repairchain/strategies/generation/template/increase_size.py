@@ -92,12 +92,13 @@ class IncreaseSizeStrategy(TemplateGenerationStrategy):
 
         for frame in allocated_stack.frames:
             if frame.is_complete():
+                head_stmts = head_index.statements._statements
                 stmts = head_index.statements.at_line(frame.file_line)
                 for stmt in stmts:
                     if isinstance(stmt, kaskara.clang.analysis.ClangStatement) and len(vars_read.intersection(stmt.declares)) > 0:
                         declaring_stmts.append(stmt)
         if len(declaring_stmts) == 0:
-            raise NotImplementedError # try something else.  UBSan especially is going to be a problem here 
+            raise NotImplementedError  # try something else.  UBSan especially is going to be a problem here
         return declaring_stmts
 
     @classmethod

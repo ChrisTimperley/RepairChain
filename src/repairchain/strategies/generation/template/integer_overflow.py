@@ -11,13 +11,15 @@ from repairchain.strategies.generation.template.base import TemplateGenerationSt
 
 
 @dataclass
-class IntegerOverflowStra(TemplateGenerationStrategy):
+class IntegerOverflowStrategy(TemplateGenerationStrategy):
     diagnosis: Diagnosis
     functions_to_repair: list[kaskara.functions.Function]
     stack_trace: StackTrace
 
     @classmethod
     def build(cls, diagnosis: Diagnosis) -> t.Self:
+        # strategy: upcast
+        # if greater than max set to max
         raise NotImplementedError
 
     @overrides
