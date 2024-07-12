@@ -146,7 +146,9 @@ class KaskaraIndexer:
     ) -> kaskara.analysis.ProgramFunctions | None:
         if isinstance(filename, Path):
             filename = str(filename)
-        self.run(version=version, restrict_to_files=[filename])
+
+        _analysis = self.run(version=version, restrict_to_files=[filename])
+        raise NotImplementedError
 
     def statements(
         self,
