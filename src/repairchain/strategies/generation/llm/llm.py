@@ -35,6 +35,25 @@ class LLM:
             master_key=settings.litellm_key,
         )
 
+    def _simple_call_llm(self, messages: MessagesIterable) -> str:
+        logger.info(f"Calling LLM with model={self.model}")
+        model = self.model
+        client = openai.OpenAI(
+            api_key=self.master_key,
+            base_url=self.litellm_url,
+        )
+
+        response = client.chat.completions.create(
+                    model=model,
+                    messages=messages,
+                )
+
+        llm_output = response.choices[0].message.content
+        if llm_output is None:
+            return ""
+
+        return llm_output
+
     def _call_llm_json(self, messages: MessagesIterable) -> str:
         logger.info(f"Calling LLM with model={self.model}")
         model = self.model

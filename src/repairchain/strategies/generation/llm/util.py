@@ -33,6 +33,8 @@ MessageType = (ChatCompletionSystemMessageParam |
 # Define the iterable of the composite message type
 MessagesIterable = list[MessageType]
 
+SIZE_DIFF = 5
+
 
 @dataclass
 class FileLines:
@@ -151,3 +153,99 @@ class Util:
 
         tokens = encoding.encode(text)
         return len(tokens)
+
+    @staticmethod
+    def strip_diff(line: str, prefix: str) -> str:
+        if line.startswith(prefix):
+            return line[1:]
+        return line
+
+    @staticmethod
+    def remove_last_newline(string: str) -> str:
+        if string.endswith("\n"):
+            return string[:-1]
+        return string
+
+    @staticmethod
+    def check_patch_format(diff_lines: list[str]) -> bool:
+        # diff has <code>\n+++\n---\n@@ ... @@\n(code)</code>
+        if len(diff_lines) < SIZE_DIFF:
+            return False
+
+        if not (diff_lines[0] == "<code>" or diff_lines[0] == "```diff"):
+            logger.debug(f"Unexpected patch format {diff_lines}")
+            return False
+        if not diff_lines[1].startswith("---"):
+            logger.debug(f"Unexpected patch format {diff_lines}")
+            return False
+        if not diff_lines[2].startswith("+++"):
+            logger.debug(f"Unexpected patch format {diff_lines}")
+            return False
+        if not diff_lines[3].startswith("@@"):
+            logger.debug(f"Unexpected patch format {diff_lines}")
+            return False
+        if not (diff_lines[len(diff_lines) - 1] == "</code>" or
+                diff_lines[len(diff_lines) - 1] == "```"):
+            logger.debug(f"Unexpected patch format {diff_lines}")
+            return False
+
+        return True
+
+    @staticmethod
+    def apply_patch(original: str, diff: str) -> str:
+        original_lines = original.split("\n")
+        diff_lines = diff.split("\n")
+
+        # Remove empty lines at the end
+        while diff_lines and not diff_lines[-1]:
+            diff_lines.pop()
+
+        if not Util.check_patch_format(diff_lines):
+            return ""
+
+        diff_lines = diff_lines[4:len(diff_lines) - 1]
+
+        current_original = 0
+        current_diff = 0
+        block_matching = False
+
+        patch = ""
+
+        # TODO: refactor this code
+        while True:
+            if current_original >= len(original_lines):
+                break
+            line = original_lines[current_original]
+            if current_diff == len(diff_lines):
+                patch += "".join(line + "\n" for line in original_lines[current_original:])
+                return Util.remove_last_newline(patch)
+
+            l1 = line.replace(" ", "")
+            l2 = Util.strip_diff(diff_lines[current_diff], "-").replace(" ", "")
+
+            if l1 == l2:
+                block_matching = True
+                if not diff_lines[current_diff].startswith("-"):
+                    patch += line + "\n"
+                current_diff += 1
+                current_original += 1
+            elif block_matching:
+                if current_diff == len(diff_lines):
+                    patch += "".join(line + "\n" for line in original_lines[current_original:])
+                    return Util.remove_last_newline(patch)
+
+                if diff_lines[current_diff].startswith("+"):
+                    while current_diff < len(diff_lines):
+                        if diff_lines[current_diff].startswith("+"):
+                            patch += Util.strip_diff(diff_lines[current_diff], "+") + "\n"
+                            current_diff += 1
+                        else:
+                            break
+                else:
+                    logger.info(f"Unified diff failed to apply for patch {diff}")
+                    return ""
+            else:
+                patch += line + "\n"
+                current_original += 1
+
+        return patch
