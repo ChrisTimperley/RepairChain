@@ -92,7 +92,7 @@ class IncreaseSizeStrategy(TemplateGenerationStrategy):
 
         for frame in allocated_stack.frames:
             if frame.is_complete():
-                stmts = head_index.statements.at_line(location.file_line)
+                stmts = head_index.statements.at_line(frame.file_line)
                 for stmt in stmts:
                     if isinstance(stmt, kaskara.clang.analysis.ClangStatement) and len(vars_read.intersection(stmt.declares)) > 0:
                         declaring_stmts.append(stmt)
