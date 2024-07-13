@@ -7,6 +7,7 @@ from overrides import overrides
 from sourcelocation.diff import Diff
 from sourcelocation.location import FileLocation, Location
 
+from repairchain.models.bug_type import BugType, Sanitizer
 from repairchain.models.diagnosis import Diagnosis
 from repairchain.models.replacement import Replacement
 from repairchain.strategies.generation.llm.helper_code import CodeHelper
@@ -113,7 +114,45 @@ class IncreaseSizeStrategy(TemplateGenerationStrategy):
         return repls
 
     @overrides
+    def applies(self) -> bool:
+        match self.diagnosis.bug_type:
+            case BugType.ARRAY_OOB:
+                pass
+            case BugType.OUT_OF_BOUNDS_READ:
+                pass
+            case BugType.OUT_OF_BOUNDS_WRITE:
+                pass
+            case _:
+                return False
+        match self.report.sanitizer:
+            case Sanitizer.KASAN:
+                pass
+            case Sanitizer.KFENCE:
+                pass
+            case Sanitizer.ASAN:
+                pass
+            case Sanitizer.UBSAN:
+                pass
+            case _:
+                return False
+        location = self._get_error_location()
+        if location is None:
+            return False
+        if not location.has_line_info:
+            return False
+        head_index = self.diagnosis.index_at_head
+        assert head_index is not None
+        assert location.lineno is not None
+        assert location.filename is not None
+        baseloc = Location(location.lineno, location.offset if location.offset is not None else 0)
+        as_loc = FileLocation(location.filename, baseloc)
+        fn = head_index.functions.encloses(as_loc)
+        return fn is not None
+
+    @overrides
     def run(self) -> list[Diff]:
+        if not self.applies():
+            return []
         location = self._get_error_location()
         head_index = self.diagnosis.index_at_head
         assert head_index is not None

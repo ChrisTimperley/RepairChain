@@ -4,11 +4,11 @@ from dataclasses import dataclass
 
 import kaskara
 import kaskara.functions
+from loguru import logger
 from sourcelocation.fileline import FileLine
 from sourcelocation.location import FileLocation, Location
 
 from repairchain.actions.commit_to_diff import get_file_contents_at_commit
-from repairchain.models.diagnosis import Diagnosis
 from repairchain.models.sanitizer_report import SanitizerReport
 from repairchain.models.stack_trace import StackFrame
 from repairchain.strategies.generation.base import PatchGenerationStrategy
@@ -16,7 +16,6 @@ from repairchain.strategies.generation.base import PatchGenerationStrategy
 
 @dataclass
 class TemplateGenerationStrategy(PatchGenerationStrategy):
-    diagnosis: Diagnosis
     report: SanitizerReport
     """Base class for all template-based patch generation strategies."""
 
@@ -70,7 +69,7 @@ class TemplateGenerationStrategy(PatchGenerationStrategy):
                                     str]] = []
 
         for frame in allocated_stack.frames:
-            if frame.has_line_info():
+            if frame.has_line_info:
                 # these are both true if the if check is true
                 assert frame.filename is not None
                 assert frame.lineno is not None
@@ -90,5 +89,5 @@ class TemplateGenerationStrategy(PatchGenerationStrategy):
                         ]
                 declaring_stmts.extend(stmts)
         if len(declaring_stmts) == 0:
-            raise NotImplementedError  # try something else.  UBSan especially is going to be a problem here
+            logger.info("No declaring statements found. returning empty list.")
         return declaring_stmts

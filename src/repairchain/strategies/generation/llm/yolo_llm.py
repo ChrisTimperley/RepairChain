@@ -12,6 +12,7 @@ from openai.types.chat import (
     ChatCompletionSystemMessageParam,
     ChatCompletionUserMessageParam,
 )
+from overrides import overrides
 
 from repairchain.actions import commit_to_diff
 from repairchain.strategies.generation.base import PatchGenerationStrategy
@@ -77,7 +78,6 @@ class FunctionContext:
 
 @dataclass
 class YoloLLMStrategy(PatchGenerationStrategy):
-    diagnosis: Diagnosis
     model: str
     use_report: bool  # option to use report in context
     use_context_files: bool  # option to use full files in context
@@ -86,6 +86,19 @@ class YoloLLMStrategy(PatchGenerationStrategy):
     diff: Diff
     files: dict[str, str]
     number_patches: int
+
+    @overrides
+    def applies(self) -> bool:
+        """Returns whether the diagnosis has sufficient information for LLM repair."""
+        if self.diagnosis.implicated_functions_at_head is None:
+            return False
+        if self.diagnosis.implicated_functions_at_crash_version is None:
+            return False
+        if self.diagnosis.index_at_head is None:
+            return False
+        if self.diagnosis.index_at_crash_version is None:  # noqa: SIM103
+            return False
+        return True
 
     @classmethod
     def build(
@@ -355,6 +368,9 @@ class YoloLLMStrategy(PatchGenerationStrategy):
         return self._query_llm(messages)
 
     def run(self) -> list[Diff]:
+        if not self.applies():
+            return []
+
         summary: ReportSummary = ReportSummary(self.model)
         code_summary: list[FunctionSummary] | None = None
         if self.use_report:

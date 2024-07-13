@@ -5,6 +5,7 @@ from overrides import overrides
 from sourcelocation.diff import Diff
 from sourcelocation.location import FileLocation
 
+from repairchain.models.bug_type import BugType
 from repairchain.models.diagnosis import Diagnosis
 from repairchain.models.replacement import Replacement
 from repairchain.strategies.generation.llm.helper_code import CodeHelper
@@ -17,6 +18,7 @@ if({varname} > 2147483647) {
 }
 {stmt_code}
 """
+# TODO: this is a very naive template, but we need to start somewhere
 
 
 @dataclass
@@ -32,6 +34,20 @@ class IntegerOverflowStrategy(TemplateGenerationStrategy):
         )
 
     @overrides
+    def applies(self) -> bool:
+        match self.report.bug_type:
+            case BugType.INTEGER_OVERFLOW_OR_WRAPAROUND:
+                pass
+            case BugType.UNSIGNED_INTEGER_OVERFLOW:
+                pass
+            case BugType.SIGNED_INTEGER_OVERFLOW:
+                pass
+            case _:
+                return False
+        location = self._get_error_location()
+        return location is not None
+
+    @overrides
     def run(self) -> list[Diff]:
         diffs: list[Diff] = []
         helper = CodeHelper(self.llm)
@@ -42,17 +58,18 @@ class IntegerOverflowStrategy(TemplateGenerationStrategy):
         for stmt in stmts:
             stmt_loc = FileLocation(stmt.location.filename, stmt.location.start)
             fn = head_index.functions.encloses(stmt_loc)
-            fn_src = self._fn_to_text(fn) if fn is not None else ""
+            if fn is None:
+                continue
+            fn_src = self._fn_to_text(fn)
 
             reads = frozenset(stmt.reads if hasattr(stmt, "reads") else [])
             for varname in reads:  # would be super cool to know the type, but who has the time, honestly.
                 # up cast
-                if fn is not None:
-                    output = helper.help_with_upcast(fn_src, stmt.content, varname)
-                    for line in output.code:
-                        repl_code = stmt.content + "\n" + line.line
-                        repl = Replacement(stmt.location, repl_code)
-                        diffs.append(self.diagnosis.project.sources.replacements_to_diff([repl]))
+                output = helper.help_with_upcast(fn_src, stmt.content, varname)
+                for line in output.code:
+                    repl_code = stmt.content + "\n" + line.line
+                    repl = Replacement(stmt.location, repl_code)
+                    diffs.append(self.diagnosis.project.sources.replacements_to_diff([repl]))
 
                 # if the variable is > max, set to max
                 # TODO: lots of other options here, but this is something

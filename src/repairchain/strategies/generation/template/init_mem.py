@@ -6,6 +6,7 @@ from overrides import overrides
 from sourcelocation.diff import Diff
 from sourcelocation.location import FileLocation
 
+from repairchain.models.bug_type import BugType
 from repairchain.models.diagnosis import Diagnosis
 from repairchain.models.replacement import Replacement
 from repairchain.strategies.generation.llm.helper_code import CodeHelper
@@ -26,6 +27,18 @@ class InitializeMemoryStrategy(TemplateGenerationStrategy):
             report=diagnosis.sanitizer_report,
             llm=LLM.from_settings(diagnosis.project.settings),
         )
+
+    @overrides
+    def applies(self) -> bool:
+        match self.report.bug_type:
+            case BugType.INVALID_FREE:
+                pass
+            case BugType.LOAD_UNINIT_VALUE:
+                pass
+            case _:
+                return False
+        location = self._get_error_location()
+        return location is not None
 
     @overrides
     def run(self) -> list[Diff]:
