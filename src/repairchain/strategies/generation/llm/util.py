@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import difflib
+import unicodedata
 
 __all__ = ("Util",)
 
@@ -32,6 +33,8 @@ MessageType = (ChatCompletionSystemMessageParam |
 
 # Define the iterable of the composite message type
 MessagesIterable = list[MessageType]
+
+SIZE_DIFF = 5
 
 
 @dataclass
@@ -151,3 +154,104 @@ class Util:
 
         tokens = encoding.encode(text)
         return len(tokens)
+
+    @staticmethod
+    def strip_diff(line: str, prefix: str) -> str:
+        if line.startswith(prefix):
+            prefix_length = len(prefix)
+            return line[prefix_length:]
+        return line
+
+    @staticmethod
+    def remove_last_newline(string: str) -> str:
+        if string.endswith("\n"):
+            return string[:-1]
+        return string
+
+    @staticmethod
+    def check_patch_format(diff_lines: list[str]) -> bool:
+        # diff has <code>\n+++\n---\n@@ ... @@\n(code)</code>
+        if len(diff_lines) < SIZE_DIFF:
+            return False
+
+        if not diff_lines[1].startswith("---"):
+            logger.debug(f"Unexpected patch format {diff_lines}")
+            return False
+        if not diff_lines[2].startswith("+++"):
+            logger.debug(f"Unexpected patch format {diff_lines}")
+            return False
+        if not diff_lines[3].startswith("@@"):
+            logger.debug(f"Unexpected patch format {diff_lines}")
+            return False
+
+        return True
+
+    @staticmethod
+    def apply_patch(original: str, diff: str) -> str:
+        original_lines = original.split("\n")
+        diff_lines = diff.split("\n")
+
+        # Remove empty lines at the end
+        while diff_lines and not diff_lines[-1]:
+            diff_lines.pop()
+
+        if not Util.check_patch_format(diff_lines):
+            return ""
+
+        diff_lines = diff_lines[4:len(diff_lines) - 1]
+
+        patch_original_lines: list[str] = []
+        for line in diff_lines:
+            if line.startswith("-"):
+                patch_original_lines.append(Util.strip_diff(line, "-"))
+            elif line.startswith("+"):
+                continue
+            else:
+                patch_original_lines.append(line)
+
+        patch_original_lines_stripped = [s.replace(" ", "") for s in patch_original_lines]
+        original_lines_stripped = [s.replace(" ", "") for s in original_lines]
+
+        # not sure if this normalization is needed
+        patch_original_lines_stripped = [unicodedata.normalize("NFKD", s) for s in patch_original_lines_stripped]
+        original_lines_stripped = [unicodedata.normalize("NFKD", s) for s in original_lines_stripped]
+
+        len_patch_original_lines_stripped = len(patch_original_lines_stripped)
+        len_original_lines_stripped = len(original_lines_stripped)
+
+        hunk_position = -1
+        if len_patch_original_lines_stripped < len_original_lines_stripped:
+            for i in range(len_original_lines_stripped - len_patch_original_lines_stripped + 1):
+                if original_lines_stripped[i:i + len_patch_original_lines_stripped] == patch_original_lines_stripped:
+                    hunk_position = i
+                    break
+
+        patch_lines: list[str] = []
+        pos = 0
+        pos_orig = hunk_position
+        if hunk_position > -1:
+            patch_lines = original_lines[0:hunk_position]
+            while pos < len(diff_lines):
+                if diff_lines[pos].startswith("+"):
+                    patch_lines.append(Util.strip_diff(diff_lines[pos], "+"))
+                elif diff_lines[pos].startswith("-"):
+                    pos_orig += 1
+                else:
+                    patch_lines.append(diff_lines[pos])
+                    pos_orig += 1
+                pos += 1
+
+            patch_lines.extend(original_lines[pos_orig:len(original_lines)])
+        else:
+            logger.debug(f"Unified diff contents do not match original file:\n {diff}\n")
+            # logger.debug(f"Original file:\n {original}\n")
+
+        if patch_lines:
+            patch_str = "\n".join(patch_lines[:-1]) + (
+                "\n" + patch_lines[-1] if len(patch_lines) > 1 else patch_lines[-1])
+        else:
+            patch_str = ""
+
+        logger.debug(patch_str)
+
+        return patch_str

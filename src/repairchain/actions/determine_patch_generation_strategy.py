@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+from repairchain.strategies.generation.llm.superyolo_llm import SuperYoloLLMStrategy
+from repairchain.strategies.generation.llm.yolo_llm import YoloLLMStrategy
+
 __all__ = ("determine_patch_generation_strategy",)
 
 import typing as t
@@ -7,7 +10,6 @@ import typing as t
 from loguru import logger
 
 from repairchain.models.bug_type import BugType
-from repairchain.strategies.generation.llm.yolo_llm import YoloLLMStrategy
 from repairchain.strategies.generation.reversion import MinimalPatchReversion
 from repairchain.strategies.generation.sequence import SequenceStrategy
 from repairchain.strategies.generation.template.bounds_check import BoundsCheckStrategy
@@ -42,7 +44,23 @@ def determine_patch_generation_strategy(
             yolo_claude35._set_model("claude-3.5-sonnet")
             strategies.append(yolo_claude35)
         else:
-            logger.warning("skipping yolo repair strategy (diagnosis is incomplete)")
+            logger.warning("using super yolo repair strategy (diagnosis is incomplete)")
+            superyolo_gpt4o_files = SuperYoloLLMStrategy.build(diagnosis)
+            superyolo_gpt4o_files.whole_file = True
+            strategies.append(superyolo_gpt4o_files)
+
+            superyolo_gpt4o_diffs = SuperYoloLLMStrategy.build(diagnosis)
+            strategies.append(superyolo_gpt4o_diffs)
+
+            superyolo_claude35_files = SuperYoloLLMStrategy.build(diagnosis)
+            superyolo_claude35_files._set_model("claude-3.5-sonnet")
+            superyolo_claude35_files.whole_file = True
+            strategies.append(superyolo_claude35_files)
+
+            superyolo_claude35_diffs = SuperYoloLLMStrategy.build(diagnosis)
+            superyolo_claude35_diffs._set_model("claude-3.5-sonnet")
+            strategies.append(superyolo_claude35_diffs)
+
     else:
         logger.info("skipping yolo repair strategy (disabled)")
 

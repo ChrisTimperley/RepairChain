@@ -1,0 +1,47 @@
+<code>
+--- src/http/modules/ngx_http_userid_filter_module.c
++++ src/http/modules/ngx_http_userid_filter_module.c
+@@ ... @@
+    cookie = ngx_http_parse_multi_header_lines(r, r->headers_in.cookie,
+                                               &conf->name, &ctx->cookie);
+    if (cookie == NULL) {
+        return ctx;
+    }
+
+    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
+                   "uid cookie: \"%V\"", &ctx->cookie);
+
+    if (ctx->cookie.len < 22) {
+        ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
+                      "client sent too short userid cookie \"%V\"",
+                      &cookie->value);
+        return ctx;
+    }
+
+    src = ctx->cookie;
+
+-    dst.data = (u_char *) ctx->uid_got;
++    dst.len = 16;
++    dst.data = ngx_pcalloc(r->pool, ngx_base64_decoded_length(src.len));
++    if (dst.data == NULL) {
++        ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
++                      "memory allocation failed for userid cookie processing");
++        return ctx;
++    }
+
+    if (ngx_decode_base64(&dst, &src) == NGX_ERROR) {
+        ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
+                      "client sent invalid userid cookie \"%V\"",
+                      &cookie->value);
+        return ctx;
+    }
++
++   ngx_memcpy(ctx->uid_got, dst.data, sizeof(ctx->uid_got));
+
+    ngx_log_debug4(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
+                   "uid: %08XD%08XD%08XD%08XD",
+                   ctx->uid_got[0], ctx->uid_got[1],
+                   ctx->uid_got[2], ctx->uid_got[3]);
+
+    return ctx;
+</code>
