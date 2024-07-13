@@ -223,12 +223,15 @@ class ProjectContainer:
             "__PAYLOAD_FILE__",
             container_payload_filename,
         )
+        # ensure that the PoV execution uses no more than one core
+        env = {"NPROC_VAL": "1"}
         outcome = self._shell.run(
             crash_command,
             stdout=True,
             stderr=True,
             text=True,
             time_limit=time_limit,
+            environment=env,
         )
         return self._check_pov_outcome(outcome)
 
