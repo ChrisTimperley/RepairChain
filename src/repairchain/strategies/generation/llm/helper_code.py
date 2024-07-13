@@ -55,13 +55,14 @@ The variable being overflowed is:
 {varname}
 <instructions>
 Rewrite the vulnerable line of code to upcast the variable {varname} such that
-the overflow is avoided. 
+the overflow is avoided.
 The parent object is called "code" that corresponds to fixes for the line of code.
 Each child object has the following properties:
 - A property named "line" with a modified code line
 There must be {number_patches} children, each corresponding to a modified line.
 </instructions>
 """
+
 
 @dataclass
 class LineCode:
@@ -144,4 +145,3 @@ class CodeHelper:
             number_patches=5,
         )
         return self._help_with_template(user_prompt)
-

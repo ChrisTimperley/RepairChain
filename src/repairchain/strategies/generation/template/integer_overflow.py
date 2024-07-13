@@ -1,17 +1,22 @@
 import typing as t
 from dataclasses import dataclass
 
-import kaskara
 from overrides import overrides
 from sourcelocation.diff import Diff
 from sourcelocation.location import FileLocation
 
 from repairchain.models.diagnosis import Diagnosis
 from repairchain.models.replacement import Replacement
-from repairchain.models.sanitizer_report import StackTrace
 from repairchain.strategies.generation.llm.helper_code import CodeHelper
 from repairchain.strategies.generation.llm.llm import LLM
 from repairchain.strategies.generation.template.base import TemplateGenerationStrategy
+
+TEMPLATE_SET_TO_MAX = """
+if({varname} > 2147483647) {
+    {varname} = 2147483647;
+}
+{stmt_code}
+"""
 
 
 @dataclass
@@ -50,5 +55,12 @@ class IntegerOverflowStrategy(TemplateGenerationStrategy):
                     diffs.append(self.diagnosis.project.sources.replacements_to_diff([repl]))
 
                 # if the variable is > max, set to max
+                # TODO: lots of other options here, but this is something
+                new_code = TEMPLATE_SET_TO_MAX.format(
+                    varname=varname,
+                    code=stmt.content,
+                )
+                repl = Replacement(stmt.location, new_code)
+                diffs.append(self.diagnosis.project.sources.replacements_to_diff([repl]))
 
         return diffs
