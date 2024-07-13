@@ -1,12 +1,16 @@
-# noqa: INP001
 from pathlib import Path
 
 from repairchain.models.bug_type import BugType, Sanitizer, determine_bug_type
 from repairchain.models.sanitizer_report import SanitizerReport, sanitizer_to_report_parser
 
+HERE_DIR = Path(__file__).parent
+RESOURCES_DIR = HERE_DIR / "resources"
+PARSING_DIR = RESOURCES_DIR / "sanitizers"
+
 
 def test_kasan_parsing() -> None:
-    with Path.open("./test/data/kasan-gpt.txt", "r") as kfence_report:
+    report_path = PARSING_DIR / "kasan-gpt.txt"
+    with report_path.open("r") as kfence_report:
         report_text = kfence_report.read()
         sanitizer = SanitizerReport._find_sanitizer(report_text)
         assert sanitizer == Sanitizer.KASAN
@@ -18,7 +22,8 @@ def test_kasan_parsing() -> None:
 
 
 def test_kfence_parsing() -> None:
-    with Path.open("./test/data/kfence-oob-gpt.txt", "r") as kfence_report:
+    report_path = PARSING_DIR / "kfence-oob-gpt.txt"
+    with report_path.open("r") as kfence_report:
         report_text = kfence_report.read()
         sanitizer = SanitizerReport._find_sanitizer(report_text)
         assert sanitizer == Sanitizer.KFENCE
@@ -30,7 +35,8 @@ def test_kfence_parsing() -> None:
 
 
 def test_asan_parsing1() -> None:
-    with Path.open("./test/data/asan1.txt", "r") as asan_report:
+    report_path = PARSING_DIR / "asan1.txt"
+    with report_path.open("r") as asan_report:
         report_text = asan_report.read()
         sanitizer = SanitizerReport._find_sanitizer(report_text)
         assert sanitizer == Sanitizer.ASAN
@@ -42,7 +48,8 @@ def test_asan_parsing1() -> None:
 
 
 def test_asan_parsing2() -> None:
-    with Path.open("./test/data/asan3.txt", "r") as asan_report:
+    report_path = PARSING_DIR / "asan3.txt"
+    with report_path.open("r") as asan_report:
         report_text = asan_report.read()
         sanitizer = SanitizerReport._find_sanitizer(report_text)
         assert sanitizer == Sanitizer.ASAN
@@ -54,7 +61,8 @@ def test_asan_parsing2() -> None:
 
 
 def test_memsan_parsing() -> None:
-    with Path.open("./test/data/memsan-gpt.txt", "r") as asan_report:
+    report_path = PARSING_DIR / "memsan-gpt.txt"
+    with report_path.open("r") as asan_report:
         report_text = asan_report.read()
         sanitizer = SanitizerReport._find_sanitizer(report_text)
         assert sanitizer == Sanitizer.MEMSAN
@@ -66,7 +74,8 @@ def test_memsan_parsing() -> None:
 
 
 def test_ubsan_parsing() -> None:
-    with Path.open("./test/data/ubsan1.txt", "r") as asan_report:
+    report_path = PARSING_DIR / "ubsan1.txt"
+    with report_path.open("r") as asan_report:
         report_text = asan_report.read()
         sanitizer = SanitizerReport._find_sanitizer(report_text)
         assert sanitizer == Sanitizer.UBSAN
@@ -78,7 +87,8 @@ def test_ubsan_parsing() -> None:
 
 
 def test_jenkins_parsing() -> None:
-    with Path.open("./examples/jenkins/sanitizer.txt", "r") as jenkins_report:
+    report_path = RESOURCES_DIR / "jenkins" / "sanitizer.txt"
+    with report_path.open("r") as jenkins_report:
         report_text = jenkins_report.read()
         sanitizer = SanitizerReport._find_sanitizer(report_text)
         assert sanitizer == Sanitizer.JAZZER
