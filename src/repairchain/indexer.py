@@ -13,6 +13,8 @@ import kaskara.clang.analyser
 from dockerblade.stopwatch import Stopwatch
 from loguru import logger
 
+from repairchain.util import strip_prefix
+
 if t.TYPE_CHECKING:
     import git
 
@@ -103,13 +105,19 @@ class KaskaraIndexer:
         else:
             logger.warning("skipping generation of missing compile_commands.json!")
 
+    def _determine_bear_prefix(self, container: ProjectContainer) -> str:
+        """Determines the bear prefix to use based on the bear version."""
+        version_string = container._shell.check_output("bear --version", text=True)
+        version_string = strip_prefix("bear ", version_string).strip()
+        version_parts = version_string.split(".")
+        major_version = version_parts[0]
+        return "bear -- " if major_version == "3" else "bear"
+
     def _generate_compile_commands_via_bear(self, container: ProjectContainer) -> None:
         logger.info("generating compile_commands.json ...")
-
-        # FIXME bear command depends on version!
-
+        bear_prefix = self._determine_bear_prefix(container)
         container.clean()
-        container.build(prefix="bear")
+        container.build(prefix=bear_prefix)
         if not container.exists(COMPILE_COMMANDS_PATH):
             logger.warning(f"failed to generate compile_commands.json: {COMPILE_COMMANDS_PATH}")
         else:
@@ -122,7 +130,6 @@ class KaskaraIndexer:
         restrict_to_files: list[str],
     ) -> t.Iterator[kaskara.analyser.Analyser]:
         project = self.project
-        # settings = project.settings
 
         # if we're running a C-based project, we need to convert files to abs paths
         if project.kind in {"c", "kernel"}:
