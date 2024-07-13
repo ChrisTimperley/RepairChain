@@ -108,7 +108,7 @@ def _index_and_localize(partial_diagnosis: Diagnosis) -> Diagnosis:
 
     return Diagnosis(
         project=project,
-        bug_type=project.sanitizer_report.bug_type,
+        bug_type=project.report.bug_type,
         index_at_head=index_at_head,
         index_at_crash_version=index_at_crash_version,
         implicated_diff=implicated_diff,
@@ -118,7 +118,7 @@ def _index_and_localize(partial_diagnosis: Diagnosis) -> Diagnosis:
 
 
 def diagnose(project: Project) -> Diagnosis:
-    logger.info(f"bug type from sanitizer report: {project.sanitizer_report.bug_type}")
+    logger.info(f"bug type from sanitizer report: {project.report.bug_type}")
 
     implicated_diff = project.original_implicated_diff
 
@@ -137,7 +137,7 @@ def diagnose(project: Project) -> Diagnosis:
 
     diagnosis = Diagnosis(
         project=project,
-        bug_type=project.sanitizer_report.bug_type,
+        bug_type=project.report.bug_type,
         implicated_diff=implicated_diff,
         index_at_head=None,
         index_at_crash_version=None,

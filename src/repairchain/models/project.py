@@ -48,7 +48,7 @@ class Project:
     clean_command: str
     regression_test_command: str
     crash_command_template: str
-    sanitizer_report: SanitizerReport
+    report: SanitizerReport
     pov_payload: bytes = field(repr=False)
     settings: Settings
     evaluation_cache: PatchOutcomeCache = field(init=False, repr=False)
@@ -196,7 +196,7 @@ class Project:
                 kind=project_kind,
                 regression_test_command=regression_test_command,
                 repository=repository,
-                sanitizer_report=sanitizer_report,
+                report=sanitizer_report,
                 triggering_commit=commit,
                 pov_payload=pov_payload,
                 settings=settings,

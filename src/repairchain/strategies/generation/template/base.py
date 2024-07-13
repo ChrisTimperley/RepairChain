@@ -25,8 +25,8 @@ if t.TYPE_CHECKING:
 
 @dataclass
 class TemplateGenerationStrategy(PatchGenerationStrategy):
-    report: SanitizerReport
     """Base class for all template-based patch generation strategies."""
+    report: SanitizerReport
 
     def _fn_to_text(self, fn: kaskara.functions.Function) -> str:
         # You can get the range of the function and then plug that into ProjectSources

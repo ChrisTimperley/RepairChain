@@ -54,7 +54,7 @@ class Diagnosis:
 
     @property
     def sanitizer_report(self) -> SanitizerReport:
-        return self.project.sanitizer_report
+        return self.project.report
 
     def _functions_to_dict(self, functions: list[kaskara.functions.Function]) -> list[dict[str, t.Any]]:
         return [
