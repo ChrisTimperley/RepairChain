@@ -126,16 +126,24 @@ class ProjectContainer:
             cwd=str(self.project.docker_repository_path),
         )
 
-    def build(self) -> None:
+    def build(self, *, prefix: str | None = None) -> None:
         """Attempts to build the project inside the container.
 
-        Raises
+        Arguments:
+        ---------
+        prefix: str | None
+            The prefix to prepend to the build command.
+            If :code:`None` is given, the project's build command is used as is.
+
+        Raises:
         ------
         BuildFailure
             If the build fails.
         """
         time_limit = self.project.settings.build_time_limit
         command = self.project.build_command
+        if prefix is not None:
+            command = f"{prefix} {command}"
         try:
             self._shell.check_output(
                 command,
