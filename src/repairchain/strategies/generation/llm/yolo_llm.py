@@ -12,7 +12,6 @@ from openai.types.chat import (
     ChatCompletionSystemMessageParam,
     ChatCompletionUserMessageParam,
 )
-from overrides import overrides
 
 from repairchain.actions import commit_to_diff
 from repairchain.strategies.generation.base import PatchGenerationStrategy

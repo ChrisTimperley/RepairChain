@@ -30,7 +30,6 @@ class InitializeMemoryStrategy(TemplateGenerationStrategy):
         )
 
     @classmethod
-    @overrides
     def applies(cls, diagnosis: Diagnosis) -> bool:
         match diagnosis.sanitizer_report.bug_type:
             case BugType.INVALID_FREE:

@@ -35,7 +35,6 @@ class IntegerOverflowStrategy(TemplateGenerationStrategy):
         )
 
     @classmethod
-    @overrides
     def applies(cls, diagnosis: Diagnosis) -> bool:
         match diagnosis.sanitizer_report.bug_type:
             case BugType.INTEGER_OVERFLOW_OR_WRAPAROUND:
