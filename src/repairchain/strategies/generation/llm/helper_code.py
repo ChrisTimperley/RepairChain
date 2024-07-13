@@ -29,6 +29,22 @@ There must be {number_patches} children, each corresponding to a modified line.
 </instructions>
 """
 
+CONTEXT_UNINIT_MEMORY = """
+The following code has a security vulnerability related to uninitialized memory access:
+{code}
+The following line has an issue with accessing uninitialized memory:
+{line}
+<instructions>
+Fix the line by creating a new line of code that initializes the memory.
+Create a JSON object with the new line of code.
+The parent object is called "code" that corresponds to fixes for the line of code.
+Each child object has the following properties:
+- A property named "line" with a modified code line
+There must be {number_patches} children, each corresponding to a modified line.
+</instructions>
+"""
+
+
 CONTEXT_BOUNDS = """
 The following code has a memory vulnerability related to memory allocation:
 {code}
@@ -120,8 +136,15 @@ class CodeHelper:
         return Code(code=patch_contents)
 
     def help_with_memory_allocation(self, code: str, line: str) -> Code:
-
         user_prompt = CONTEXT_MEMORY.format(
+            code=code,
+            line=line,
+            number_patches=5,
+        )
+        return self._help_with_template(user_prompt)
+
+    def help_with_memory_initialization(self, code: str, line: str) -> Code:
+        user_prompt = CONTEXT_UNINIT_MEMORY.format(
             code=code,
             line=line,
             number_patches=5,
