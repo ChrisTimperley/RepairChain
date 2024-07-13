@@ -3,6 +3,7 @@ from dataclasses import dataclass
 
 import kaskara
 import kaskara.functions
+from loguru import logger
 from overrides import overrides
 from sourcelocation.diff import Diff
 from sourcelocation.location import FileLocation, Location
@@ -74,7 +75,9 @@ class IncreaseSizeStrategy(TemplateGenerationStrategy):
         # is get a new one and replace it
         helper = CodeHelper(self.llm)
         head_index = self.diagnosis.index_at_head
-        assert head_index is not None
+        if head_index is None:
+            logger.warning("Unexpected incomplete diagnosis in bounds check template.")
+            return []
 
         stmt_loc = FileLocation(stmt.location.filename, stmt.location.start)
         fn = head_index.functions.encloses(stmt_loc)
@@ -98,7 +101,10 @@ class IncreaseSizeStrategy(TemplateGenerationStrategy):
         repls: list[Diff] = []
 
         head_index = self.diagnosis.index_at_head
-        assert head_index is not None
+        if head_index is None:
+            logger.warning("Unexpected incomplete diagnosis in bounds check template.")
+            return []
+
         for varname in vars_of_interest:
             new_code1 = TEMPLATE_DECREASE_VAR1.format(
                         varname=varname,
@@ -132,7 +138,9 @@ class IncreaseSizeStrategy(TemplateGenerationStrategy):
         if location.lineno is None or location.filename is None:
             return False
         head_index = diagnosis.index_at_head
-        assert head_index is not None
+        if head_index is None:
+            return False
+
         baseloc = Location(location.lineno, location.offset if location.offset is not None else 0)
         as_loc = FileLocation(location.filename, baseloc)
         fn = head_index.functions.encloses(as_loc)
@@ -143,7 +151,9 @@ class IncreaseSizeStrategy(TemplateGenerationStrategy):
 
         location = self._get_error_location(self.diagnosis)
         head_index = self.diagnosis.index_at_head
-        assert head_index is not None
+        if head_index is None:
+            logger.warning("Unexpected incomplete diagnosis in bounds check template.")
+            return []
 
         if location is None or location.lineno is None or location.filename is None or location.file_line is None:
             return []

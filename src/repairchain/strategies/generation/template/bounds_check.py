@@ -64,7 +64,9 @@ class BoundsCheckStrategy(TemplateGenerationStrategy):
         helper = CodeHelper(self.llm)
 
         head_index = self.diagnosis.index_at_head
-        assert head_index is not None
+        if head_index is None:
+            logger.warning("Unexpected incomplete diagnosis in bounds check template.")
+            return []
 
         stmt_loc = FileLocation(stmt.location.filename, stmt.location.start)
         fn = head_index.functions.encloses(stmt_loc)
@@ -84,7 +86,10 @@ class BoundsCheckStrategy(TemplateGenerationStrategy):
         diffs: list[Diff] = []
         logger.debug(f"generating bounds check repairs in function: {function}")
         head_index = self.diagnosis.index_at_head
-        assert head_index is not None
+        head_index = self.diagnosis.index_at_head
+        if head_index is None:
+            logger.warning("Unexpected incomplete diagnosis in bounds check template.")
+            return []
 
         for frame in stack_trace.restrict_to_function(function):
             if frame is not None and frame.file_line is not None:
