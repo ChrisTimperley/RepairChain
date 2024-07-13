@@ -86,6 +86,15 @@ def run(
     save_patches_to_dir: Path,
     stop_early: bool = True,
 ) -> None:
+    settings = project.settings
+
+    if settings.log_to_file:
+        settings.log_to_file.parent.mkdir(exist_ok=True, parents=True)
+        logger.add(
+            sink=settings.log_to_file,
+            level="DEBUG",
+        )
+
     save_patches_to_dir.mkdir(exist_ok=True, parents=True)
 
     num_patches_found = 0

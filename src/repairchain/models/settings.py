@@ -44,6 +44,9 @@ class Settings:
         Enables or disables the use of YOLO repair.
     enable_template_repair: bool
         Enables or disables the use of template repair.
+    log_to_file: Path | None
+        The path to a file used to log messages.
+        If :code:`None`, logging to disk is disabled.
     """
     time_limit: int = field(default=3600)
     workers: int = field(default=1)
@@ -62,6 +65,7 @@ class Settings:
     enable_reversion_repair: bool = field(default=True)
     enable_yolo_repair: bool = field(default=True)
     enable_template_repair: bool = field(default=True)
+    log_to_file: Path | None = field(default=None)
 
     @classmethod
     def from_env(cls, **kwargs: t.Any) -> Settings:  # noqa: ANN401
@@ -114,6 +118,7 @@ class Settings:
         fetch_bool("enable_kaskara", "REPAIRCHAIN_ENABLE_KASKARA", default=True)
         fetch_path("cache_evaluations_to_file", "REPAIRCHAIN_EVALUATION_CACHE", default=None)
         fetch_path("cache_index_to_file", "REPAIRCHAIN_KASKARA_CACHE", default=None)
+        fetch_path("log_to_file", "REPAIRCHAIN_LOG_TO_FILE", default=None)
         fetch("litellm_url", "AIXCC_LITELLM_HOSTNAME", default="http://0.0.0.0:4000")
         fetch("litellm_key", "LITELLM_KEY", default="sk-1234")
         fetch("litellm_model", "LITELLM_MODEL", default="oai-gpt-4o")
