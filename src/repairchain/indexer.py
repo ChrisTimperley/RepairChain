@@ -18,6 +18,8 @@ if t.TYPE_CHECKING:
 
     from repairchain.models.project import Project
 
+COMPILE_COMMANDS_PATH = Path("/compile_commands.json")
+
 
 @dataclass
 class KaskaraIndexCache:
@@ -84,6 +86,15 @@ class KaskaraIndexer:
         restrict_to_files: list[str],
     ) -> t.Iterator[kaskara.analyser.Analyser]:
         project = self.project
+        settings = project.settings
+
+        # if we're running a C-based project, we need to convert files to abs paths
+        if project.kind in {"c", "kernel"}:
+            restrict_to_files = [
+                str(project.docker_repository_path / file)
+                for file in restrict_to_files
+            ]
+
         kaskara_project = kaskara.Project(
             dockerblade=project.docker_daemon,
             image=project.image,
@@ -94,6 +105,26 @@ class KaskaraIndexer:
         logger.debug(f"using kaskara project: {kaskara_project}")
 
         with project.provision(version=version) as container:
+            # for C-based projects:
+            # we require compile_commands.json to be located at the root of the container
+            need_compile_commands = False
+
+            if project.kind in {"c", "kernel"}:
+                if container.exists(COMPILE_COMMANDS_PATH):
+                    logger.info(f"found compile_commands.json: {COMPILE_COMMANDS_PATH}")
+                else:
+                    logger.warning(f"missing compile_commands.json: {COMPILE_COMMANDS_PATH}")
+                    need_compile_commands = True
+
+            if need_compile_commands and settings.generate_compile_commands:
+                logger.info("generating compile_commands.json ...")
+                container.clean()
+                container.build(prefix="bear")
+                if not container.exists(COMPILE_COMMANDS_PATH):
+                    logger.warning(f"failed to generate compile_commands.json: {COMPILE_COMMANDS_PATH}")
+                else:
+                    logger.info(f"generated compile_commands.json: {COMPILE_COMMANDS_PATH}")
+
             kaskara_container = kaskara_project.attach(container.id_)
 
             analyzer: kaskara.analyser.Analyser
@@ -101,6 +132,7 @@ class KaskaraIndexer:
                 analyzer = kaskara.clang.analyser.ClangAnalyser(
                     _container=kaskara_container,
                     _project=kaskara_project,
+                    _workdir="/",
                 )
             elif project.kind == "java":
                 analyzer = kaskara.spoon.analyser.SpoonAnalyser(
