@@ -51,4 +51,43 @@ def test_diff_parsing2() -> None:
     logger.debug(patch)
 
     assert compare_strings(patch, expected_contents)
-   
+
+def test_diff_parsing3() -> None:
+    llm_output = './test/data-parsing/llm-output3.txt'
+    expected = './test/data-parsing/expected3.txt'
+    original = './test/data-parsing/original.txt'
+    
+    with open(llm_output, 'r') as file:
+        llm_output_contents = file.read()
+
+    with open(expected, 'r') as file:
+        expected_contents = file.read()
+
+    with open(original, 'r') as file:
+        original_contents = file.read()
+
+    
+    patch = Util.apply_patch(original_contents, llm_output_contents)
+    logger.debug(patch)
+
+    assert compare_strings(patch, expected_contents)
+
+def test_diff_parsing4() -> None:
+    llm_output = './test/data-parsing/llm-output4.txt'
+    expected = './test/data-parsing/expected4.txt'
+    original = './test/data-parsing/original.txt'
+    
+    with open(llm_output, 'r') as file:
+        llm_output_contents = file.read()
+
+    with open(expected, 'r') as file:
+        expected_contents = file.read()
+
+    with open(original, 'r') as file:
+        original_contents = file.read()
+
+    
+    patch = Util.apply_patch(original_contents, llm_output_contents)
+    logger.debug(patch)
+
+    assert compare_strings(patch, expected_contents)

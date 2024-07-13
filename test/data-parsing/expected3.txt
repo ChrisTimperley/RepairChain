@@ -1,0 +1,42 @@
+#include <stdio.h>
+#include <string.h>
+#include <unistd.h>
+
+char items[3][10];
+
+void func_a(){
+    char buff[10];
+     int i = 0;
+     do{
+         printf("input item:");
+         i++;
+         fgets(buff, sizeof(buff), stdin);
+         buff[strcspn(buff, "\n")] = 0;
+         strncpy(&items[i-1][0], buff, sizeof(items[i-1])-1);
+         items[i-1][sizeof(items[i-1])-1] = '\0';
+     }while(strlen(buff) != 0 && i < 3);
+     i--;
+}
+
+void func_b(){
+    char *buff;
+    printf("done adding items\n");
+    int j;
+    printf("display item #:");
+    scanf("%d", &j);
+    buff = &items[j][0];
+    printf("item %d: %s\n", j, buff);
+}
+
+#ifndef ___TEST___
+int main()
+{
+
+    func_a();
+
+    func_b();
+
+
+    return 0;
+}
+#endif

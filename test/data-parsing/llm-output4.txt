@@ -1,0 +1,23 @@
+<code>
+--- mock_vp.c
++++ mock_vp.c
+@@ ... @@
+ void func_a(){
+-    char* buff;
++    char buff[10];
+     int i = 0;
+-    do{
++    for(i=0; i<3; i++){
+         printf("input item:");
+-        buff = &items[i][0];
+-        i++;
+-        fgets(buff, 40, stdin);
++        fgets(buff, sizeof(buff), stdin);
+         buff[strcspn(buff, "\n")] = 0;
++        strncpy(items[i], buff, sizeof(items[i])-1);
++        items[i][sizeof(items[i])-1] = '\0';
+-    }while(strlen(buff)!=0);
+-    i--;
++     }
+}
+</code>

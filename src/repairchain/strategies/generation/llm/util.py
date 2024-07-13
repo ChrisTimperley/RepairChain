@@ -199,7 +199,6 @@ class Util:
         diff_lines = diff_lines[4:len(diff_lines) - 1]
 
         patch_original_lines: list[str] = []
-        # patch_lines: list[str] = []
         for line in diff_lines:
             if line.startswith("-"):
                 patch_original_lines.append(Util.strip_diff(line, "-"))
@@ -207,8 +206,6 @@ class Util:
                 continue
             else:
                 patch_original_lines.append(line)
-
-        print(patch_original_lines)
 
         patch_original_lines_stripped = [s.replace(" ", "") for s in patch_original_lines]
         original_lines_stripped = [s.replace(" ", "") for s in original_lines]
@@ -225,8 +222,8 @@ class Util:
 
         patch_lines: list[str] = []
         pos = 0
+        pos_orig = hunk_position
         if hunk_position > -1:
-            pos_orig = hunk_position
             patch_lines = original_lines[0:hunk_position]
             while pos < len(diff_lines):
                 if diff_lines[pos].startswith("+"):
@@ -238,7 +235,10 @@ class Util:
                     pos_orig += 1
                 pos += 1
 
-        patch_lines.extend(original_lines[pos_orig:len(original_lines)])
+            patch_lines.extend(original_lines[pos_orig:len(original_lines)])
+        else:
+            logger.debug(f"Unified diff contents do not match original file:\n {diff}\n")
+
         if patch_lines:
             patch_str = "\n".join(patch_lines[:-1]) + (
                 "\n" + patch_lines[-1] if len(patch_lines) > 1 else patch_lines[-1])
