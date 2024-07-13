@@ -70,7 +70,7 @@ class TemplateGenerationStrategy(PatchGenerationStrategy):
                                     str]] = []
 
         for frame in allocated_stack.frames:
-            if frame.is_complete():
+            if frame.has_line_info():
                 # these are both true if the if check is true
                 assert frame.filename is not None
                 assert frame.lineno is not None

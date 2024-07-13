@@ -27,7 +27,9 @@ class StackFrame:
     def has_offset(self) -> bool:
         return self.offset is not None
 
-    def is_complete(self) -> bool:
+    @property
+    def has_line_info(self) -> bool:
+        """Indicates whether this frame can be used for line-level localization."""
         return self.has_filename() and self.has_funcname() and self.has_lineno()
 
     @property
