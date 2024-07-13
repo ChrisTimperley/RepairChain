@@ -55,6 +55,7 @@ The variable being accessed incorrectly is:
 <instructions>
 Provide a bounds check on {varname} to be inserted before the memory access that cleans up
 and returns from the function if the access is unsafe.
+Create a JSON object with the new line of code.
 The parent object is called "code" that corresponds to fixes for the line of code.
 Each child object has the following properties:
 - A property named "line" with a modified code line
@@ -72,6 +73,7 @@ The variable being overflowed is:
 <instructions>
 Rewrite the vulnerable line of code to upcast the variable {varname} such that
 the overflow is avoided.
+Create a JSON object with the new line of code.
 The parent object is called "code" that corresponds to fixes for the line of code.
 Each child object has the following properties:
 - A property named "line" with a modified code line
