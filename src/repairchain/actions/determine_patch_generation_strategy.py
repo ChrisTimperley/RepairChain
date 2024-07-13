@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from repairchain.strategies.generation.llm.superyolo_llm import SuperYoloLLMStrategy
+from repairchain.strategies.generation.llm.yolo_llm import YoloLLMStrategy
 
 __all__ = ("determine_patch_generation_strategy",)
 
@@ -36,17 +37,16 @@ def determine_patch_generation_strategy(
     if settings.enable_yolo_repair:
         if diagnosis_is_complete:
             logger.info("using yolo repair strategy")
-            # yolo_gpt4o = YoloLLMStrategy.build(diagnosis)
-            # yolo_gpt4o._set_model("oai-gpt-4o")
-            # strategies.append(yolo_gpt4o)
-            # yolo_claude35 = YoloLLMStrategy.build(diagnosis)
-            # yolo_claude35._set_model("claude-3.5-sonnet")
-            # strategies.append(yolo_claude35)
+            yolo_gpt4o = YoloLLMStrategy.build(diagnosis)
+            yolo_gpt4o._set_model("oai-gpt-4o")
+            strategies.append(yolo_gpt4o)
+            yolo_claude35 = YoloLLMStrategy.build(diagnosis)
+            yolo_claude35._set_model("claude-3.5-sonnet")
+            strategies.append(yolo_claude35)
+        else:
             superyolo = SuperYoloLLMStrategy.build(diagnosis)
             strategies.append(superyolo)
-
-        else:
-            logger.warning("skipping yolo repair strategy (diagnosis is incomplete)")
+            logger.warning("using super yolo repair strategy (diagnosis is incomplete)")
     else:
         logger.info("skipping yolo repair strategy (disabled)")
 
