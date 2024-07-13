@@ -41,6 +41,11 @@ class IncreaseSizeStrategy(TemplateGenerationStrategy):
     declarations_to_repair: list[kaskara.statements.Statement]
     accesses_to_repair: list[kaskara.statements.Statement]
 
+    @overrides
+    @classmethod
+    def applies(cls, _: Diagnosis) -> bool:
+        return False
+
     @classmethod
     def build(cls, diagnosis: Diagnosis) -> t.Self:
         # for these, we want to try to increase the size of the thing

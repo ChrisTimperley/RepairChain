@@ -12,6 +12,7 @@ from openai.types.chat import (
     ChatCompletionSystemMessageParam,
     ChatCompletionUserMessageParam,
 )
+from overrides import overrides
 
 from repairchain.actions import commit_to_diff
 from repairchain.strategies.generation.base import PatchGenerationStrategy
@@ -86,6 +87,20 @@ class YoloLLMStrategy(PatchGenerationStrategy):
     diff: Diff
     files: dict[str, str]
     number_patches: int
+
+    @overrides
+    @classmethod
+    def applies(cls, diagnosis: Diagnosis) -> bool:
+        """Returns whether the diagnosis has sufficient information for LLM repair."""
+        if diagnosis.implicated_functions_at_head is None:
+            return False
+        if diagnosis.implicated_functions_at_crash_version is None:
+            return False
+        if diagnosis.index_at_head is None:
+            return False
+        if diagnosis.index_at_crash_version is None:  # noqa: SIM103
+            return False
+        return True
 
     @classmethod
     def build(
