@@ -66,10 +66,11 @@ class IntegerOverflowStrategy(TemplateGenerationStrategy):
             for varname in reads:  # would be super cool to know the type, but who has the time, honestly.
                 # up cast
                 output = helper.help_with_upcast(fn_src, stmt.content, varname)
-                for line in output.code:
-                    repl_code = stmt.content + "\n" + line.line
-                    repl = Replacement(stmt.location, repl_code)
-                    diffs.append(self.diagnosis.project.sources.replacements_to_diff([repl]))
+                if output is not None:
+                    for line in output.code:
+                        repl_code = stmt.content + "\n" + line.line
+                        repl = Replacement(stmt.location, repl_code)
+                        diffs.append(self.diagnosis.project.sources.replacements_to_diff([repl]))
 
                 # if the variable is > max, set to max
                 # TODO: lots of other options here, but this is something

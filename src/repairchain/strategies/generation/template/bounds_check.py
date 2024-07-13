@@ -82,9 +82,10 @@ class BoundsCheckStrategy(TemplateGenerationStrategy):
             reads = frozenset(stmt.reads if hasattr(stmt, "reads") else [])
             for varname in reads:  # would be super cool to know the type, but who has the time, honestly.
                 output = helper.help_with_bounds_check(fn_src, stmt.content, varname)
-                for line in output.code:
-                    repl = Replacement(stmt.location, line.line)
-                    diffs.append(self.diagnosis.project.sources.replacements_to_diff([repl]))
+                if output is not None:
+                    for line in output.code:
+                        repl = Replacement(stmt.location, line.line)
+                        diffs.append(self.diagnosis.project.sources.replacements_to_diff([repl]))
         return diffs
 
     def _generate_for_function(self, function: kaskara.functions.Function, stack_trace: StackTrace) -> list[Diff]:

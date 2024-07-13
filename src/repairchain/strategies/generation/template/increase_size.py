@@ -81,9 +81,10 @@ class IncreaseSizeStrategy(TemplateGenerationStrategy):
         if fn is not None:  # I believe this is possible for global decls
             fn_src = self._fn_to_text(fn)
             output = helper.help_with_memory_allocation(fn_src, stmt.content)
-            for line in output.code:
-                repl = Replacement(stmt.location, line.line)
-                repls.append(self.diagnosis.project.sources.replacements_to_diff([repl]))
+            if output is not None:
+                for line in output.code:
+                    repl = Replacement(stmt.location, line.line)
+                    repls.append(self.diagnosis.project.sources.replacements_to_diff([repl]))
         return repls
 
     def _generate_decrease_access(

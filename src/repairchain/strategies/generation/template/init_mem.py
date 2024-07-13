@@ -57,9 +57,10 @@ class InitializeMemoryStrategy(TemplateGenerationStrategy):
             if fn is not None:
                 fn_src = self._fn_to_text(fn)
                 output = helper.help_with_memory_initialization(fn_src, stmt.content)
-                for line in output.code:
-                    combine = line.line + "\n" + stmt.content
-                    repl = Replacement(stmt.location, combine)
-                    repls.append(self.diagnosis.project.sources.replacements_to_diff([repl]))
+                if output is not None:
+                    for line in output.code:
+                        combine = line.line + "\n" + stmt.content
+                        repl = Replacement(stmt.location, combine)
+                        repls.append(self.diagnosis.project.sources.replacements_to_diff([repl]))
 
         return repls
