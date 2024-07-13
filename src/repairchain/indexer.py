@@ -82,6 +82,7 @@ class KaskaraIndexer:
 
     def _ensure_compile_commands_exists(self, container: ProjectContainer) -> None:
         """Ensures that compile_commands.json is available in the container.
+
         We require compile_commands.json to be located at the root of the container
         for C-based projects.
         """
@@ -121,7 +122,7 @@ class KaskaraIndexer:
         restrict_to_files: list[str],
     ) -> t.Iterator[kaskara.analyser.Analyser]:
         project = self.project
-        settings = project.settings
+        # settings = project.settings
 
         # if we're running a C-based project, we need to convert files to abs paths
         if project.kind in {"c", "kernel"}:
