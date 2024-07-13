@@ -32,10 +32,6 @@ class BoundsCheckStrategy(TemplateGenerationStrategy):
     @overrides
     def applies(self) -> bool:
         # Caveat: CLG THINKS this is all the conditions
-        if self.diagnosis.implicated_functions_at_head is None:
-            return False
-        if not self.report.call_stack_trace:
-            return False
         match self.report.sanitizer:
             # CLG is not sure this sanitizer-specific handling
             # is appropriate/fully necessary, but there's probably
@@ -50,11 +46,18 @@ class BoundsCheckStrategy(TemplateGenerationStrategy):
                 pass
         match self.diagnosis.bug_type:
             case BugType.OUT_OF_BOUNDS_READ:
-                return True
+                pass
             case BugType.OUT_OF_BOUNDS_WRITE:
-                return True
+                pass
             case _:
                 return False
+        if self.diagnosis.index_at_head is None or self.diagnosis.implicated_functions_at_head is None:
+            logger.warning("skipping template repair strategy (diagnosis is incomplete)")
+            return False
+        if self.report.call_stack_trace is None:
+            logger.warning("skipping template repair strategy (no call stack)")
+            return False
+        return True
 
     @classmethod
     def build(cls, diagnosis: Diagnosis) -> t.Self:

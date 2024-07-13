@@ -65,7 +65,7 @@ class IntegerOverflowStrategy(TemplateGenerationStrategy):
             reads = frozenset(stmt.reads if hasattr(stmt, "reads") else [])
             for varname in reads:  # would be super cool to know the type, but who has the time, honestly.
                 # up cast
-                output = helper.help_with_upcast(fn_src, stmt.content, varname)
+                output = helper.help_with_upcast_no_info(fn_src, stmt.content, varname)
                 if output is not None:
                     for line in output.code:
                         repl_code = stmt.content + "\n" + line.line

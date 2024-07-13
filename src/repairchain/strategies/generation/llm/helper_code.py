@@ -22,6 +22,9 @@ PREFILL_HELPER = ("{\n"
                 "{"
                 )
 
+# TODO: I actually think that it makes more sense to put these strings into the individual
+# templates using them, but it's nice to have them here for now to make it easy for CLG to ask
+# RM for feedback/improvement.
 
 CONTEXT_MEMORY = """
 The following code has a memory vulnerability related to memory allocation:
@@ -72,7 +75,7 @@ There must be {number_patches} children, each corresponding to a modified line.
 </instructions>
 """
 
-CONTEXT_UPCAST = """
+CONTEXT_UPCAST_NO_HELPER = """
 The following code has a vulnerability related to an integer overflow:
 {code}
 The following line has the issue with an integer overflow:
@@ -83,6 +86,38 @@ The variable being overflowed is:
 Rewrite the vulnerable line of code to upcast the variable {varname} such that
 the overflow is avoided.
 Create a JSON object with the new line of code.
+The parent object is called "code" that corresponds to fixes for the line of code.
+Each child object has the following properties:
+- A property named "line" with a modified code line
+There must be {number_patches} children, each corresponding to a modified line.
+</instructions>
+"""
+
+
+CONTEXT_UPCAST_HELPER_DECL = """
+The following code has a vulnerability related to an overflow of type {type_str}:
+{code}
+The variable being overflowed is declared by the following variable declaration:
+{decl}
+<instructions>
+Rewrite the variable declaration code so that instead of type {type_str}, the variable is of type {uptype}.
+Create a JSON object with the new line of code.
+The parent object is called "code" that corresponds to fixes for the variable declaration code line.
+Each child object has the following properties:
+- A property named "line" with a modified code line
+There must be {number_patches} children, each corresponding to a modified line.
+</instructions>
+"""
+
+CONTEXT_UPCAST_HELPER_EXPR = """
+The following code has a vulnerability related to an integer overflow:
+{code}
+The expression being overflowed is:
+{expression}
+<instructions>
+Rewrite the code to upcast the subexpressions in the overflowing expression to type {uptype},
+so that the overall expression does not overflow type {type_str}.
+Create a JSON object with the new line of code containing the modified expression.
 The parent object is called "code" that corresponds to fixes for the line of code.
 Each child object has the following properties:
 - A property named "line" with a modified code line
@@ -113,7 +148,7 @@ class CodeHelper:
     def _create_system_prompt(self) -> str:
         return """
         You are an expert security analyst.
-        You can find security vulnerabilities related to memory.
+        You can find security vulnerabilities.
         You always provide an output in valid JSON.
         The resulting JSON object should be in this format:
         {
@@ -223,11 +258,31 @@ class CodeHelper:
         )
         return self._help_with_template(user_prompt)
 
-    def help_with_upcast(self, code: str, line: str, varname: str) -> Code | None:
-        user_prompt = CONTEXT_UPCAST.format(
+    def help_with_upcast_no_info(self, code: str, line: str, varname: str) -> Code | None:
+        user_prompt = CONTEXT_UPCAST_NO_HELPER.format(
             code=code,
             line=line,
             varname=varname,
+            number_patches=5,
+        )
+        return self._help_with_template(user_prompt)
+
+    def help_with_upcast_decl(self, code: str, decl: str, type_str: str, uptype: str) -> Code | None:
+        user_prompt = CONTEXT_UPCAST_HELPER_DECL.format(
+            code=code,
+            decl=decl,
+            type_str=type_str,
+            uptype=uptype,
+            number_patches=5,
+        )
+        return self._help_with_template(user_prompt)
+
+    def help_with_upcast_expr(self, code: str, expression: str, type_str: str, uptype: str) -> Code | None:
+        user_prompt = CONTEXT_UPCAST_HELPER_EXPR.format(
+            code=code,
+            expression=expression,
+            type_str=type_str,
+            uptype=uptype,
             number_patches=5,
         )
         return self._help_with_template(user_prompt)
