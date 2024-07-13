@@ -1,4 +1,3 @@
-import itertools
 import typing as t
 from dataclasses import dataclass
 
@@ -137,10 +136,12 @@ class IncreaseSizeStrategy(TemplateGenerationStrategy):
 
         # increase size of declaration
         stmts = [stmt[0] for stmt in self._get_potential_declarations(vars_of_interest)]
-        diffs = [self._generate_new_declarations(stmt) for stmt in stmts]
+        diffs: list[Diff] = []
+        for stmt in stmts:
+            diffs += self._generate_new_declarations(stmt)
+            diffs += self._generate_decrease_access(stmt, vars_of_interest)
         # decrease potential accesses
         # this is actually kind of a wasteful way to do this, should just go one statement, var
         # at a time instead of unioning them.  But, will fix later.
 
-        diffs += [self._generate_decrease_access(stmt, vars_of_interest) for stmt in stmts]
-        return list(itertools.chain(*diffs))
+        return diffs
