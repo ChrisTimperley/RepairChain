@@ -61,7 +61,6 @@ poetry run repairchain repair --help
 | `REPAIRCHAIN_KASKARA_CACHE` | `` | if specified, saves the results of Kaskara indexing to the given file |
 | `REPAIRCHAIN_TIME_LIMIT` | `3600` | time limit (in seconds) on the entire repair process |
 | `REPAIRCHAIN_BUILD_TIME_LIMIT` | `120` | time limit (in seconds) on (incremental) builds |
-| `REPAIRCHAIN_CLEAN_BUILD_TIME_LIMIT` | `3600` | time limit (in seconds) on "clean builds" |
 | `REPAIRCHAIN_REGRESSION_TIME_LIMIT` | `120` | time limit (in seconds) on running regression test suite |
 | `REPAIRCHAIN_POV_TIME_LIMIT` | `60` | time limit (in seconds) on running PoV |
 | `AIXCC_LITELLM_HOSTNAME` | `http://0.0.0.0:4000` | the URL of the LiteLLM server |
