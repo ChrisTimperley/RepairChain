@@ -114,10 +114,11 @@ class KaskaraIndexer:
         return "bear -- " if major_version == "3" else "bear"
 
     def _generate_compile_commands_via_bear(self, container: ProjectContainer) -> None:
-        logger.info("generating compile_commands.json ...")
+        num_build_jobs = self.project.settings.workers
+        logger.info(f"generating compile_commands.json... (using {num_build_jobs} jobs)")
         bear_prefix = self._determine_bear_prefix(container)
         container.clean()
-        container.build(prefix=bear_prefix)
+        container.build(prefix=bear_prefix, jobs=num_build_jobs)
         if not container.exists(COMPILE_COMMANDS_PATH):
             logger.warning(f"failed to generate compile_commands.json: {COMPILE_COMMANDS_PATH}")
         else:
