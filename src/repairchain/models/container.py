@@ -187,12 +187,28 @@ class ProjectContainer:
             path = str(path)
         return self._filesystem.exists(path)
 
-    def run_regression_tests(self) -> bool:
-        """Runs the project's regression tests and returns whether they pass."""
+    def run_regression_tests(self, *, jobs: int = 1) -> bool:
+        """Runs the project's regression tests and returns whether they pass.
+
+        Arguments:
+        ---------
+        jobs: int
+            The number of jobs to use (i.e., NPROC_VAL) for running the tests.
+
+        Returns:
+        -------
+        bool
+            :code:`True` if the regression tests pass, :code:`False` otherwise.
+        """
         time_limit = self.project.settings.regression_time_limit
         command = self.project.regression_test_command
+        env = {"NPROC_VAL": str(jobs)}
         try:
-            self._shell.check_call(command, time_limit=time_limit)
+            self._shell.check_call(
+                command,
+                time_limit=time_limit,
+                environment=env,
+            )
         except dockerblade.exceptions.CalledProcessError:
             return False
         return True
