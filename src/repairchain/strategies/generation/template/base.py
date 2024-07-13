@@ -1,5 +1,7 @@
 __all__ = ("TemplateGenerationStrategy",)
 
+import abc
+import typing as t
 from dataclasses import dataclass
 
 import kaskara
@@ -9,6 +11,7 @@ from sourcelocation.fileline import FileLine
 from sourcelocation.location import FileLocation, Location
 
 from repairchain.actions.commit_to_diff import get_file_contents_at_commit
+from repairchain.models.diagnosis import Diagnosis
 from repairchain.models.sanitizer_report import SanitizerReport
 from repairchain.models.stack_trace import StackFrame
 from repairchain.strategies.generation.base import PatchGenerationStrategy
@@ -91,3 +94,8 @@ class TemplateGenerationStrategy(PatchGenerationStrategy):
         if len(declaring_stmts) == 0:
             logger.info("No declaring statements found. returning empty list.")
         return declaring_stmts
+
+    @classmethod
+    @abc.abstractmethod
+    def build(cls, diagnosis: Diagnosis) -> t.Self:
+        pass

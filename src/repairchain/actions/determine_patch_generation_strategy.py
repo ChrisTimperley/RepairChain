@@ -3,6 +3,8 @@ from __future__ import annotations
 from repairchain.strategies.generation.llm.superyolo_llm import SuperYoloLLMStrategy
 from repairchain.strategies.generation.llm.yolo_llm import YoloLLMStrategy
 from repairchain.strategies.generation.template.increase_size import IncreaseSizeStrategy
+from repairchain.strategies.generation.template.init_mem import InitializeMemoryStrategy
+from repairchain.strategies.generation.template.integer_overflow import IntegerOverflowStrategy
 
 __all__ = ("determine_patch_generation_strategy",)
 
@@ -10,14 +12,19 @@ import typing as t
 
 from loguru import logger
 
-from repairchain.models.bug_type import BugType
 from repairchain.strategies.generation.reversion import MinimalPatchReversion
 from repairchain.strategies.generation.sequence import SequenceStrategy
-from repairchain.strategies.generation.template.bounds_check import BoundsCheckStrategy  # noqa: F401
+from repairchain.strategies.generation.template.bounds_check import BoundsCheckStrategy
 
 if t.TYPE_CHECKING:
     from repairchain.models.diagnosis import Diagnosis
     from repairchain.strategies.generation import PatchGenerationStrategy
+
+
+available_template_strategies = [BoundsCheckStrategy,
+                                 IncreaseSizeStrategy,
+                                 InitializeMemoryStrategy,
+                                 IntegerOverflowStrategy]
 
 
 def determine_patch_generation_strategy(
@@ -66,18 +73,11 @@ def determine_patch_generation_strategy(
         logger.info("skipping yolo repair strategy (disabled)")
 
     if settings.enable_template_repair:
-        if diagnosis_is_complete:
-            logger.info("using template repair strategies")
-            match diagnosis.bug_type:
-                case BugType.OUT_OF_BOUNDS_READ | BugType.OUT_OF_BOUNDS_WRITE:
-                    strategies.append(IncreaseSizeStrategy.build(diagnosis))
-                case _:
-                    logger.warning(f"no templates available for bug type: {diagnosis.bug_type}")
-        else:
-            logger.warning("skipping template repair strategy (diagnosis is incomplete)")
+        logger.info("attempting template repair strategies")
+        strategies += [template_strategy.build(diagnosis) for template_strategy in available_template_strategies]
     else:
         logger.info("skipping template repair strategy (disabled)")
 
-    strategy = SequenceStrategy(strategies)
+    strategy = SequenceStrategy(diagnosis, strategies)
     logger.info(f"determined patch generation strategy: {strategy}")
     return strategy

@@ -26,6 +26,18 @@ class Diagnosis:
     implicated_functions_at_crash_version: list[kaskara.functions.Function] | None = field(repr=False)
     implicated_diff: Diff
 
+    def is_complete(self) -> bool:
+        """Returns whether the diagnosis has full information."""
+        if self.implicated_functions_at_head is None:
+            return False
+        if self.implicated_functions_at_crash_version is None:
+            return False
+        if self.index_at_head is None:
+            return False
+        if self.index_at_crash_version is None:  # noqa: SIM103
+            return False
+        return True
+
     @property
     def implicated_files_at_head(self) -> set[str]:
         # NOTE we are assuming that files haven't moved

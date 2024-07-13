@@ -19,6 +19,10 @@ class SequenceStrategy(PatchGenerationStrategy):
     strategies: t.Sequence[PatchGenerationStrategy]
 
     @overrides
+    def applies(self) -> bool:
+        return True
+
+    @overrides
     def run(self) -> list[Diff]:
         candidates: list[Diff] = []
 
