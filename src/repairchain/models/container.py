@@ -132,6 +132,7 @@ class ProjectContainer:
         *,
         prefix: str | None = None,
         cwd: str = "/",
+        jobs: int = 1,
     ) -> None:
         """Attempts to build the project inside the container.
 
@@ -142,6 +143,8 @@ class ProjectContainer:
             If :code:`None` is given, the project's build command is used as is.
         cwd: str
             The directory to run the build command in.
+        jobs: int
+            The number of jobs to use (i.e., NPROC_VAL) for building the project.
 
         Raises:
         ------
@@ -150,6 +153,7 @@ class ProjectContainer:
         """
         time_limit = self.project.settings.build_time_limit
         command = self.project.build_command
+        env = {"NPROC_VAL": str(jobs)}
         if prefix is not None:
             command = f"{prefix} {command}"
         try:
@@ -158,6 +162,7 @@ class ProjectContainer:
                 text=True,
                 time_limit=time_limit,
                 cwd=cwd,
+                environment=env,
             )
         except dockerblade.exceptions.CalledProcessError as err:
             assert err.output is not None  # noqa: PT017
