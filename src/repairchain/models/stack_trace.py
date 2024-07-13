@@ -15,14 +15,31 @@ class StackFrame:
     offset: int | None
     bytes_offset: str | None
 
-    def is_valid(self) -> bool:
-        return self.lineno is not None and self.offset is not None
+    @property
+    def has_funcname(self) -> bool:
+        return self.funcname is not None
 
     @property
-    def file_line(self) -> FileLine:
-        assert self.lineno is not None
-        assert self.filename is not None
-        return FileLine(self.filename, self.lineno)
+    def has_lineno(self) -> bool:
+        return self.lineno is not None
+
+    @property
+    def has_filename(self) -> bool:
+        return self.filename is not None
+
+    @property
+    def has_offset(self) -> bool:
+        return self.offset is not None
+
+    @property
+    def is_symbolized(self) -> bool:
+        return self.bytes_offset is None
+
+    @property
+    def file_line(self) -> FileLine | None:
+        if self.lineno and self.filename:
+            return FileLine(self.filename, self.lineno)
+        return None
 
     def is_in_function(self, function: kaskara.functions.Function | str) -> bool:
         """Determines if the stack frame is in the given function."""
@@ -73,10 +90,6 @@ class StackTrace(t.Sequence[StackFrame]):
     def functions(self) -> set[str]:
         """Returns the set of function names in the stack trace."""
         return {frame.funcname for frame in self.frames if frame.funcname is not None}
-
-    def is_valid(self) -> bool:  # FIXME: Claire isn't sure we want to reject stack frames without lines/offsets
-        """Determines if all stack frames are valid."""
-        return all(frame.is_valid() for frame in self.frames)
 
 
 def extract_location_symbolized(line: str) -> tuple[str, int | None, int | None]:
