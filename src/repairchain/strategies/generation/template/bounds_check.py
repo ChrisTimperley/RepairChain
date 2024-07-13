@@ -51,6 +51,7 @@ class BoundsCheckStrategy(TemplateGenerationStrategy):
 
         return cls(
             diagnosis=diagnosis,
+            report=diagnosis.sanitizer_report,
             functions_to_repair=localized_functions,
             stack_trace=stack_trace,
         )

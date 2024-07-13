@@ -55,6 +55,7 @@ class IncreaseSizeStrategy(TemplateGenerationStrategy):
         # then either modify the declaration, or
         return cls(
             diagnosis=diagnosis,
+            report=diagnosis.sanitizer_report,
             declarations_to_repair=[],
             accesses_to_repair=[],
         )
