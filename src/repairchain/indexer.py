@@ -146,30 +146,47 @@ class KaskaraIndexer:
     ) -> kaskara.analysis.ProgramFunctions | None:
         if isinstance(filename, Path):
             filename = str(filename)
-
-        _analysis = self.run(version=version, restrict_to_files=[filename])
-        raise NotImplementedError
+        analysis = self.run(version=version, restrict_to_files=[filename])
+        return analysis.functions.in_file(filename)
 
     def statements(
         self,
         filename: str | Path,
         version: git.Commit | None = None,
     ) -> kaskara.analysis.ProgramStatements | None:
-        raise NotImplementedError
+        if isinstance(filename, Path):
+            filename = str(filename)
+        analysis = self.run(version=version, restrict_to_files=[filename])
+        return analysis.statements.in_file(filename)
 
     def run(
         self,
         version: git.Commit | None,
         restrict_to_files: list[str],
     ) -> kaskara.analysis.Analysis:
+        if not restrict_to_files:
+            error = "no files were supplied to be indexed"
+            raise ValueError(error)
+
+        files_to_index = set(restrict_to_files)
+
         if version is None:
             version = self.project.head
 
-        analysis = self.cache.get(version)
-        if analysis is not None:
+        # what files do we still need to analyze?
+        if cached_analysis := self.cache.get(version):
             logger.debug(f"kaskara cache hit: {version}")
-            return analysis
+            files_to_index = files_to_index.difference(cached_analysis.files)
+            if not files_to_index:
+                return cached_analysis
 
-        analysis = self._index(version, restrict_to_files)
-        self.cache.put(version, analysis)
-        return analysis
+            logger.debug(f"indexing files: {files_to_index}")
+            increment_analysis = self._index(version, list(files_to_index))
+            complete_analysis = cached_analysis.merge(increment_analysis)
+            self.cache.put(version, complete_analysis)
+            return complete_analysis
+
+        # compute from scratch
+        fresh_analysis = self._index(version, restrict_to_files)
+        self.cache.put(version, fresh_analysis)
+        return fresh_analysis
