@@ -363,12 +363,11 @@ sanitizer_to_report_parser: dict[Sanitizer, Callable[[str], tuple[str, StackFram
 class SanitizerReport:
     contents: str = field(repr=False)
     sanitizer: Sanitizer
+    # FIXME: change the order of initialization here because I have
+    # to set a default empty stack trace in build and that's dumb.
+    call_stack_trace: StackTrace
+    alloc_stack_trace: StackTrace
     bug_type: BugType = BugType.UNKNOWN
-    # FIXME move this into a separate subclass
-    # possible thought: this information might vary by sanitizer, bug type
-    # possibly condition on that?
-    call_stack_trace: StackTrace | None = field(default=None)
-    alloc_stack_trace: StackTrace | None = field(default=None)
     error_location: StackFrame | None = field(default=None)
     extra_info: str | None = field(default=None)
 
@@ -399,6 +398,8 @@ class SanitizerReport:
         logger.info(f"determined bug type from report text: {bug_type}")
         report = cls(
             contents=text,
+            call_stack_trace=StackTrace([]),
+            alloc_stack_trace=StackTrace([]),
             sanitizer=sanitizer,
             bug_type=bug_type,
         )
