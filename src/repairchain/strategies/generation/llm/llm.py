@@ -44,9 +44,9 @@ class LLM:
         )
 
         response = client.chat.completions.create(
-                    model=model,
-                    messages=messages,
-                )
+            model=model,
+            messages=messages,
+        )
 
         retry_attempts = Util.retry_attempts
         for attempt in range(retry_attempts):
@@ -62,23 +62,20 @@ class LLM:
                 return llm_output
 
             except openai.APITimeoutError as e:
-                logger.info(f"API timeout error: {e}. Retrying {attempt + 1}/{retry_attempts}...")
+                logger.warning(f"API timeout error: {e}. Retrying {attempt + 1}/{retry_attempts}...")
                 time.sleep(Util.short_sleep)  # brief wait before retrying
             except openai.InternalServerError as e:
-                logger.info(f"Internal server error: {e}. Retrying {attempt + 1}/{retry_attempts}...")
+                logger.warning(f"Internal server error: {e}. Retrying {attempt + 1}/{retry_attempts}...")
                 time.sleep(Util.short_sleep)  # brief wait before retrying
             except openai.RateLimitError as e:
-                logger.info(f"Rate limit error: {e}. Retrying {attempt + 1}/{retry_attempts}...")
+                logger.warning(f"Rate limit error: {e}. Retrying {attempt + 1}/{retry_attempts}...")
                 time.sleep(Util.long_sleep)  # wait longer before retrying
             except openai.UnprocessableEntityError as e:
-                logger.info(f"Unprocessable entity error: {e}. Retrying {attempt + 1}/{retry_attempts}...")
+                logger.warning(f"Unprocessable entity error: {e}. Retrying {attempt + 1}/{retry_attempts}...")
                 time.sleep(Util.short_sleep)  # brief wait before retrying
             except openai.OpenAIError as e:
                 # do not retry in this case
-                logger.info(f"General OpenAI API error: {e}.")
-                return ""
-            else:
-                # unreachable code but makes the linter happy
+                logger.warning(f"General OpenAI API error: {e}.")
                 return ""
 
         return ""
@@ -120,9 +117,6 @@ class LLM:
             except openai.OpenAIError as e:
                 # do not retry in this case
                 logger.info(f"General OpenAI API error: {e}.")
-                return ""
-            else:
-                # unreachable code but makes the linter happy
                 return ""
 
         return ""

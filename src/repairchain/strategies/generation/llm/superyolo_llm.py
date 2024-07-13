@@ -208,7 +208,6 @@ class SuperYoloLLMStrategy(PatchGenerationStrategy):
         )
 
     def _get_llm_output_diffs(self, file: str) -> list[Diff]:
-
         diffs: list[Diff] = []
         system_prompt = self._create_system_prompt_diffs()
         user_prompt = self._create_user_prompt_diffs(self.files[file], file)
@@ -284,7 +283,6 @@ class SuperYoloLLMStrategy(PatchGenerationStrategy):
 
     # TODO: a lot of code duplication; refactor later
     def _get_llm_output_file(self, file: str) -> list[Diff]:
-
         diffs: list[Diff] = []
         system_prompt = self._create_system_prompt_file()
         user_prompt = self._create_user_prompt_file(self.files[file], file)
@@ -359,7 +357,6 @@ class SuperYoloLLMStrategy(PatchGenerationStrategy):
         return diffs
 
     def _get_llm_output(self) -> list[Diff]:
-
         diffs = []
         for file in self.files:
             tokens_file = Util.count_tokens(self.files[file], self.model)
@@ -378,5 +375,4 @@ class SuperYoloLLMStrategy(PatchGenerationStrategy):
         return diffs
 
     def run(self) -> list[Diff]:
-
         return self._get_llm_output()
