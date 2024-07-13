@@ -42,17 +42,17 @@ class IntegerOverflowStrategy(TemplateGenerationStrategy):
         for stmt in stmts:
             stmt_loc = FileLocation(stmt.location.filename, stmt.location.start)
             fn = head_index.functions.encloses(stmt_loc)
-            assert fn is not None
-            fn_src = self._fn_to_text(fn)
+            fn_src = self._fn_to_text(fn) if fn is not None else ""
 
             reads = frozenset(stmt.reads if hasattr(stmt, "reads") else [])
             for varname in reads:  # would be super cool to know the type, but who has the time, honestly.
                 # up cast
-                output = helper.help_with_upcast(fn_src, stmt.content, varname)
-                for line in output.code:
-                    repl_code = stmt.content + "\n" + line.line
-                    repl = Replacement(stmt.location, repl_code)
-                    diffs.append(self.diagnosis.project.sources.replacements_to_diff([repl]))
+                if fn is not None:
+                    output = helper.help_with_upcast(fn_src, stmt.content, varname)
+                    for line in output.code:
+                        repl_code = stmt.content + "\n" + line.line
+                        repl = Replacement(stmt.location, repl_code)
+                        diffs.append(self.diagnosis.project.sources.replacements_to_diff([repl]))
 
                 # if the variable is > max, set to max
                 # TODO: lots of other options here, but this is something

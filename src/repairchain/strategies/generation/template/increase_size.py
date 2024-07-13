@@ -67,6 +67,7 @@ class IncreaseSizeStrategy(TemplateGenerationStrategy):
         self,
         stmt: kaskara.statements.Statement,
     ) -> list[Diff]:
+        repls: list[Diff] = []
 
         # this statement should be a declaration statement, so all we need to do
         # is get a new one and replace it
@@ -76,13 +77,12 @@ class IncreaseSizeStrategy(TemplateGenerationStrategy):
 
         stmt_loc = FileLocation(stmt.location.filename, stmt.location.start)
         fn = head_index.functions.encloses(stmt_loc)
-        assert fn is not None
-        fn_src = self._fn_to_text(fn)
-        output = helper.help_with_memory_allocation(fn_src, stmt.content)
-        repls: list[Diff] = []
-        for line in output.code:
-            repl = Replacement(stmt.location, line.line)
-            repls.append(self.diagnosis.project.sources.replacements_to_diff([repl]))
+        if fn is not None:  # I believe this is possible for global decls
+            fn_src = self._fn_to_text(fn)
+            output = helper.help_with_memory_allocation(fn_src, stmt.content)
+            for line in output.code:
+                repl = Replacement(stmt.location, line.line)
+                repls.append(self.diagnosis.project.sources.replacements_to_diff([repl]))
         return repls
 
     def _generate_decrease_access(

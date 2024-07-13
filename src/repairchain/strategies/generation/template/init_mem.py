@@ -36,17 +36,17 @@ class InitializeMemoryStrategy(TemplateGenerationStrategy):
         assert head_index is not None
         assert location is not None
         stmts_at_error_location = head_index.statements.at_line(location.file_line)
+        repls: list[Diff] = []
 
         for stmt in stmts_at_error_location:
             stmt_loc = FileLocation(stmt.location.filename, stmt.location.start)
             fn = head_index.functions.encloses(stmt_loc)
-            assert fn is not None
-            fn_src = self._fn_to_text(fn)
-            output = helper.help_with_memory_initialization(fn_src, stmt.content)
-            repls: list[Diff] = []
-            for line in output.code:
-                combine = line.line + "\n" + stmt.content
-                repl = Replacement(stmt.location, combine)
-                repls.append(self.diagnosis.project.sources.replacements_to_diff([repl]))
+            if fn is not None:
+                fn_src = self._fn_to_text(fn)
+                output = helper.help_with_memory_initialization(fn_src, stmt.content)
+                for line in output.code:
+                    combine = line.line + "\n" + stmt.content
+                    repl = Replacement(stmt.location, combine)
+                    repls.append(self.diagnosis.project.sources.replacements_to_diff([repl]))
 
         return repls
