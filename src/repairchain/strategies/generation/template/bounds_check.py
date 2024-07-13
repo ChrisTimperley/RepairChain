@@ -29,6 +29,7 @@ class BoundsCheckStrategy(TemplateGenerationStrategy):
     diagnosis: Diagnosis
     functions_to_repair: list[kaskara.functions.Function]
     stack_trace: StackTrace
+    llm: LLM
 
     @classmethod
     def build(cls, diagnosis: Diagnosis) -> t.Self:
@@ -53,17 +54,18 @@ class BoundsCheckStrategy(TemplateGenerationStrategy):
 
         return cls(
             diagnosis=diagnosis,
+            report=report,
             functions_to_repair=localized_functions,
             stack_trace=stack_trace,
+            llm=LLM.from_settings(diagnosis.project.settings),
         )
 
     def _generate_for_statement(
         self,
         stmt: kaskara.statements.Statement,
-        llm: LLM,
     ) -> list[Diff]:
         diffs: list[Diff] = []
-        helper = CodeHelper(llm)
+        helper = CodeHelper(self.llm)
 
         head_index = self.diagnosis.index_at_head
         assert head_index is not None
@@ -71,7 +73,7 @@ class BoundsCheckStrategy(TemplateGenerationStrategy):
         stmt_loc = FileLocation(stmt.location.filename, stmt.location.start)
         fn = head_index.functions.encloses(stmt_loc)
         assert fn is not None
-        fn_src = self._fn_to_text(self.diagnosis, fn)
+        fn_src = self._fn_to_text(fn)
 
         reads = frozenset(stmt.reads if hasattr(stmt, "reads") else [])
         for varname in reads:  # would be super cool to know the type, but who has the time, honestly.
@@ -81,7 +83,7 @@ class BoundsCheckStrategy(TemplateGenerationStrategy):
                 diffs.append(self.diagnosis.project.sources.replacements_to_diff([repl]))
         return diffs
 
-    def _generate_for_function(self, llm: LLM, function: kaskara.functions.Function) -> list[Diff]:
+    def _generate_for_function(self, function: kaskara.functions.Function) -> list[Diff]:
         diffs: list[Diff] = []
         logger.debug(f"generating bounds check repairs in function: {function}")
         head_index = self.diagnosis.index_at_head
@@ -89,14 +91,13 @@ class BoundsCheckStrategy(TemplateGenerationStrategy):
 
         for frame in self.stack_trace.restrict_to_function(function):
             for statement in head_index.statements.at_line(frame.file_line):
-                diffs += self._generate_for_statement(statement, llm)
+                diffs += self._generate_for_statement(statement)
 
         return diffs
 
     @overrides
     def run(self) -> list[Diff]:
-        llm = LLM.from_settings(self.diagnosis.project.settings)
         diffs: list[Diff] = []
         for function in self.functions_to_repair:
-            diffs += self._generate_for_function(llm, function)
+            diffs += self._generate_for_function(function)
         return diffs
