@@ -21,7 +21,7 @@ class SequenceStrategy(PatchGenerationStrategy):
 
     @classmethod
     @overrides
-    def applies(cls, diagnosis: Diagnosis) -> bool:
+    def applies(cls, diagnosis: Diagnosis) -> bool:  # noqa: ARG003
         return True
 
     @overrides
