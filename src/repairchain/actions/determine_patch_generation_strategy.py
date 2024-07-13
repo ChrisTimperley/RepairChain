@@ -2,6 +2,9 @@ from __future__ import annotations
 
 from repairchain.strategies.generation.llm.superyolo_llm import SuperYoloLLMStrategy
 from repairchain.strategies.generation.llm.yolo_llm import YoloLLMStrategy
+from repairchain.strategies.generation.template.increase_size import IncreaseSizeStrategy
+from repairchain.strategies.generation.template.init_mem import InitializeMemoryStrategy
+from repairchain.strategies.generation.template.integer_overflow import IntegerOverflowStrategy
 
 __all__ = ("determine_patch_generation_strategy",)
 
@@ -16,14 +19,11 @@ from repairchain.strategies.generation.template.bounds_check import BoundsCheckS
 if t.TYPE_CHECKING:
     from repairchain.models.diagnosis import Diagnosis
     from repairchain.strategies.generation import PatchGenerationStrategy
-    from repairchain.strategies.generation.template.base import TemplateGenerationStrategy
 
-AVAILABLE_TEMPLATES: tuple[type[TemplateGenerationStrategy]] = (
-    BoundsCheckStrategy,
-    # IncreaseSizeStrategy,
-    # InitializeMemoryStrategy,
-    # IntegerOverflowStrategy
-)
+available_templates = [BoundsCheckStrategy,
+                        IncreaseSizeStrategy,
+                        InitializeMemoryStrategy,
+                        IntegerOverflowStrategy]
 
 
 def _build_yolo_strategies_with_kaskara_indices(
