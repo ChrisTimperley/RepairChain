@@ -172,9 +172,6 @@ class Util:
         if len(diff_lines) < SIZE_DIFF:
             return False
 
-        if not (diff_lines[0] == "<code>" or diff_lines[0] == "```diff"):
-            logger.debug(f"Unexpected patch format {diff_lines}")
-            return False
         if not diff_lines[1].startswith("---"):
             logger.debug(f"Unexpected patch format {diff_lines}")
             return False
@@ -182,10 +179,6 @@ class Util:
             logger.debug(f"Unexpected patch format {diff_lines}")
             return False
         if not diff_lines[3].startswith("@@"):
-            logger.debug(f"Unexpected patch format {diff_lines}")
-            return False
-        if not (diff_lines[len(diff_lines) - 1] == "</code>" or
-                diff_lines[len(diff_lines) - 1] == "```"):
             logger.debug(f"Unexpected patch format {diff_lines}")
             return False
 
@@ -205,47 +198,51 @@ class Util:
 
         diff_lines = diff_lines[4:len(diff_lines) - 1]
 
-        current_original = 0
-        current_diff = 0
-        block_matching = False
-
-        patch = ""
-
-        # TODO: refactor this code
-        while True:
-            if current_original >= len(original_lines):
-                break
-            line = original_lines[current_original]
-            if current_diff == len(diff_lines):
-                patch += "".join(line + "\n" for line in original_lines[current_original:])
-                return Util.remove_last_newline(patch)
-
-            l1 = line.replace(" ", "")
-            l2 = Util.strip_diff(diff_lines[current_diff], "-").replace(" ", "")
-
-            if l1 == l2:
-                block_matching = True
-                if not diff_lines[current_diff].startswith("-"):
-                    patch += line + "\n"
-                current_diff += 1
-                current_original += 1
-            elif block_matching:
-                if current_diff == len(diff_lines):
-                    patch += "".join(line + "\n" for line in original_lines[current_original:])
-                    return Util.remove_last_newline(patch)
-
-                if diff_lines[current_diff].startswith("+"):
-                    while current_diff < len(diff_lines):
-                        if diff_lines[current_diff].startswith("+"):
-                            patch += Util.strip_diff(diff_lines[current_diff], "+") + "\n"
-                            current_diff += 1
-                        else:
-                            break
-                else:
-                    logger.info(f"Unified diff failed to apply for patch {diff}")
-                    return ""
+        patch_original_lines: list[str] = []
+        # patch_lines: list[str] = []
+        for line in diff_lines:
+            if line.startswith("-"):
+                patch_original_lines.append(Util.strip_diff(line, "-"))
+            elif line.startswith("+"):
+                continue
             else:
-                patch += line + "\n"
-                current_original += 1
+                patch_original_lines.append(line)
 
-        return patch
+        print(patch_original_lines)
+
+        patch_original_lines_stripped = [s.replace(" ", "") for s in patch_original_lines]
+        original_lines_stripped = [s.replace(" ", "") for s in original_lines]
+
+        len_patch_original_lines_stripped = len(patch_original_lines_stripped)
+        len_original_lines_stripped = len(original_lines_stripped)
+
+        hunk_position = -1
+        if len_patch_original_lines_stripped < len_original_lines_stripped:
+            for i in range(len_original_lines_stripped - len_patch_original_lines_stripped + 1):
+                if original_lines_stripped[i:i + len_patch_original_lines_stripped] == patch_original_lines_stripped:
+                    hunk_position = i
+                    break
+
+        patch_lines: list[str] = []
+        pos = 0
+        if hunk_position > -1:
+            pos_orig = hunk_position
+            patch_lines = original_lines[0:hunk_position]
+            while pos < len(diff_lines):
+                if diff_lines[pos].startswith("+"):
+                    patch_lines.append(Util.strip_diff(diff_lines[pos], "+"))
+                elif diff_lines[pos].startswith("-"):
+                    pos_orig += 1
+                else:
+                    patch_lines.append(diff_lines[pos])
+                    pos_orig += 1
+                pos += 1
+
+        patch_lines.extend(original_lines[pos_orig:len(original_lines)])
+        if patch_lines:
+            patch_str = "\n".join(patch_lines[:-1]) + (
+                "\n" + patch_lines[-1] if len(patch_lines) > 1 else patch_lines[-1])
+        else:
+            patch_str = ""
+
+        return patch_str
