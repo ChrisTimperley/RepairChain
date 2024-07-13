@@ -1,0 +1,15 @@
+== Java Exception: com.code_intelligence.jazzer.api.FuzzerSecurityIssueCritical: OS Command Injection
+Executing OS commands with attacker-controlled data can lead to remote code execution.
+Found in argument 0
+        at com.code_intelligence.jazzer.sanitizers.OsCommandInjection.ProcessImplStartHook(OsCommandInjection.java:41)
+        at java.base/java.lang.ProcessBuilder.start(ProcessBuilder.java:1110)
+        at java.base/java.lang.ProcessBuilder.start(ProcessBuilder.java:1073)
+        at io.jenkins.plugins.UtilPlug.UtilMain.createUtils(UtilMain.java:194)
+        at io.jenkins.plugins.UtilPlug.UtilMain.doexecCommandUtils(UtilMain.java:157)
+        at com.aixcc.jenkins.harnesses.two.JenkinsTwo.fuzz(JenkinsTwo.java:80)
+        at com.aixcc.jenkins.harnesses.two.JenkinsTwo.fuzzerTestOneInput(JenkinsTwo.java:39)
+DEDUP_TOKEN: 83f8db67ce28cef9
+== libFuzzer crashing input ==
+reproducer_path='.'; Java reproducer written to ./Crash_70a0fbdbde2ac5ea0f8e038449f4ad2492028a7b.java
+
+jazzer exit=77
