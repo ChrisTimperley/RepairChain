@@ -44,8 +44,22 @@ def determine_patch_generation_strategy(
             yolo_claude35._set_model("claude-3.5-sonnet")
             strategies.append(yolo_claude35)
         else:
-            superyolo = SuperYoloLLMStrategy.build(diagnosis)
-            strategies.append(superyolo)
+            superyolo_gpt4o_files = SuperYoloLLMStrategy.build(diagnosis)
+            superyolo_gpt4o_files.whole_file = True
+            strategies.append(superyolo_gpt4o_files)
+
+            superyolo_gpt4o_diffs = SuperYoloLLMStrategy.build(diagnosis)
+            strategies.append(superyolo_gpt4o_diffs)
+
+            superyolo_claude35_files = SuperYoloLLMStrategy.build(diagnosis)
+            superyolo_claude35_files._set_model("claude-3.5-sonnet")
+            superyolo_claude35_files.whole_file = True
+            strategies.append(superyolo_claude35_files)
+
+            superyolo_claude35_diffs = SuperYoloLLMStrategy.build(diagnosis)
+            superyolo_claude35_diffs._set_model("claude-3.5-sonnet")
+            strategies.append(superyolo_claude35_diffs)
+
             logger.warning("using super yolo repair strategy (diagnosis is incomplete)")
     else:
         logger.info("skipping yolo repair strategy (disabled)")

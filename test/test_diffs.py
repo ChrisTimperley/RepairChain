@@ -111,3 +111,23 @@ def test_diff_parsing5() -> None:
     logger.debug(patch)
 
     assert compare_strings(patch, expected_contents)
+
+def test_diff_parsing6() -> None:
+    llm_output = './test/data-parsing/llm-output6.txt'
+    expected = './test/data-parsing/expected6.txt'
+    original = './test/data-parsing/original2.txt'
+    
+    with open(llm_output, 'r') as file:
+        llm_output_contents = file.read()
+
+    with open(expected, 'r') as file:
+        expected_contents = file.read()
+
+    with open(original, 'r') as file:
+        original_contents = file.read()
+
+    
+    patch = Util.apply_patch(original_contents, llm_output_contents)
+    logger.debug(patch)
+
+    assert compare_strings(patch, expected_contents)

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import difflib
+import unicodedata
 
 __all__ = ("Util",)
 
@@ -210,6 +211,9 @@ class Util:
         patch_original_lines_stripped = [s.replace(" ", "") for s in patch_original_lines]
         original_lines_stripped = [s.replace(" ", "") for s in original_lines]
 
+        patch_original_lines_stripped = [unicodedata.normalize("NFKD", s) for s in patch_original_lines_stripped]
+        original_lines_stripped = [unicodedata.normalize("NFKD", s) for s in original_lines_stripped]
+
         len_patch_original_lines_stripped = len(patch_original_lines_stripped)
         len_original_lines_stripped = len(original_lines_stripped)
 
@@ -245,5 +249,7 @@ class Util:
                 "\n" + patch_lines[-1] if len(patch_lines) > 1 else patch_lines[-1])
         else:
             patch_str = ""
+
+        logger.debug(patch_str)
 
         return patch_str
