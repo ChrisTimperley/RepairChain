@@ -11,12 +11,18 @@ from overrides import overrides
 from repairchain.strategies.generation.base import PatchGenerationStrategy
 
 if t.TYPE_CHECKING:
+    from repairchain.models.diagnosis import Diagnosis
     from repairchain.models.diff import Diff
 
 
 @dataclass
 class SequenceStrategy(PatchGenerationStrategy):
     strategies: t.Sequence[PatchGenerationStrategy]
+
+    @classmethod
+    @overrides
+    def applies(cls, _: Diagnosis) -> bool:
+        return True
 
     @overrides
     def run(self) -> list[Diff]:

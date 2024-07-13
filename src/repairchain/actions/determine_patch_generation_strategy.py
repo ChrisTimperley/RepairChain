@@ -2,6 +2,9 @@ from __future__ import annotations
 
 from repairchain.strategies.generation.llm.superyolo_llm import SuperYoloLLMStrategy
 from repairchain.strategies.generation.llm.yolo_llm import YoloLLMStrategy
+from repairchain.strategies.generation.template.increase_size import IncreaseSizeStrategy
+from repairchain.strategies.generation.template.init_mem import InitializeMemoryStrategy
+from repairchain.strategies.generation.template.integer_overflow import IntegerOverflowStrategy
 
 __all__ = ("determine_patch_generation_strategy",)
 
@@ -18,6 +21,10 @@ if t.TYPE_CHECKING:
     from repairchain.models.diagnosis import Diagnosis
     from repairchain.strategies.generation import PatchGenerationStrategy
 
+available_templates = [BoundsCheckStrategy]
+#                        IncreaseSizeStrategy]
+#                        InitializeMemoryStrategy,]
+#                        IntegerOverflowStrategy]
 
 def determine_patch_generation_strategy(
     diagnosis: Diagnosis,
@@ -65,15 +72,8 @@ def determine_patch_generation_strategy(
         logger.info("skipping yolo repair strategy (disabled)")
 
     if settings.enable_template_repair:
-        if diagnosis_is_complete:
-            logger.info("using template repair strategies")
-            match diagnosis.bug_type:
-                case BugType.OUT_OF_BOUNDS_READ | BugType.OUT_OF_BOUNDS_WRITE:
-                    strategies.append(BoundsCheckStrategy.build(diagnosis))
-                case _:
-                    logger.warning(f"no templates available for bug type: {diagnosis.bug_type}")
-        else:
-            logger.warning("skipping template repair strategy (diagnosis is incomplete)")
+        logger.info("attempting template repair strategies")
+        strategies += [tstrat.build(diagnosis) for tstrat in available_templates if tstrat.applies(diagnosis)]
     else:
         logger.info("skipping template repair strategy (disabled)")
 

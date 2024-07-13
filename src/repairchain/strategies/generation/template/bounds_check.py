@@ -100,6 +100,11 @@ class BoundsCheckStrategy(TemplateGenerationStrategy):
         return diffs
 
     @overrides
+    @classmethod
+    def applies(cls, _: Diagnosis) -> bool:
+        return False
+
+    @overrides
     def run(self) -> list[Diff]:
         diffs: list[Diff] = []
         for function in self.functions_to_repair:
