@@ -52,7 +52,7 @@ class BoundsCheckStrategy(TemplateGenerationStrategy):
     def build(cls, diagnosis: Diagnosis) -> t.Self:
         return cls(
             diagnosis=diagnosis,
-            report=diagnosis.project.sanitizer_report,
+            report=diagnosis.project.report,
             llm=LLM.from_settings(diagnosis.project.settings),
         )
 
