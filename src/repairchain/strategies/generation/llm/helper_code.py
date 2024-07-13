@@ -46,6 +46,22 @@ There must be {number_patches} children, each corresponding to a modified line.
 </instructions>
 """
 
+CONTEXT_UPCAST = """
+The following code has a vulnerability related to an integer overflow:
+{code}
+The following line has the issue with an integer overflow:
+{line}
+The variable being overflowed is:
+{varname}
+<instructions>
+Rewrite the vulnerable line of code to upcast the variable {varname} such that
+the overflow is avoided. 
+The parent object is called "code" that corresponds to fixes for the line of code.
+Each child object has the following properties:
+- A property named "line" with a modified code line
+There must be {number_patches} children, each corresponding to a modified line.
+</instructions>
+"""
 
 @dataclass
 class LineCode:
@@ -84,16 +100,8 @@ class CodeHelper:
         }
         """
 
-    def _create_memory_alloc_prompt(self, context: str, code: str, line: str) -> str:
-        return context.format(
-            code=code,
-            line=line,
-            number_patches=5,
-        )
-
-    def help_with_memory_allocation(self, code: str, line: str) -> Code:
+    def _help_with_template(self, user_prompt: str) -> Code:
         system_prompt = self._create_system_prompt()
-        user_prompt = self._create_memory_alloc_prompt(CONTEXT_MEMORY, code, line)
 
         messages: MessagesIterable = []
         system_message = ChatCompletionSystemMessageParam(role="system", content=system_prompt)
@@ -110,29 +118,30 @@ class CodeHelper:
 
         return Code(code=patch_contents)
 
-    def _create_bounds_check_prompt(self, context: str, code: str, line: str, varname: str) -> str:
-        return context.format(
+    def help_with_memory_allocation(self, code: str, line: str) -> Code:
+
+        user_prompt = CONTEXT_MEMORY.format(
+            code=code,
+            line=line,
+            number_patches=5,
+        )
+        return self._help_with_template(user_prompt)
+
+    def help_with_bounds_check(self, code: str, line: str, varname: str) -> Code:
+        user_prompt = CONTEXT_BOUNDS.format(
             code=code,
             line=line,
             varname=varname,
             number_patches=5,
         )
+        return self._help_with_template(user_prompt)
 
-    def help_with_bounds_check(self, code: str, line: str, varname: str) -> Code:
-        system_prompt = self._create_system_prompt()
-        user_prompt = self._create_bounds_check_prompt(CONTEXT_BOUNDS, code, line, varname)
+    def help_with_upcast(self, code: str, line: str, varname: str) -> Code:
+        user_prompt = CONTEXT_UPCAST.format(
+            code=code,
+            line=line,
+            varname=varname,
+            number_patches=5,
+        )
+        return self._help_with_template(user_prompt)
 
-        messages: MessagesIterable = []
-        system_message = ChatCompletionSystemMessageParam(role="system", content=system_prompt)
-        user_message = ChatCompletionUserMessageParam(role="user", content=user_prompt)
-        messages.append(system_message)
-        messages.append(user_message)
-
-        llm_output = self.llm._call_llm_json(messages)
-
-        # Parse the JSON string into a dictionary
-        data = json.loads(llm_output)
-
-        patch_contents = [LineCode(**item) for item in data["code"]]
-
-        return Code(code=patch_contents)

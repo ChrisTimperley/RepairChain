@@ -31,6 +31,10 @@ class StackFrame:
         return self.has_filename() and self.has_funcname() and self.has_lineno()
 
     @property
+    def is_symbolized(self) -> bool:
+        return self.bytes_offset is None
+
+    @property
     def file_line(self) -> FileLine:
         assert self.lineno is not None
         assert self.filename is not None
