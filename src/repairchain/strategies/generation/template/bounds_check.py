@@ -92,10 +92,10 @@ class BoundsCheckStrategy(TemplateGenerationStrategy):
         )
 
         for frame in self.stack_trace.restrict_to_function(function):
-            if not frame.has_line_info:
-                continue
-            for statement in head_index.statements.at_line(frame.file_line):
-                diffs += self._generate_for_statement(statement, frame.file_line, file_contents)
+            if frame.file_line:
+                file_line = frame.file_line
+                for statement in head_index.statements.at_line(file_line):
+                    diffs += self._generate_for_statement(statement, file_line, file_contents)
 
         return diffs
 

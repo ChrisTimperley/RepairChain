@@ -32,19 +32,14 @@ class StackFrame:
         return self.offset is not None
 
     @property
-    def has_line_info(self) -> bool:
-        """Indicates whether this frame can be used for line-level localization."""
-        return self.has_filename and self.has_funcname and self.has_lineno
-
-    @property
     def is_symbolized(self) -> bool:
         return self.bytes_offset is None
 
     @property
-    def file_line(self) -> FileLine:
-        assert self.lineno is not None
-        assert self.filename is not None
-        return FileLine(self.filename, self.lineno)
+    def file_line(self) -> FileLine | None:
+        if self.lineno and self.filename:
+            return FileLine(self.filename, self.lineno)
+        return None
 
     def is_in_function(self, function: kaskara.functions.Function | str) -> bool:
         """Determines if the stack frame is in the given function."""
