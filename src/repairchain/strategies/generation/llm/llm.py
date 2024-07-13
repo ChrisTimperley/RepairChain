@@ -48,11 +48,40 @@ class LLM:
                     messages=messages,
                 )
 
-        llm_output = response.choices[0].message.content
-        if llm_output is None:
-            return ""
+        retry_attempts = Util.retry_attempts
+        for attempt in range(retry_attempts):
+            try:
+                response = client.chat.completions.create(
+                    model=model,
+                    messages=messages,
+                )
 
-        return llm_output
+                llm_output = response.choices[0].message.content
+                if llm_output is None:
+                    return ""
+                return llm_output
+
+            except openai.APITimeoutError as e:
+                logger.info(f"API timeout error: {e}. Retrying {attempt + 1}/{retry_attempts}...")
+                time.sleep(Util.short_sleep)  # brief wait before retrying
+            except openai.InternalServerError as e:
+                logger.info(f"Internal server error: {e}. Retrying {attempt + 1}/{retry_attempts}...")
+                time.sleep(Util.short_sleep)  # brief wait before retrying
+            except openai.RateLimitError as e:
+                logger.info(f"Rate limit error: {e}. Retrying {attempt + 1}/{retry_attempts}...")
+                time.sleep(Util.long_sleep)  # wait longer before retrying
+            except openai.UnprocessableEntityError as e:
+                logger.info(f"Unprocessable entity error: {e}. Retrying {attempt + 1}/{retry_attempts}...")
+                time.sleep(Util.short_sleep)  # brief wait before retrying
+            except openai.OpenAIError as e:
+                # do not retry in this case
+                logger.info(f"General OpenAI API error: {e}.")
+                return ""
+            else:
+                # unreachable code but makes the linter happy
+                return ""
+
+        return ""
 
     def _call_llm_json(self, messages: MessagesIterable) -> str:
         logger.info(f"Calling LLM with model={self.model}")
@@ -89,8 +118,9 @@ class LLM:
                 logger.info(f"Unprocessable entity error: {e}. Retrying {attempt + 1}/{retry_attempts}...")
                 time.sleep(Util.short_sleep)  # brief wait before retrying
             except openai.OpenAIError as e:
-                logger.info(f"General OpenAI API error: {e}. Retrying {attempt + 1}/{retry_attempts}...")
-                time.sleep(Util.short_sleep)  # brief wait before retrying
+                # do not retry in this case
+                logger.info(f"General OpenAI API error: {e}.")
+                return ""
             else:
                 # unreachable code but makes the linter happy
                 return ""

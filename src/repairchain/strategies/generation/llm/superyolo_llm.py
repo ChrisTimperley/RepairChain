@@ -136,6 +136,7 @@ When making a patch make sure you follow the following instructions:
 - Keep the same indentation as the original file
 </instructions>
 """
+PREFILL_CLAUDE = "<code>\n"
 
 
 @dataclass
@@ -221,10 +222,21 @@ class SuperYoloLLMStrategy(PatchGenerationStrategy):
         messages.append(system_message)
         messages.append(user_message)
 
+        if self.model == "claude-3.5-sonnet":
+            # force a prefill for clause-3.5
+            prefill_message = ChatCompletionAssistantMessageParam(role="assistant", content=PREFILL_CLAUDE)
+            messages.append(prefill_message)
+
         attempt = 0
         while attempt < self.number_patches:
 
-            llm_output = self.llm._simple_call_llm(messages)
+            llm_output = ""
+            if self.model == "claude-3.5-sonnet":
+                llm_output += PREFILL_CLAUDE
+                llm_output += self.llm._simple_call_llm(messages)
+            else:
+                llm_output = self.llm._simple_call_llm(messages)
+
             if not llm_output:
                 logger.debug("Failed to get output from LLM")
                 attempt += 1
@@ -259,6 +271,12 @@ class SuperYoloLLMStrategy(PatchGenerationStrategy):
             user_new_patch = ChatCompletionUserMessageParam(role="user",
                                                             content="Can you get me a different patch?")
             messages.append(user_new_patch)
+
+            if self.model == "claude-3.5-sonnet":
+                # force a prefill for clause-3.5
+                prefill_message = ChatCompletionAssistantMessageParam(role="assistant", content=PREFILL_CLAUDE)
+                messages.append(prefill_message)
+
             attempt += 1
 
         logger.info(f"Found {len(diffs)} patches")
@@ -280,10 +298,20 @@ class SuperYoloLLMStrategy(PatchGenerationStrategy):
         messages.append(system_message)
         messages.append(user_message)
 
+        if self.model == "claude-3.5-sonnet":
+            # force a prefill for clause-3.5
+            messages.append(ChatCompletionAssistantMessageParam(role="assistant", content=PREFILL_CLAUDE))
+
         attempt = 0
         while attempt < self.number_patches:
 
-            llm_output = self.llm._simple_call_llm(messages)
+            llm_output = ""
+            if self.model == "claude-3.5-sonnet":
+                llm_output += PREFILL_CLAUDE
+                llm_output += self.llm._simple_call_llm(messages)
+            else:
+                llm_output = self.llm._simple_call_llm(messages)
+
             if not llm_output:
                 logger.debug("Failed to get output from LLM")
                 attempt += 1
@@ -320,6 +348,11 @@ class SuperYoloLLMStrategy(PatchGenerationStrategy):
             user_new_patch = ChatCompletionUserMessageParam(role="user",
                                                             content="Can you get me a different patch?")
             messages.append(user_new_patch)
+
+            if self.model == "claude-3.5-sonnet":
+                # force a prefill for clause-3.5
+                messages.append(ChatCompletionAssistantMessageParam(role="assistant", content=PREFILL_CLAUDE))
+
             attempt += 1
 
         logger.info(f"Found {len(diffs)} patches")
