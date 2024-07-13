@@ -1,0 +1,18 @@
+ <code>
+--- src/http/modules/ngx_http_userid_filter_module.c
++++ src/http/modules/ngx_http_userid_filter_module.c
+@@ ... @@
+     src = ctx->cookie;
+ 
+-    dst.data = (u_char *) ctx->uid_got;
++    if (ctx->cookie.len > 22) {
++        src.len = 22;
++    } else {
++        src.len = ctx->cookie.len;
++    }
++    
++    dst.data = (u_char *) ctx->uid_got;
+
+     if (ngx_decode_base64(&dst, &src) == NGX_ERROR) {
+         ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
+</code>

@@ -139,13 +139,13 @@ class SuperYoloLLMStrategy(PatchGenerationStrategy):
         You always provide a patch to the code in valid unified diffs format.
         """
 
-    def _create_user_prompt(self, contents: str) -> str:
+    def _create_user_prompt(self, contents: str, filename: str) -> str:
         code_context = contents
 
         return CONTEXT_SUPERYOLO.format(
             diff=self.diff,
             code_context=code_context,
-            file=list(self.files.keys()),
+            file=filename,
             format=PATCH_FORMAT,
         )
 
@@ -153,8 +153,9 @@ class SuperYoloLLMStrategy(PatchGenerationStrategy):
 
         diffs = []
         for file in self.files:
+            logger.info(f"SuperYolo approach is looking for potential repairs in file {file}")
             system_prompt = self._create_system_prompt()
-            user_prompt = self._create_user_prompt(self.files[file])
+            user_prompt = self._create_user_prompt(self.files[file], file)
 
             logger.info(f"user prompt tokens: {Util.count_tokens(user_prompt, self.model)}")
             logger.info(f"system prompt tokens: {Util.count_tokens(system_prompt, self.model)}")
@@ -177,7 +178,6 @@ class SuperYoloLLMStrategy(PatchGenerationStrategy):
                     logger.debug(f"Failed to generate patch "
                                  f"{attempt + 1} / {self.number_patches} "
                                  f"with model {self.model}")
-                    logger.debug(f"Failed output:\n {llm_output}\n")
                 else:
                     logger.debug(f"Successfully generated a patch "
                                  f"{attempt + 1} / {self.number_patches} "

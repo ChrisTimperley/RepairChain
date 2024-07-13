@@ -238,6 +238,7 @@ class Util:
             patch_lines.extend(original_lines[pos_orig:len(original_lines)])
         else:
             logger.debug(f"Unified diff contents do not match original file:\n {diff}\n")
+            # logger.debug(f"Original file:\n {original}\n")
 
         if patch_lines:
             patch_str = "\n".join(patch_lines[:-1]) + (
