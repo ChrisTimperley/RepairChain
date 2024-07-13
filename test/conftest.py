@@ -7,6 +7,7 @@ from pathlib import Path
 import docker
 import git
 import pytest
+from loguru import logger
 
 from repairchain.models.project import Project
 from repairchain.models.settings import Settings
@@ -16,6 +17,13 @@ PROJECT_DIR = TEST_DIR.parent
 EXAMPLES_DIR = PROJECT_DIR / "examples"
 MOCK_CP_DIR = EXAMPLES_DIR / "mock-cp"
 MOCK_CP_REPO_DIR = MOCK_CP_DIR / "mock-cp-src/src/samples"
+
+
+@pytest.fixture
+def log_kaskara() -> t.Iterator[None]:
+    logger.enable("kaskara")
+    yield
+    logger.disable("kaskara")
 
 
 @pytest.fixture
