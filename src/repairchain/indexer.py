@@ -16,6 +16,7 @@ from loguru import logger
 if t.TYPE_CHECKING:
     import git
 
+    from repairchain.models.container import ProjectContainer
     from repairchain.models.project import Project
 
 COMPILE_COMMANDS_PATH = Path("/compile_commands.json")
@@ -79,6 +80,40 @@ class KaskaraIndexer:
             cache = KaskaraIndexCache(cache_index_to_file)
         return cls(project=project, cache=cache)
 
+    def _ensure_compile_commands_exists(self, container: ProjectContainer) -> None:
+        """Ensures that compile_commands.json is available in the container.
+        We require compile_commands.json to be located at the root of the container
+        for C-based projects.
+        """
+        project = self.project
+        settings = project.settings
+
+        if project.kind not in {"c", "kernel"}:
+            return
+
+        if container.exists(COMPILE_COMMANDS_PATH):
+            logger.info(f"found compile_commands.json: {COMPILE_COMMANDS_PATH}")
+            return
+
+        logger.warning(f"missing compile_commands.json: {COMPILE_COMMANDS_PATH}")
+
+        if settings.generate_compile_commands:
+            self._generate_compile_commands_via_bear(container)
+        else:
+            logger.warning("skipping generation of missing compile_commands.json!")
+
+    def _generate_compile_commands_via_bear(self, container: ProjectContainer) -> None:
+        logger.info("generating compile_commands.json ...")
+
+        # FIXME bear command depends on version!
+
+        container.clean()
+        container.build(prefix="bear")
+        if not container.exists(COMPILE_COMMANDS_PATH):
+            logger.warning(f"failed to generate compile_commands.json: {COMPILE_COMMANDS_PATH}")
+        else:
+            logger.info(f"generated compile_commands.json: {COMPILE_COMMANDS_PATH}")
+
     @contextlib.contextmanager
     def _build_analyzer(
         self,
@@ -105,25 +140,8 @@ class KaskaraIndexer:
         logger.debug(f"using kaskara project: {kaskara_project}")
 
         with project.provision(version=version) as container:
-            # for C-based projects:
-            # we require compile_commands.json to be located at the root of the container
-            need_compile_commands = False
-
             if project.kind in {"c", "kernel"}:
-                if container.exists(COMPILE_COMMANDS_PATH):
-                    logger.info(f"found compile_commands.json: {COMPILE_COMMANDS_PATH}")
-                else:
-                    logger.warning(f"missing compile_commands.json: {COMPILE_COMMANDS_PATH}")
-                    need_compile_commands = True
-
-            if need_compile_commands and settings.generate_compile_commands:
-                logger.info("generating compile_commands.json ...")
-                container.clean()
-                container.build(prefix="bear")
-                if not container.exists(COMPILE_COMMANDS_PATH):
-                    logger.warning(f"failed to generate compile_commands.json: {COMPILE_COMMANDS_PATH}")
-                else:
-                    logger.info(f"generated compile_commands.json: {COMPILE_COMMANDS_PATH}")
+                self._ensure_compile_commands_exists(container)
 
             kaskara_container = kaskara_project.attach(container.id_)
 
