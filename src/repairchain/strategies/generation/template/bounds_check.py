@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from sourcelocation.location import FileLocation
 
-from repairchain.models.bug_type import BugType, Sanitizer
+from repairchain.models.bug_type import BugType
 from repairchain.models.replacement import Replacement
 from repairchain.strategies.generation.llm.helper_code import CodeHelper
 from repairchain.strategies.generation.llm.llm import LLM
