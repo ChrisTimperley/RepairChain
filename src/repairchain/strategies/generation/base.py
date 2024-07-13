@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
+
 __all__ = ("PatchGenerationStrategy",)
 
 import abc
@@ -10,7 +12,9 @@ if t.TYPE_CHECKING:
     from repairchain.models.diff import Diff
 
 
+@dataclass
 class PatchGenerationStrategy(abc.ABC):
+    diagnosis: Diagnosis
 
     @abc.abstractmethod
     def run(self) -> list[Diff]:
