@@ -29,10 +29,11 @@ if t.TYPE_CHECKING:
 class BoundsCheckStrategy(TemplateGenerationStrategy):
     llm: LLM
 
+    @classmethod
     @overrides
-    def applies(self) -> bool:
+    def applies(cls, diagnosis: Diagnosis) -> bool:
         # Caveat: CLG THINKS this is all the conditions
-        match self.report.sanitizer:
+        match diagnosis.sanitizer_report.sanitizer:
             # CLG is not sure this sanitizer-specific handling
             # is appropriate/fully necessary, but there's probably
             # no harm in being defensive.
@@ -44,17 +45,17 @@ class BoundsCheckStrategy(TemplateGenerationStrategy):
                 return False
             case _:
                 pass
-        match self.diagnosis.bug_type:
+        match diagnosis.bug_type:
             case BugType.OUT_OF_BOUNDS_READ:
                 pass
             case BugType.OUT_OF_BOUNDS_WRITE:
                 pass
             case _:
                 return False
-        if self.diagnosis.index_at_head is None or self.diagnosis.implicated_functions_at_head is None:
+        if diagnosis.index_at_head is None or diagnosis.implicated_functions_at_head is None:
             logger.warning("skipping template repair strategy (diagnosis is incomplete)")
             return False
-        if self.report.call_stack_trace is None:
+        if diagnosis.sanitizer_report.call_stack_trace is None:
             logger.warning("skipping template repair strategy (no call stack)")
             return False
         return True
@@ -105,27 +106,26 @@ class BoundsCheckStrategy(TemplateGenerationStrategy):
 
     @overrides
     def run(self) -> list[Diff]:
-        if not self.applies():
+        if not self.applies(self.diagnosis):
             return []
-        implicated_functions = self.diagnosis.implicated_functions_at_head
-        assert implicated_functions is not None
-        assert self.report.call_stack_trace
-
-        logger.debug(f"implicated_functions: {len(implicated_functions)}")
-
-        # filter the stack trace to only those functions that are implicated
-        stack_trace = self.report.call_stack_trace
-        stack_trace = stack_trace.restrict_to_functions(implicated_functions)
-        logger.debug(f"filtered stack trace: {stack_trace}")
-
-        # find the set of localized functions
-        functions_in_trace = stack_trace.functions()
-        functions_to_repair = [
-            f for f in implicated_functions if f.name in functions_in_trace
-        ]
-        logger.debug(f"localized_functions: {len(functions_to_repair)}")
 
         diffs: list[Diff] = []
-        for function in functions_to_repair:
-            diffs += self._generate_for_function(function, stack_trace)
+        implicated_functions = self.diagnosis.implicated_functions_at_head
+        if implicated_functions is not None and self.report.call_stack_trace:
+            logger.debug(f"implicated_functions: {len(implicated_functions)}")
+
+            # filter the stack trace to only those functions that are implicated
+            stack_trace = self.report.call_stack_trace
+            stack_trace = stack_trace.restrict_to_functions(implicated_functions)
+            logger.debug(f"filtered stack trace: {stack_trace}")
+
+            # find the set of localized functions
+            functions_in_trace = stack_trace.functions()
+            functions_to_repair = [
+               f for f in implicated_functions if f.name in functions_in_trace
+            ]
+            logger.debug(f"localized_functions: {len(functions_to_repair)}")
+
+            for function in functions_to_repair:
+                diffs += self._generate_for_function(function, stack_trace)
         return diffs

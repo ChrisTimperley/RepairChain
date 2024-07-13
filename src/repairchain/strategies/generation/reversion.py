@@ -35,8 +35,9 @@ class ConflictStrategy(enum.StrEnum):
 class MinimalPatchReversion(PatchGenerationStrategy):
     project: Project
 
+    @classmethod
     @overrides
-    def applies(self) -> bool:
+    def applies(cls, _: Diagnosis) -> bool:
         return True
 
     @classmethod

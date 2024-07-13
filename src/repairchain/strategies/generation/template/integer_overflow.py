@@ -33,9 +33,10 @@ class IntegerOverflowStrategy(TemplateGenerationStrategy):
             llm=LLM.from_settings(diagnosis.project.settings),
         )
 
+    @classmethod
     @overrides
-    def applies(self) -> bool:
-        match self.report.bug_type:
+    def applies(cls, diagnosis: Diagnosis) -> bool:
+        match diagnosis.sanitizer_report.bug_type:
             case BugType.INTEGER_OVERFLOW_OR_WRAPAROUND:
                 pass
             case BugType.UNSIGNED_INTEGER_OVERFLOW:
@@ -44,16 +45,20 @@ class IntegerOverflowStrategy(TemplateGenerationStrategy):
                 pass
             case _:
                 return False
-        location = self._get_error_location()
+        location = cls._get_error_location(diagnosis)
         return location is not None
 
     @overrides
     def run(self) -> list[Diff]:
+        if not self.applies(self.diagnosis):
+            return []
+
         diffs: list[Diff] = []
         helper = CodeHelper(self.llm)
-        location = self._get_error_location()
+        location = self._get_error_location(self.diagnosis)
         head_index = self.diagnosis.index_at_head
         assert head_index is not None
+        assert location is not None
         stmts = head_index.statements.at_line(location.file_line)
         for stmt in stmts:
             stmt_loc = FileLocation(stmt.location.filename, stmt.location.start)

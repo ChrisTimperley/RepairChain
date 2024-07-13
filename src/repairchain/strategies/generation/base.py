@@ -16,8 +16,9 @@ if t.TYPE_CHECKING:
 class PatchGenerationStrategy(abc.ABC):
     diagnosis: Diagnosis
 
+    @classmethod
     @abc.abstractmethod
-    def applies(self) -> bool:
+    def applies(cls, diagnosis: Diagnosis) -> bool:
         raise NotImplementedError
 
     @abc.abstractmethod

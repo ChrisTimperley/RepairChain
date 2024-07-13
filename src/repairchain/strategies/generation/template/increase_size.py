@@ -114,9 +114,10 @@ class IncreaseSizeStrategy(TemplateGenerationStrategy):
             repls.append(self.diagnosis.project.sources.replacements_to_diff([repl2]))
         return repls
 
+    @classmethod
     @overrides
-    def applies(self) -> bool:
-        match self.diagnosis.bug_type:
+    def applies(cls, diagnosis: Diagnosis) -> bool:
+        match diagnosis.bug_type:
             case BugType.ARRAY_OOB:
                 pass
             case BugType.OUT_OF_BOUNDS_READ:
@@ -125,7 +126,7 @@ class IncreaseSizeStrategy(TemplateGenerationStrategy):
                 pass
             case _:
                 return False
-        match self.report.sanitizer:
+        match diagnosis.sanitizer_report.sanitizer:
             case Sanitizer.KASAN:
                 pass
             case Sanitizer.KFENCE:
@@ -136,12 +137,12 @@ class IncreaseSizeStrategy(TemplateGenerationStrategy):
                 pass
             case _:
                 return False
-        location = self._get_error_location()
+        location = cls._get_error_location(diagnosis)
         if location is None:
             return False
         if not location.has_line_info:
             return False
-        head_index = self.diagnosis.index_at_head
+        head_index = diagnosis.index_at_head
         assert head_index is not None
         assert location.lineno is not None
         assert location.filename is not None
@@ -152,9 +153,10 @@ class IncreaseSizeStrategy(TemplateGenerationStrategy):
 
     @overrides
     def run(self) -> list[Diff]:
-        if not self.applies():
+        if not self.applies(self.diagnosis):
             return []
-        location = self._get_error_location()
+
+        location = self._get_error_location(self.diagnosis)
         head_index = self.diagnosis.index_at_head
         assert head_index is not None
 

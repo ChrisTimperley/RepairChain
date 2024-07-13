@@ -28,39 +28,43 @@ class InitializeMemoryStrategy(TemplateGenerationStrategy):
             llm=LLM.from_settings(diagnosis.project.settings),
         )
 
+    @classmethod
     @overrides
-    def applies(self) -> bool:
-        match self.report.bug_type:
+    def applies(cls, diagnosis: Diagnosis) -> bool:
+        match diagnosis.sanitizer_report.bug_type:
             case BugType.INVALID_FREE:
                 pass
             case BugType.LOAD_UNINIT_VALUE:
                 pass
             case _:
                 return False
-        location = self._get_error_location()
+        location = cls._get_error_location(diagnosis)
         return location is not None
 
     @overrides
     def run(self) -> list[Diff]:
-        location = self._get_error_location()
+        if not self.applies(self.diagnosis):
+            return []
+
+        repls: list[Diff] = []
+
+        location = self._get_error_location(self.diagnosis)
 
         helper = CodeHelper(self.llm)
         head_index = self.diagnosis.index_at_head
-        assert head_index is not None
-        assert location is not None
-        stmts_at_error_location = head_index.statements.at_line(location.file_line)
-        repls: list[Diff] = []
+        if head_index is not None and location is not None:
+            stmts_at_error_location = head_index.statements.at_line(location.file_line)
 
-        for stmt in stmts_at_error_location:
-            stmt_loc = FileLocation(stmt.location.filename, stmt.location.start)
-            fn = head_index.functions.encloses(stmt_loc)
-            if fn is not None:
-                fn_src = self._fn_to_text(fn)
-                output = helper.help_with_memory_initialization(fn_src, stmt.content)
-                if output is not None:
-                    for line in output.code:
-                        combine = line.line + "\n" + stmt.content
-                        repl = Replacement(stmt.location, combine)
-                        repls.append(self.diagnosis.project.sources.replacements_to_diff([repl]))
+            for stmt in stmts_at_error_location:
+                stmt_loc = FileLocation(stmt.location.filename, stmt.location.start)
+                fn = head_index.functions.encloses(stmt_loc)
+                if fn is not None:
+                    fn_src = self._fn_to_text(fn)
+                    output = helper.help_with_memory_initialization(fn_src, stmt.content)
+                    if output is not None:
+                        for line in output.code:
+                            combine = line.line + "\n" + stmt.content
+                            repl = Replacement(stmt.location, combine)
+                            repls.append(self.diagnosis.project.sources.replacements_to_diff([repl]))
 
         return repls

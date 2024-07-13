@@ -87,16 +87,17 @@ class YoloLLMStrategy(PatchGenerationStrategy):
     files: dict[str, str]
     number_patches: int
 
+    @classmethod
     @overrides
-    def applies(self) -> bool:
+    def applies(cls, diagnosis: Diagnosis) -> bool:
         """Returns whether the diagnosis has sufficient information for LLM repair."""
-        if self.diagnosis.implicated_functions_at_head is None:
+        if diagnosis.implicated_functions_at_head is None:
             return False
-        if self.diagnosis.implicated_functions_at_crash_version is None:
+        if diagnosis.implicated_functions_at_crash_version is None:
             return False
-        if self.diagnosis.index_at_head is None:
+        if diagnosis.index_at_head is None:
             return False
-        if self.diagnosis.index_at_crash_version is None:  # noqa: SIM103
+        if diagnosis.index_at_crash_version is None:  # noqa: SIM103
             return False
         return True
 
@@ -368,7 +369,7 @@ class YoloLLMStrategy(PatchGenerationStrategy):
         return self._query_llm(messages)
 
     def run(self) -> list[Diff]:
-        if not self.applies():
+        if not self.applies(self.diagnosis):
             logger.warning("skipping yolo repair strategy (diagnosis is incomplete)")
             return []
 

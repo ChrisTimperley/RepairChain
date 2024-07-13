@@ -29,32 +29,35 @@ class TemplateGenerationStrategy(PatchGenerationStrategy):
         source_version = project.sources.source(filename)
         return source_version.read_chars(fn.location.location_range)
 
-    def _get_error_location(self) -> StackFrame:
-        location = self.report.error_location
-        assert location is not None
-        if not location.has_lineno():
-            # FIXME: I think this can only happen when things aren't symbolized
+    @classmethod
+    def _get_error_location(cls, diagnosis: Diagnosis) -> StackFrame | None:
+        location = diagnosis.sanitizer_report.error_location
+        if location is None or not location.has_lineno():
+            # FIXME: I think the latter can only happen when things aren't symbolized
             # punting for now
-            return location
+            return None
+
         if location.has_funcname() and not location.has_filename():  # common
             # a complete location has a filename, funcname, and lineno
             # not uncommon to have a function name but no filename
             # if we have the function name but no line number, can cross check with the
             # commit history, maybe???
-            implicated_functions = self.diagnosis.implicated_functions_at_head
+            implicated_functions = diagnosis.implicated_functions_at_head
             assert implicated_functions is not None
             for function in implicated_functions:
                 if function.name == location.funcname:
                     location.filename = function.filename
                     return location
             # if that didn't work, try the nuclear option
-            index = self.diagnosis.index_at_head
+            index = diagnosis.index_at_head
             assert index is not None
             for function in index.functions:
                 if function.name == location.funcname:
                     location.filename = function.filename
                     return location
-        return location
+        if location.has_funcname() and location.has_filename():
+            return location
+        return None
 
     def _get_potential_declarations(self,
                                     vars_of_interest: frozenset[str]) -> list[tuple[kaskara.statements.Statement,
