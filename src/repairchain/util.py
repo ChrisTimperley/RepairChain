@@ -14,6 +14,26 @@ from loguru import logger
 T = t.TypeVar("T")
 
 
+def strip_prefix(string: str, prefix: str) -> str:
+    """Strips a given prefix from a provided string if it exists.
+
+    Parameters
+    ----------
+    string: str
+        the string to strip the prefix from
+    prefix: str
+        the prefix to strip
+
+    Returns
+    -------
+    str
+        the string with the prefix removed
+    """
+    if string.startswith(prefix):
+        return string[len(prefix):]
+    return string
+
+
 def to_set(inp: t.Sequence[T]) -> set[int]:
     """Convert inp into a set of indices."""
     return set(range(len(inp)))

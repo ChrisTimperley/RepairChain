@@ -32,6 +32,8 @@ class Settings:
         The maximum time in seconds to allow for the entire repair process.
     build_time_limit: int
         The maximum time in seconds to allow for building a container.
+    clean_build_time_limit: int
+        The maximum time in seconds to allow for doing a clean build.
     regression_time_limit: int
         The maximum time in seconds to allow for running regression tests.
     pov_time_limit: int
@@ -58,6 +60,7 @@ class Settings:
     cache_evaluations_to_file: Path | None = field(default=None)
     cache_index_to_file: Path | None = field(default=None)
     build_time_limit: int = field(default=120)
+    clean_build_time_limit: int = field(default=3600)
     regression_time_limit: int = field(default=120)
     pov_time_limit: int = field(default=60)
     litellm_url: str = field(default="http://0.0.0.0:4000")
@@ -110,6 +113,7 @@ class Settings:
         fetch_int("workers", "REPAIRCHAIN_WORKERS", default=1)
         fetch_int("time_limit", "REPAIRCHAIN_TIME_LIMIT", default=3600)
         fetch_int("build_time_limit", "REPAIRCHAIN_BUILD_TIME_LIMIT", default=120)
+        fetch_int("clean_build_time_limit", "REPAIRCHAIN_CLEAN_BUILD_TIME_LIMIT", default=3600)
         fetch_int("regression_time_limit", "REPAIRCHAIN_REGRESSION_TIME_LIMIT", default=120)
         fetch_int("pov_time_limit", "REPAIRCHAIN_POV_TIME_LIMIT", default=60)
         fetch_bool("stop_early", "REPAIRCHAIN_STOP_EARLY", default=True)
