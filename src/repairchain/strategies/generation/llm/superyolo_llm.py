@@ -10,7 +10,6 @@ from openai.types.chat import (
     ChatCompletionSystemMessageParam,
     ChatCompletionUserMessageParam,
 )
-from overrides import overrides
 
 from repairchain.actions import commit_to_diff
 from repairchain.models.diff import Diff
@@ -151,7 +150,6 @@ class SuperYoloLLMStrategy(PatchGenerationStrategy):
     whole_file: bool
 
     @classmethod
-    @overrides
     def applies(cls, diagnosis: Diagnosis) -> bool:  # noqa: ARG003
         return True
 
