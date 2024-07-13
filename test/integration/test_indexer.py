@@ -10,9 +10,12 @@ if t.TYPE_CHECKING:
 # @pytest.mark.skip(reason="This test is too slow")
 def test_incremental_functions_at_head(
     example_project_factory,
+    test_settings,
     log_kaskara,
 ) -> None:
-    with example_project_factory("nginx") as project:
+    settings = test_settings
+    settings.workers = 4
+    with example_project_factory("nginx", settings) as project:
         indexer: KaskaraIndexer = project.indexer
 
         f1 = "src/core/nginx.c"
@@ -38,10 +41,13 @@ def test_incremental_functions_at_head(
 
 @pytest.mark.skip(reason="This test is too slow")
 def test_index_linux(
+    test_settings,
     example_project_factory,
     log_kaskara,
 ) -> None:
-    with example_project_factory("linux") as project:
+    settings = test_settings
+    settings.workers = 8
+    with example_project_factory("linux", settings) as project:
         indexer: KaskaraIndexer = project.indexer
         files = [
             "net/tipc/crypto.c",
