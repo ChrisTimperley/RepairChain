@@ -34,9 +34,12 @@ class BoundsCheckStrategy(TemplateGenerationStrategy):
         # Caveat: CLG THINKS this is all the conditions
         if self.diagnosis.implicated_functions_at_head is None:
             return False
-        if not self.diagnosis.sanitizer_report.call_stack_trace:
+        if not self.report.call_stack_trace:
             return False
-        match self.diagnosis.sanitizer_report.sanitizer:
+        match self.report.sanitizer:
+            # CLG is not sure this sanitizer-specific handling
+            # is appropriate/fully necessary, but there's probably
+            # no harm in being defensive.
             case Sanitizer.MEMSAN:
                 return False
             case Sanitizer.JAZZER:
