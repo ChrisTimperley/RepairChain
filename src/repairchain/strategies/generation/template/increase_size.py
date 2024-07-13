@@ -14,10 +14,22 @@ from repairchain.strategies.generation.llm.helper_code import CodeHelper
 from repairchain.strategies.generation.llm.llm import LLM
 from repairchain.strategies.generation.template.base import TemplateGenerationStrategy
 
+TEMPLATE_DECREASE_VAR1 = """
+{varname} = {varname} - 1;
+{stmt_code}
+"""
+
+TEMPLATE_DECREASE_VAR2 = """
+{varname} = 0;
+{stmt_code}
+"""
+
 
 @dataclass
 class IncreaseSizeStrategy(TemplateGenerationStrategy):
     """Suitable for array oob, outofboundsread, out of bounds write.
+
+    Array handling is poor.
 
     These can come from: KASAN, KFENCE, ASAN, UBSAN, though UBSAN is only array oob.
     Template options are to (1) increase the size at declaration, (2) decrease the access.
@@ -31,9 +43,9 @@ class IncreaseSizeStrategy(TemplateGenerationStrategy):
 
     def _get_variables(self,
                         stmt: kaskara.statements.Statement,
-                        diagnosis: Diagnosis) -> frozenset[str]:
+                       ) -> frozenset[str]:
         vars_read: frozenset[str] = frozenset([])
-        head_index = diagnosis.index_at_head
+        head_index = self.diagnosis.index_at_head
         assert head_index is not None
         # TODO: filter variables by type to cut it down
         if isinstance(stmt, kaskara.clang.analysis.ClangStatement):
@@ -52,15 +64,14 @@ class IncreaseSizeStrategy(TemplateGenerationStrategy):
             llm=LLM.from_settings(diagnosis.project.settings),
         )
 
-    def _generate_for_statement(
+    def _generate_new_declarations(
         self,
         stmt: kaskara.statements.Statement,
-        llm: LLM,
     ) -> list[Diff]:
 
         # this statement should be a declaration statement, so all we need to do
         # is get a new one and replace it
-        helper = CodeHelper(llm)
+        helper = CodeHelper(self.llm)
         head_index = self.diagnosis.index_at_head
         assert head_index is not None
 
@@ -73,6 +84,33 @@ class IncreaseSizeStrategy(TemplateGenerationStrategy):
         for line in output.code:
             repl = Replacement(stmt.location, line.line)
             repls.append(self.diagnosis.project.sources.replacements_to_diff([repl]))
+        return repls
+
+    def _generate_decrease_access(
+        self,
+        stmt: kaskara.statements.Statement,
+        vars_of_interest: frozenset[str],
+    ) -> list[Diff]:
+        # current statement is at the error location
+        # set a read variable to 0, or itself -1
+        # prepend to error location
+        repls: list[Diff] = []
+
+        head_index = self.diagnosis.index_at_head
+        assert head_index is not None
+        for varname in vars_of_interest:
+            new_code1 = TEMPLATE_DECREASE_VAR1.format(
+                        varname=varname,
+                        code=stmt.content,
+                    )
+            new_code2 = TEMPLATE_DECREASE_VAR2.format(
+                        varname=varname,
+                        code=stmt.content,
+                    )
+            repl1 = Replacement(stmt.location, new_code1)
+            repl2 = Replacement(stmt.location, new_code2)
+            repls.append(self.diagnosis.project.sources.replacements_to_diff([repl1]))  # noqa: FURB113
+            repls.append(self.diagnosis.project.sources.replacements_to_diff([repl2]))
         return repls
 
     @overrides
@@ -93,10 +131,16 @@ class IncreaseSizeStrategy(TemplateGenerationStrategy):
         # accesses = [(stmt, fn, location.file_line, file_contents) for stmt in access]
 
         vars_of_interest: frozenset[str] = frozenset([])
-        for statement in head_index.statements.at_line(location.file_line):
-            vars_of_interest = vars_of_interest.union(self._get_variables(statement, self.diagnosis))
-        stmts = self._get_potential_declarations(vars_of_interest)
+        stmts_at_error_location = head_index.statements.at_line(location.file_line)
+        for statement in stmts_at_error_location:
+            vars_of_interest = vars_of_interest.union(self._get_variables(statement))
 
-        diffs = [self._generate_for_statement(stmt[0], self.llm) for stmt in stmts]
+        # increase size of declaration
+        stmts = [stmt[0] for stmt in self._get_potential_declarations(vars_of_interest)]
+        diffs = [self._generate_new_declarations(stmt) for stmt in stmts]
+        # decrease potential accesses
+        # this is actually kind of a wasteful way to do this, should just go one statement, var
+        # at a time instead of unioning them.  But, will fix later.
 
+        diffs += [self._generate_decrease_access(stmt, vars_of_interest) for stmt in stmts]
         return list(itertools.chain(*diffs))
