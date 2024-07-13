@@ -50,9 +50,6 @@ class IntegerOverflowStrategy(TemplateGenerationStrategy):
 
     @overrides
     def run(self) -> list[Diff]:
-        if not self.applies(self.diagnosis):
-            return []
-
         diffs: list[Diff] = []
         helper = CodeHelper(self.llm)
         location = self._get_error_location(self.diagnosis)

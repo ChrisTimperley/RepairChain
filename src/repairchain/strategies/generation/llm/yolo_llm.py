@@ -369,10 +369,6 @@ class YoloLLMStrategy(PatchGenerationStrategy):
         return self._query_llm(messages)
 
     def run(self) -> list[Diff]:
-        if not self.applies(self.diagnosis):
-            logger.warning("skipping yolo repair strategy (diagnosis is incomplete)")
-            return []
-
         summary: ReportSummary = ReportSummary(self.model)
         code_summary: list[FunctionSummary] | None = None
         if self.use_report:

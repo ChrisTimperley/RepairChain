@@ -106,9 +106,6 @@ class BoundsCheckStrategy(TemplateGenerationStrategy):
 
     @overrides
     def run(self) -> list[Diff]:
-        if not self.applies(self.diagnosis):
-            return []
-
         diffs: list[Diff] = []
         implicated_functions = self.diagnosis.implicated_functions_at_head
         if implicated_functions is not None and self.report.call_stack_trace:

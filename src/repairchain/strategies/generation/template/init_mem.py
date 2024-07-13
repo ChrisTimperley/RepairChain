@@ -43,8 +43,6 @@ class InitializeMemoryStrategy(TemplateGenerationStrategy):
 
     @overrides
     def run(self) -> list[Diff]:
-        if not self.applies(self.diagnosis):
-            return []
 
         repls: list[Diff] = []
 

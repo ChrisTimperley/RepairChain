@@ -21,10 +21,10 @@ if t.TYPE_CHECKING:
     from repairchain.strategies.generation import PatchGenerationStrategy
 
 
-available_template_strategies = [BoundsCheckStrategy,
-                                 IncreaseSizeStrategy,
-                                 InitializeMemoryStrategy,
-                                 IntegerOverflowStrategy]
+available_templates = [BoundsCheckStrategy,
+                        IncreaseSizeStrategy,
+                        InitializeMemoryStrategy,
+                        IntegerOverflowStrategy]
 
 
 def determine_patch_generation_strategy(
@@ -74,7 +74,7 @@ def determine_patch_generation_strategy(
 
     if settings.enable_template_repair:
         logger.info("attempting template repair strategies")
-        strategies += [template_strategy.build(diagnosis) for template_strategy in available_template_strategies]
+        strategies += [tstrat.build(diagnosis) for tstrat in available_templates if tstrat.applies(diagnosis)]
     else:
         logger.info("skipping template repair strategy (disabled)")
 

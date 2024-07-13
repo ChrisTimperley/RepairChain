@@ -153,8 +153,6 @@ class IncreaseSizeStrategy(TemplateGenerationStrategy):
 
     @overrides
     def run(self) -> list[Diff]:
-        if not self.applies(self.diagnosis):
-            return []
 
         location = self._get_error_location(self.diagnosis)
         head_index = self.diagnosis.index_at_head
