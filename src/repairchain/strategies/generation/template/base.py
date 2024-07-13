@@ -49,14 +49,20 @@ class TemplateGenerationStrategy(PatchGenerationStrategy):
             # if we have the function name but no line number, can cross check with the
             # commit history, maybe???
             implicated_functions = diagnosis.implicated_functions_at_head
-            assert implicated_functions is not None
+            if implicated_functions is None:
+                logger.warning("unexpectedly incomplete diagnosis in template generation error location")
+                return None
+
             for function in implicated_functions:
                 if function.name == location.funcname:
                     location.filename = function.filename
                     return location
             # if that didn't work, try the nuclear option
             index = diagnosis.index_at_head
-            assert index is not None
+            if index is None:
+                logger.warning("unexpectedly incomplete diagnosis in template generation error location")
+                return None
+
             for function in index.functions:
                 if function.name == location.funcname:
                     location.filename = function.filename
@@ -73,7 +79,9 @@ class TemplateGenerationStrategy(PatchGenerationStrategy):
         # look for it in the allocation stack
         # array - take whatever's in the bracket and mod it with the size
         head_index = self.diagnosis.index_at_head
-        assert head_index is not None
+        if head_index is None:
+            logger.warning("Unexpected empty head index in template generation.")
+            return []
 
         allocated_stack = self.report.alloc_stack_trace
         declaring_stmts: list[tuple[kaskara.statements.Statement,
@@ -87,7 +95,8 @@ class TemplateGenerationStrategy(PatchGenerationStrategy):
                     as_loc = FileLocation(frame.filename, baseloc)
                     fn = head_index.functions.encloses(as_loc)
                     # FIXME: need kaskara to index on demand for this to work.
-                    assert fn is not None
+                    if fn is None:
+                        return []
                     file_contents = get_file_contents_at_commit(
                         self.diagnosis.project.repository.active_branch.commit,
                         fn.filename,
