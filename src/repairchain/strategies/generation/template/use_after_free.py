@@ -17,7 +17,6 @@ class UseAfterFreeStrategy(TemplateGenerationStrategy):
     functions_to_repair: list[kaskara.functions.Function]
     stack_trace: StackTrace
 
-
     @overrides
     @classmethod
     def applies(cls, _: Diagnosis) -> bool:

@@ -2,9 +2,6 @@ from __future__ import annotations
 
 from repairchain.strategies.generation.llm.superyolo_llm import SuperYoloLLMStrategy
 from repairchain.strategies.generation.llm.yolo_llm import YoloLLMStrategy
-from repairchain.strategies.generation.template.increase_size import IncreaseSizeStrategy
-from repairchain.strategies.generation.template.init_mem import InitializeMemoryStrategy
-from repairchain.strategies.generation.template.integer_overflow import IntegerOverflowStrategy
 
 __all__ = ("determine_patch_generation_strategy",)
 
@@ -12,7 +9,6 @@ import typing as t
 
 from loguru import logger
 
-from repairchain.models.bug_type import BugType
 from repairchain.strategies.generation.reversion import MinimalPatchReversion
 from repairchain.strategies.generation.sequence import SequenceStrategy
 from repairchain.strategies.generation.template.bounds_check import BoundsCheckStrategy
@@ -25,6 +21,7 @@ available_templates = [BoundsCheckStrategy]
 #                        IncreaseSizeStrategy]
 #                        InitializeMemoryStrategy,]
 #                        IntegerOverflowStrategy]
+
 
 def determine_patch_generation_strategy(
     diagnosis: Diagnosis,
