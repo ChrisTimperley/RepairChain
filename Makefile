@@ -15,7 +15,7 @@ examples:
 	make -C examples
 
 test:
-	poetry run pytest test test/unit
+	poetry run pytest test/unit
 
 fix:
 	poetry run ruff check --preview --fix src
