@@ -158,7 +158,8 @@ class Util:
     @staticmethod
     def strip_diff(line: str, prefix: str) -> str:
         if line.startswith(prefix):
-            return line[1:]
+            prefix_length = len(prefix)
+            return line[prefix_length:]
         return line
 
     @staticmethod
@@ -211,6 +212,7 @@ class Util:
         patch_original_lines_stripped = [s.replace(" ", "") for s in patch_original_lines]
         original_lines_stripped = [s.replace(" ", "") for s in original_lines]
 
+        # not sure if this normalization is needed
         patch_original_lines_stripped = [unicodedata.normalize("NFKD", s) for s in patch_original_lines_stripped]
         original_lines_stripped = [unicodedata.normalize("NFKD", s) for s in original_lines_stripped]
 
