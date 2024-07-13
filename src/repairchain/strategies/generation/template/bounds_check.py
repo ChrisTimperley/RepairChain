@@ -30,6 +30,7 @@ class BoundsCheckStrategy(TemplateGenerationStrategy):
     llm: LLM
 
     @classmethod
+    @overrides
     def applies(cls, diagnosis: Diagnosis) -> bool:
         match diagnosis.bug_type:
             case BugType.OUT_OF_BOUNDS_READ:

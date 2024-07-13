@@ -115,6 +115,7 @@ class IncreaseSizeStrategy(TemplateGenerationStrategy):
         return repls
 
     @classmethod
+    @overrides
     def applies(cls, diagnosis: Diagnosis) -> bool:
         match diagnosis.bug_type:
             case BugType.ARRAY_OOB:
