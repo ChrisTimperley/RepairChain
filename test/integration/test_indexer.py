@@ -1,6 +1,7 @@
 import typing as t
 
 import pytest
+from dockerblade.stopwatch import Stopwatch
 
 if t.TYPE_CHECKING:
     from repairchain.indexer import KaskaraIndexer
@@ -25,6 +26,14 @@ def test_incremental_functions_at_head(
         f3 = "src/core/ngx_parse.c"
         functions_in_f3 = indexer.functions(f3)
         assert len(functions_in_f3) > 0
+
+        time_to_fetch_from_cache = 3.0
+        with Stopwatch() as timer:
+            analysis = indexer.run(version=project.head, restrict_to_files=[f1, f2, f3])
+            assert f1 in analysis.files
+            assert f2 in analysis.files
+            assert f3 in analysis.files
+            assert timer.duration < time_to_fetch_from_cache
 
 
 @pytest.mark.skip(reason="This test is too slow")
