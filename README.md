@@ -14,6 +14,12 @@ After running the above, you will need to create files `.openapi.key` and `.anth
 
 ## Examples
 
+To install all of the examples:
+
+```
+make examples
+```
+
 To run an end-to-end example of RepairChain, run the following:
 
 ```shell
@@ -63,6 +69,8 @@ poetry run repairchain repair --help
 | `REPAIRCHAIN_ENABLE_REVERSION_REPAIR` | `true` | enables (or disables) minimal reversation patching strategy |
 | `REPAIRCHAIN_ENABLE_YOLO_REPAIR` | `true` | enables (or disables) LLM-based patching strategies |
 | `REPAIRCHAIN_ENABLE_TEMPLATE_REPAIR` | `true` | enables (or disables) template-based patching strategies |
+| `REPAIRCHAIN_LOG_TO_FILE` |  `` | if specified, writes a log to a given file |
+| `REPAIRCHAIN_GENERATE_COMPILE_COMMANDS` | `true` | enables (or disables) the generation of compile_commands.json via bear |
 | `LITELLM_MODEL` | `oai-gpt-4o` | specifies the model that should be used by YOLO |
 
 ## Input Format

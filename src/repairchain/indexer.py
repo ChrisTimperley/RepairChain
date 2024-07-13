@@ -6,6 +6,7 @@ import contextlib
 import pickle  # noqa: S403
 import typing as t
 from dataclasses import dataclass, field
+from pathlib import Path
 
 import kaskara
 import kaskara.clang.analyser
@@ -13,11 +14,11 @@ from dockerblade.stopwatch import Stopwatch
 from loguru import logger
 
 if t.TYPE_CHECKING:
-    from pathlib import Path
-
     import git
 
     from repairchain.models.project import Project
+
+COMPILE_COMMANDS_PATH = Path("/compile_commands.json")
 
 
 @dataclass
@@ -85,6 +86,15 @@ class KaskaraIndexer:
         restrict_to_files: list[str],
     ) -> t.Iterator[kaskara.analyser.Analyser]:
         project = self.project
+        settings = project.settings
+
+        # if we're running a C-based project, we need to convert files to abs paths
+        if project.kind in {"c", "kernel"}:
+            restrict_to_files = [
+                str(project.docker_repository_path / file)
+                for file in restrict_to_files
+            ]
+
         kaskara_project = kaskara.Project(
             dockerblade=project.docker_daemon,
             image=project.image,
@@ -95,6 +105,26 @@ class KaskaraIndexer:
         logger.debug(f"using kaskara project: {kaskara_project}")
 
         with project.provision(version=version) as container:
+            # for C-based projects:
+            # we require compile_commands.json to be located at the root of the container
+            need_compile_commands = False
+
+            if project.kind in {"c", "kernel"}:
+                if container.exists(COMPILE_COMMANDS_PATH):
+                    logger.info(f"found compile_commands.json: {COMPILE_COMMANDS_PATH}")
+                else:
+                    logger.warning(f"missing compile_commands.json: {COMPILE_COMMANDS_PATH}")
+                    need_compile_commands = True
+
+            if need_compile_commands and settings.generate_compile_commands:
+                logger.info("generating compile_commands.json ...")
+                container.clean()
+                container.build(prefix="bear")
+                if not container.exists(COMPILE_COMMANDS_PATH):
+                    logger.warning(f"failed to generate compile_commands.json: {COMPILE_COMMANDS_PATH}")
+                else:
+                    logger.info(f"generated compile_commands.json: {COMPILE_COMMANDS_PATH}")
+
             kaskara_container = kaskara_project.attach(container.id_)
 
             analyzer: kaskara.analyser.Analyser
@@ -102,6 +132,7 @@ class KaskaraIndexer:
                 analyzer = kaskara.clang.analyser.ClangAnalyser(
                     _container=kaskara_container,
                     _project=kaskara_project,
+                    _workdir="/",
                 )
             elif project.kind == "java":
                 analyzer = kaskara.spoon.analyser.SpoonAnalyser(
@@ -145,28 +176,49 @@ class KaskaraIndexer:
         filename: str | Path,
         version: git.Commit | None = None,
     ) -> kaskara.analysis.ProgramFunctions | None:
-        raise NotImplementedError
+        if isinstance(filename, Path):
+            filename = str(filename)
+        analysis = self.run(version=version, restrict_to_files=[filename])
+        return analysis.functions.in_file(filename)
 
     def statements(
         self,
         filename: str | Path,
         version: git.Commit | None = None,
     ) -> kaskara.analysis.ProgramStatements | None:
-        raise NotImplementedError
+        if isinstance(filename, Path):
+            filename = str(filename)
+        analysis = self.run(version=version, restrict_to_files=[filename])
+        return analysis.statements.in_file(filename)
 
     def run(
         self,
         version: git.Commit | None,
         restrict_to_files: list[str],
     ) -> kaskara.analysis.Analysis:
+        if not restrict_to_files:
+            error = "no files were supplied to be indexed"
+            raise ValueError(error)
+
+        files_to_index = set(restrict_to_files)
+
         if version is None:
             version = self.project.head
 
-        analysis = self.cache.get(version)
-        if analysis is not None:
+        # what files do we still need to analyze?
+        if cached_analysis := self.cache.get(version):
             logger.debug(f"kaskara cache hit: {version}")
-            return analysis
+            files_to_index = files_to_index.difference(cached_analysis.files)
+            if not files_to_index:
+                return cached_analysis
 
-        analysis = self._index(version, restrict_to_files)
-        self.cache.put(version, analysis)
-        return analysis
+            logger.debug(f"indexing files: {files_to_index}")
+            increment_analysis = self._index(version, list(files_to_index))
+            complete_analysis = cached_analysis.merge(increment_analysis)
+            self.cache.put(version, complete_analysis)
+            return complete_analysis
+
+        # compute from scratch
+        fresh_analysis = self._index(version, restrict_to_files)
+        self.cache.put(version, fresh_analysis)
+        return fresh_analysis

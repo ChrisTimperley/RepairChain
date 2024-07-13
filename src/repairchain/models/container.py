@@ -5,6 +5,7 @@ __all__ = ("ProjectContainer",)
 import contextlib
 import typing as t
 from dataclasses import dataclass
+from pathlib import Path
 
 import dockerblade
 from loguru import logger
@@ -126,21 +127,37 @@ class ProjectContainer:
             cwd=str(self.project.docker_repository_path),
         )
 
-    def build(self) -> None:
+    def build(
+        self,
+        *,
+        prefix: str | None = None,
+        cwd: str = "/",
+    ) -> None:
         """Attempts to build the project inside the container.
 
-        Raises
+        Arguments:
+        ---------
+        prefix: str | None
+            The prefix to prepend to the build command.
+            If :code:`None` is given, the project's build command is used as is.
+        cwd: str
+            The directory to run the build command in.
+
+        Raises:
         ------
         BuildFailure
             If the build fails.
         """
         time_limit = self.project.settings.build_time_limit
         command = self.project.build_command
+        if prefix is not None:
+            command = f"{prefix} {command}"
         try:
             self._shell.check_output(
                 command,
                 text=True,
                 time_limit=time_limit,
+                cwd=cwd,
             )
         except dockerblade.exceptions.CalledProcessError as err:
             assert err.output is not None  # noqa: PT017
@@ -152,6 +169,23 @@ class ProjectContainer:
                 message=output,
                 returncode=err.returncode,
             ) from err
+
+    def exists(self, path: str | Path) -> bool:
+        """Checks if a given path exists inside the container.
+
+        Arguments:
+        ---------
+        path : str | Path
+            The path to check.
+
+        Returns:
+        -------
+        bool
+            :code:`True` if the path exists, :code:`False` otherwise.
+        """
+        if isinstance(path, Path):
+            path = str(path)
+        return self._filesystem.exists(path)
 
     def run_regression_tests(self) -> bool:
         """Runs the project's regression tests and returns whether they pass."""

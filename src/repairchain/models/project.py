@@ -76,7 +76,7 @@ class Project:
             path = Path(path)
         with path.open("r") as file:
             dict_ = json.load(file)
-        with cls.from_dict(dict_, settings) as project:
+        with cls.from_dict(dict_, settings, path.parent.absolute()) as project:
             yield project
 
     @classmethod
@@ -85,18 +85,32 @@ class Project:
         cls,
         dict_: dict[str, t.Any],
         settings: Settings,
+        directory: Path,
     ) -> t.Iterator[t.Self]:
+        if not directory.is_dir():
+            message = f"directory does not exist: {directory}"
+            raise ValueError(message)
+
+        if not directory.is_absolute():
+            message = f"directory is not absolute: {directory}"
+            raise ValueError(message)
+
         kind = ProjectKind(dict_["project-kind"])
         image = dict_["image"]
 
         repository_paths = dict_["repository-path"]
         assert isinstance(repository_paths, dict)
         local_repository_path = Path(repository_paths["local"])
+        if not local_repository_path.is_absolute():
+            local_repository_path = directory / local_repository_path
+
         docker_repository_path = Path(repository_paths["docker"])
 
         triggering_commit_sha = dict_["triggering-commit"]
 
         pov_payload_path = Path(dict_["pov-payload-filename"])
+        if not pov_payload_path.is_absolute():
+            pov_payload_path = directory / pov_payload_path
 
         commands_dict = dict_["commands"]
         assert isinstance(commands_dict, dict)
@@ -107,6 +121,8 @@ class Project:
         clean_command = commands_dict["clean"]
 
         sanitizer_report_path = Path(dict_["sanitizer-report-filename"])
+        if not sanitizer_report_path.is_absolute():
+            sanitizer_report_path = directory / sanitizer_report_path
 
         with cls.build(
             build_command=build_command,
@@ -144,8 +160,11 @@ class Project:
         docker_url: str | None = None,
     ) -> t.Iterator[t.Self]:
         assert local_repository_path.is_dir()
+        assert local_repository_path.is_absolute()
         assert docker_repository_path.is_absolute()
+        assert sanitizer_report_path.is_absolute()
         assert sanitizer_report_path.is_file()
+        assert pov_payload_path.is_absolute()
         assert pov_payload_path.is_file()
         assert "__PAYLOAD_FILE__" in crash_command_template
 
