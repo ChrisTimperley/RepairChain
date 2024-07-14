@@ -142,6 +142,48 @@ class ProjectSources:
     def for_project(cls, project: Project) -> ProjectSources:
         return cls(project)
 
+    def exists(
+        self,
+        filename: Path | str,
+        version: git.Commit | None = None,
+    ) -> bool:
+        """Checks whether a given file exists in the repository.
+
+        Arguments:
+        ---------
+        filename: Path | str
+            The path to the file to check, relative to the root of the repository.
+        version: git.Commit | None
+            The version of the repository to check.
+            If None, the HEAD is used.
+
+        Returns:
+        -------
+        bool
+            Whether the file exists in the repository.
+
+        Raises:
+        ------
+        ValueError
+            If the given filename is not a relative path.
+        """
+        if version is None:
+            version = self.project.head
+
+        if isinstance(filename, str):
+            filename = Path(filename)
+
+        if not filename.is_absolute():
+            message = f"filename must be a relative path: {filename}"
+            raise ValueError(message)
+
+        try:
+            version.tree / str(filename)
+        except KeyError:
+            return False
+        else:
+            return True
+
     def source(
         self,
         filename: Path | str,
