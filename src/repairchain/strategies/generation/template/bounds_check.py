@@ -20,6 +20,7 @@ from repairchain.strategies.generation.template.base import TemplateGenerationSt
 if t.TYPE_CHECKING:
     import kaskara.functions
 
+    from repairchain.indexer import KaskaraIndexer
     from repairchain.models.diagnosis import Diagnosis
     from repairchain.models.diff import Diff
     from repairchain.models.sanitizer_report import StackTrace
@@ -39,7 +40,7 @@ class BoundsCheckStrategy(TemplateGenerationStrategy):
                 pass
             case _:
                 return False
-        if diagnosis.index_at_head is None or diagnosis.implicated_functions_at_head is None:
+        if diagnosis.implicated_functions_at_head is None:
             logger.warning("skipping template repair strategy (diagnosis is incomplete)")
             return False
         if diagnosis.sanitizer_report.call_stack_trace is None:
@@ -54,6 +55,7 @@ class BoundsCheckStrategy(TemplateGenerationStrategy):
             diagnosis=diagnosis,
             report=diagnosis.project.report,
             llm=LLM.from_settings(diagnosis.project.settings),
+            index=None,
         )
 
     def _generate_for_statement(
@@ -63,13 +65,12 @@ class BoundsCheckStrategy(TemplateGenerationStrategy):
         diffs: list[Diff] = []
         helper = CodeHelper(self.llm)
 
-        head_index = self.diagnosis.index_at_head
-        if head_index is None:
+        if self.index is None:
             logger.warning("Unexpected incomplete diagnosis in bounds check template.")
             return []
 
         stmt_loc = FileLocation(stmt.location.filename, stmt.location.start)
-        fn = head_index.functions.encloses(stmt_loc)
+        fn = self.index.functions.encloses(stmt_loc)
         if fn is not None:
             fn_src = self._fn_to_text(fn)
 
@@ -85,15 +86,13 @@ class BoundsCheckStrategy(TemplateGenerationStrategy):
     def _generate_for_function(self, function: kaskara.functions.Function, stack_trace: StackTrace) -> list[Diff]:
         diffs: list[Diff] = []
         logger.debug(f"generating bounds check repairs in function: {function}")
-        head_index = self.diagnosis.index_at_head
-        head_index = self.diagnosis.index_at_head
-        if head_index is None:
+        if self.index is None:
             logger.warning("Unexpected incomplete diagnosis in bounds check template.")
             return []
 
         for frame in stack_trace.restrict_to_function(function):
             if frame is not None and frame.file_line is not None:
-                for statement in head_index.statements.at_line(frame.file_line):
+                for statement in self.index.statements.at_line(frame.file_line):
                     diffs += self._generate_for_statement(statement)
 
         return diffs
@@ -109,13 +108,15 @@ class BoundsCheckStrategy(TemplateGenerationStrategy):
             stack_trace = self.report.call_stack_trace
             stack_trace = stack_trace.restrict_to_functions(implicated_functions)
             logger.debug(f"filtered stack trace: {stack_trace}")
-
+            indexer: KaskaraIndexer = self.diagnosis.project.indexer
             # find the set of localized functions
             functions_in_trace = stack_trace.functions()
             functions_to_repair = [
                f for f in implicated_functions if f.name in functions_in_trace
             ]
             logger.debug(f"localized_functions: {len(functions_to_repair)}")
+            self.index = indexer.run(version=self.diagnosis.project.head,
+                                     restrict_to_files=list(stack_trace.filenames()))
 
             for function in functions_to_repair:
                 diffs += self._generate_for_function(function, stack_trace)

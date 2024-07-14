@@ -12,6 +12,9 @@ from repairchain.strategies.generation.llm.helper_code import CodeHelper
 from repairchain.strategies.generation.llm.llm import LLM
 from repairchain.strategies.generation.template.base import TemplateGenerationStrategy
 
+if t.TYPE_CHECKING:
+    from repairchain.indexer import KaskaraIndexer
+
 TEMPLATE_SET_TO_MAX = """
 if({varname} > 2147483647) {
     {varname} = 2147483647;
@@ -31,6 +34,7 @@ class IntegerOverflowStrategy(TemplateGenerationStrategy):
         return cls(
             diagnosis=diagnosis,
             report=diagnosis.sanitizer_report,
+            index=None,
             llm=LLM.from_settings(diagnosis.project.settings),
         )
 
@@ -54,14 +58,19 @@ class IntegerOverflowStrategy(TemplateGenerationStrategy):
         diffs: list[Diff] = []
         helper = CodeHelper(self.llm)
         location = self._get_error_location(self.diagnosis)
-        head_index = self.diagnosis.index_at_head
-        if head_index is None or location is None or location.file_line is None:
+        if location is None or location.filename is None or location.file_line is None:
             return []
 
-        stmts = head_index.statements.at_line(location.file_line)
+        files_to_index = [location.filename]
+        files_to_index.extend(self.diagnosis.project.report.call_stack_trace.filenames())
+        indexer: KaskaraIndexer = self.diagnosis.project.indexer
+        self.index = indexer.run(version=self.diagnosis.project.head,
+                                     restrict_to_files=files_to_index)
+
+        stmts = self.index.statements.at_line(location.file_line)
         for stmt in stmts:
             stmt_loc = FileLocation(stmt.location.filename, stmt.location.start)
-            fn = head_index.functions.encloses(stmt_loc)
+            fn = self.index.functions.encloses(stmt_loc)
             if fn is None:
                 continue
             fn_src = self._fn_to_text(fn)

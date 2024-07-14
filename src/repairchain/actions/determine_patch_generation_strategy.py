@@ -21,9 +21,9 @@ if t.TYPE_CHECKING:
     from repairchain.strategies.generation import PatchGenerationStrategy
 
 available_templates = [BoundsCheckStrategy,
-                        IncreaseSizeStrategy,
-                        InitializeMemoryStrategy,
-                        IntegerOverflowStrategy]
+                       IncreaseSizeStrategy,
+                       InitializeMemoryStrategy,
+                       IntegerOverflowStrategy]
 
 
 def _build_yolo_strategies_with_kaskara_indices(
