@@ -118,7 +118,6 @@ def parse_report_generic(  # noqa: PLR0917
         extra_info = extra_info_find(line) if extra_info is None else extra_info
         loc_triggered = find_triggered_loc(line) if loc_triggered is None else loc_triggered
 
-        # FIXME: do I care to break early?  Possibly unimportant
         if processing_call_trace:
             stack_frame = parse_trace_ele(line)
             if stack_frame is not None:
@@ -430,3 +429,9 @@ class SanitizerReport:
 
         contents = path.read_text()
         return cls.from_report_text(contents)
+
+    def normalize_paths(self, path: Path) -> None:
+        self.alloc_stack_trace.normalize_file_paths(path)
+        self.call_stack_trace.normalize_file_paths(path)
+        if self.error_location is not None:
+            self.error_location.normalize_file_paths(path)
