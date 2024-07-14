@@ -159,10 +159,16 @@ class SuperYoloLLMStrategy(PatchGenerationStrategy):
     def build(
         cls,
         diagnosis: Diagnosis,
+        *,
+        model: str | None = None,
+        whole_file: bool = True,
     ) -> SuperYoloLLMStrategy:
         llm = LLM.from_settings(diagnosis.project.settings)
         diff = commit_to_diff.commit_to_diff(diagnosis.project.triggering_commit)
         files = commit_to_diff.commit_to_files(diagnosis.project.head, diff)
+
+        if model:
+            llm.model = model
 
         return cls(
             diagnosis=diagnosis,
@@ -171,16 +177,8 @@ class SuperYoloLLMStrategy(PatchGenerationStrategy):
             diff=diff,
             files=files,
             number_patches=Util.number_patches,
-            whole_file=True,
+            whole_file=whole_file,
         )
-
-    def _settings(self, model: str, whole_file: bool) -> None:
-        self._set_model(model)
-        self.whole_file = whole_file
-
-    def _set_model(self, model: str) -> None:
-        self.model = model
-        self.llm.model = model
 
     def _create_system_prompt_file(self) -> str:
         return """
