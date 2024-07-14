@@ -14,6 +14,17 @@ pushd "${PROJECT_DIR}" &> /dev/null
 
 JOBS=$2
 
+if [ "${JOBS}" -lt 1 ]; then
+    echo "Invalid number of jobs: ${JOBS}"
+    exit 1
+fi
+
+if [ "${JOBS}" -gt 1 ]; then
+    JOBS_ARG="-n ${JOBS}"
+else
+    JOBS_ARG=""
+fi
+
 if [ "$#" -lt 3 ]; then
     TARGETS="test/integration"
 else
@@ -30,7 +41,7 @@ if [ "${REBUILD}" = "true" ]; then
   echo "(re)built examples"
 fi
 
-run_litellm
+run_litellm &> /dev/null
 sleep 5
 
-poetry run pytest -n ${JOBS} test/integration
+poetry run pytest -vv --full-trace ${JOBS_ARG} ${TARGETS}
