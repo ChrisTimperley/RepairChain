@@ -19,8 +19,9 @@ from repairchain.strategies.generation.template.bounds_check import BoundsCheckS
 if t.TYPE_CHECKING:
     from repairchain.models.diagnosis import Diagnosis
     from repairchain.strategies.generation import PatchGenerationStrategy
+    from repairchain.strategies.generation.template.base import TemplateGenerationStrategy
 
-AVAILABLE_TEMPLATES = [BoundsCheckStrategy,
+AVAILABLE_TEMPLATES: list[type[TemplateGenerationStrategy]] = [BoundsCheckStrategy,
                        IncreaseSizeStrategy,
                        InitializeMemoryStrategy,
                        IntegerOverflowStrategy]

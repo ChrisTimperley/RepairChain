@@ -84,31 +84,33 @@ class TemplateGenerationStrategy(PatchGenerationStrategy):
             return []
 
         allocated_stack = self.report.alloc_stack_trace
+        if allocated_stack is None:
+            return []
+
         declaring_stmts: list[tuple[kaskara.statements.Statement,
                                     kaskara.functions.Function, FileLine,
                                     str]] = []
 
-        if allocated_stack is not None:
-            for frame in allocated_stack.frames:
-                if frame.filename is not None and frame.lineno is not None:
-                    baseloc = Location(frame.lineno, frame.offset if frame.offset is not None else 0)
-                    as_loc = FileLocation(frame.filename, baseloc)
-                    fn = self.index.functions.encloses(as_loc)
-                    if fn is None:
-                        return []
-                    file_contents = get_file_contents_at_commit(
+        for frame in allocated_stack.frames:
+            if frame.filename is None or frame.lineno is None or frame.file_line is None:
+                continue
+            baseloc = Location(frame.lineno, frame.offset if frame.offset is not None else 0)
+            as_loc = FileLocation(frame.filename, baseloc)
+            fn = self.index.functions.encloses(as_loc)
+            if fn is None:
+                continue
+            file_contents = get_file_contents_at_commit(
                         self.diagnosis.project.repository.active_branch.commit,
                         fn.filename,
                     )
-                    if frame.file_line is not None and self.index is not None:
-                        stmts = [(stmt, fn, frame.file_line, file_contents)
-                                  for stmt in self.index.statements
-                                    if isinstance(stmt, kaskara.clang.analysis.ClangStatement) and
-                                    len(vars_of_interest.intersection(stmt.declares)) > 0
-                                ]
-                        declaring_stmts.extend(stmts)
-            if len(declaring_stmts) == 0:
-                logger.info("No declaring statements found. returning empty list.")
+            stmts = [(stmt, fn, frame.file_line, file_contents)
+                        for stmt in self.index.statements
+                            if isinstance(stmt, kaskara.clang.analysis.ClangStatement) and
+                            len(vars_of_interest.intersection(stmt.declares)) > 0
+                    ]
+            declaring_stmts.extend(stmts)
+        if len(declaring_stmts) == 0:
+            logger.info("No declaring statements found. returning empty list.")
         return declaring_stmts
 
     @classmethod
