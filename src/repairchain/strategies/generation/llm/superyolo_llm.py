@@ -245,12 +245,11 @@ class SuperYoloLLMStrategy(PatchGenerationStrategy):
 
             llm_output = ""
             if self._prefill_check(self.model):
-                # observed that sometimes claude inserts the prefill again
                 llm_call = self.llm._simple_call_llm(messages)
                 if llm_call is None:
                     attempt += 1
                     continue
-                llm_output = llm_call if llm_call.startswith(PREFILL_CLAUDE) else PREFILL_CLAUDE + llm_call
+                llm_output = PREFILL_CLAUDE + llm_call
             else:
                 llm_call = self.llm._simple_call_llm(messages)
                 if llm_call is None:
@@ -318,7 +317,7 @@ class SuperYoloLLMStrategy(PatchGenerationStrategy):
         messages.append(user_message)
 
         if self._prefill_check(self.model):
-            # force a prefill for clause-3.5
+            # force a prefill for claude-3.5
             messages.append(ChatCompletionAssistantMessageParam(role="assistant", content=PREFILL_CLAUDE))
 
         attempt = 0
@@ -326,12 +325,11 @@ class SuperYoloLLMStrategy(PatchGenerationStrategy):
 
             llm_output = ""
             if self._prefill_check(self.model):
-                # observed that sometimes Claude inserts the prefill again
                 llm_call = self.llm._simple_call_llm(messages)
                 if llm_call is None:
                     attempt += 1
                     continue
-                llm_output = llm_call if llm_call.startswith(PREFILL_CLAUDE) else PREFILL_CLAUDE + llm_call
+                llm_output = PREFILL_CLAUDE + llm_call
             else:
                 llm_call = self.llm._simple_call_llm(messages)
                 if llm_call is None:
@@ -352,7 +350,7 @@ class SuperYoloLLMStrategy(PatchGenerationStrategy):
                                 f"{attempt + 1} / {self.number_patches} "
                                 f"with model {self.model}")
             else:
-                patch_lines = patch_lines[1:len(patch_lines) - 1]
+                patch_lines = Util.remove_starting_and_trailing_lines(patch_lines, "<code>", "</code>")
                 patch_contents = "\n".join(patch_lines)
                 logger.debug(f"Successfully generated a candidate patch "
                                 f"{attempt + 1} / {self.number_patches} "
@@ -376,7 +374,7 @@ class SuperYoloLLMStrategy(PatchGenerationStrategy):
                                                             content="Can you get me a different patch?"))
 
             if self._prefill_check(self.model):
-                # force a prefill for clause-3.5
+                # force a prefill for claude-3.5
                 messages.append(ChatCompletionAssistantMessageParam(role="assistant", content=PREFILL_CLAUDE))
 
             attempt += 1
