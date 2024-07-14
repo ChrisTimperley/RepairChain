@@ -6,12 +6,12 @@ import kaskara.functions
 from loguru import logger
 from overrides import overrides
 from sourcelocation.diff import Diff
-from sourcelocation.location import FileLocation, Location
+from sourcelocation.location import FileLocation
 
 from repairchain.models.bug_type import BugType
 from repairchain.models.diagnosis import Diagnosis
 from repairchain.models.replacement import Replacement
-from repairchain.models.stack_trace import StackFrame
+from repairchain.models.stack_trace import StackTrace
 from repairchain.strategies.generation.llm.helper_code import CodeHelper
 from repairchain.strategies.generation.llm.llm import LLM
 from repairchain.strategies.generation.template.base import TemplateGenerationStrategy
@@ -46,15 +46,19 @@ class IncreaseSizeStrategy(TemplateGenerationStrategy):
     """
     llm: LLM
 
-    def _get_variables(self,
+    def _get_variables_written(self,
                         stmt: kaskara.statements.Statement,
                        ) -> frozenset[str]:
-        vars_read: frozenset[str] = frozenset([])
-        if isinstance(stmt, kaskara.clang.analysis.ClangStatement):
-            vars_read = vars_read.union(frozenset(stmt.reads if hasattr(stmt, "reads") else []))
-        if isinstance(stmt, kaskara.clang.analysis.ClangStatement) and len(vars_read) == 0:
-            vars_read = vars_read.union(frozenset(stmt.writes if hasattr(stmt, "writes") else []))
-        return vars_read
+        if isinstance(stmt, kaskara.clang.analysis.ClangStatement) and hasattr(stmt, "writes"):
+            return frozenset(stmt.writes)
+        return frozenset()
+
+    def _get_variables_read(self,
+                        stmt: kaskara.statements.Statement,
+                       ) -> frozenset[str]:
+        if isinstance(stmt, kaskara.clang.analysis.ClangStatement) and hasattr(stmt, "read"):
+            return frozenset(stmt.read)
+        return frozenset()
 
     @classmethod
     @overrides
@@ -87,7 +91,7 @@ class IncreaseSizeStrategy(TemplateGenerationStrategy):
         if fn is None:  # I believe this is possible for global decls
             return []
         fn_src = self._fn_to_text(fn)
-        output = helper.help_with_memory_allocation(fn_src, stmt.content, varname)
+        output = helper.help_with_memory_allocation(fn_src, stmt.content, varname, 3)
         if output is None:
             return []
         for line in output.code:
@@ -141,48 +145,51 @@ class IncreaseSizeStrategy(TemplateGenerationStrategy):
         head_index = diagnosis.index_at_head
         return head_index is not None  # sanity check
 
-    def _set_index(self, location: StackFrame) -> None:
+    def _set_index(self,
+                   alloc_trace: StackTrace,
+                   call_trace: StackTrace) -> None:
         sources: ProjectSources = self.diagnosis.project.sources
         indexer: KaskaraIndexer = self.diagnosis.project.indexer
-        start_fname = []
-        if location.filename is not None:
-            start_fname = [location.filename]
-        files_to_index = list(self.report.alloc_stack_trace.filenames().union(start_fname))
+        filenames: set[str] = set()
+        for frame in alloc_trace:
+            if frame.filename is None or frame.lineno is None:
+                continue
+            filenames.add(frame.filename)
+        for frame in call_trace:
+            if frame.filename is None or frame.lineno is None:
+                continue
+            filenames.add(frame.filename)
         files_to_index = [
-            f for f in files_to_index if sources.exists(f, self.diagnosis.project.head)
+            f for f in filenames if sources.exists(f, self.diagnosis.project.head)
         ]
         self.index = indexer.run(version=self.diagnosis.project.head,
                                      restrict_to_files=files_to_index)
 
     @overrides
     def run(self) -> list[Diff]:
-        location = self._get_error_location(self.diagnosis)
-        if location is None or location.filename is None or location.lineno is None or location.file_line is None:
-            return []
-
-        self._set_index(location)
+        self._set_index(self.diagnosis.sanitizer_report.alloc_stack_trace,
+                        self.diagnosis.sanitizer_report.call_stack_trace)
         if self.index is None:
             logger.warning("Unexpected failed index in IncreaseSize, skipping")
             return []
 
-        baseloc = Location(location.lineno, location.offset if location.offset is not None else 0)
-        as_loc = FileLocation(location.filename, baseloc)
-        fn = self.index.functions.encloses(as_loc)
-        if fn is None:
-            return []
-
-        # collect vars of interest
-        vars_of_interest: frozenset[str] = frozenset([])
-        stmts_at_error_location = self.index.statements.at_line(location.file_line)
-        for statement in stmts_at_error_location:
-            vars_from_stmt = self._get_variables(statement)
-            vars_of_interest = vars_of_interest.union(vars_from_stmt)
-
         diffs: list[Diff] = []
 
-        for varname in vars_of_interest:
-            for stmt in self._get_potential_declarations(varname):
-                diffs += self._generate_new_declarations(stmt, varname)
-                diffs += self._generate_decrease_access(stmt, varname)
+        # either reallocate accessed/declared buffers
+        for frame in self.diagnosis.sanitizer_report.alloc_stack_trace:
+            if frame.file_line is None:
+                continue
+            stmts_at_alloc_frame = self.index.statements.at_line(frame.file_line)
+            for stmt in stmts_at_alloc_frame:
+                for varname in self._get_variables_written(stmt):
+                    diffs += self._generate_new_declarations(stmt, varname)
+        # or decrease the access to a buffer
+        for frame in self.diagnosis.sanitizer_report.call_stack_trace:
+            if frame.file_line is None:
+                continue
+            stmts_at_call_frame = self.index.statements.at_line(frame.file_line)
+            for stmt in stmts_at_call_frame:
+                for varname in self._get_variables_read(stmt):
+                    diffs += self._generate_decrease_access(stmt, varname)
 
         return diffs

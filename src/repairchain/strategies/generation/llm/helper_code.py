@@ -241,12 +241,12 @@ class CodeHelper:
 
         return None
 
-    def help_with_memory_allocation(self, code: str, line: str, varname: str) -> Code | None:
+    def help_with_memory_allocation(self, code: str, line: str, varname: str, num_patches: int) -> Code | None:
         user_prompt = CONTEXT_MEMORY.format(
             code=code,
             line=line,
             varname=varname,
-            number_patches=5,
+            number_patches=num_patches,
         )
         return self._help_with_template(user_prompt)
 
