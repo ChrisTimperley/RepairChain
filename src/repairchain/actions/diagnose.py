@@ -25,9 +25,14 @@ if t.TYPE_CHECKING:
 
 def _minimize(project: Project) -> Diff:
     """Minimizes the triggering commit's diff."""
+    implicated_diff = project.original_implicated_diff
+    num_hunks = len(list(implicated_diff.file_hunks))
+    if num_hunks == 1:
+        logger.warning("only one hunk in implicated diff; skipping minimization")
+        return implicated_diff
+
     stopwatch = Stopwatch()
     stopwatch.start()
-    implicated_diff = project.original_implicated_diff
     logger.info(f"minimizing implicated diff:\n{implicated_diff}")
 
     triggering_commit = project.triggering_commit
