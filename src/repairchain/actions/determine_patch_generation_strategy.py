@@ -26,7 +26,7 @@ AVAILABLE_TEMPLATES: tuple[type[TemplateGenerationStrategy]] = (
 )
 
 
-def determine_patch_generation_strategy(  # noqa: PLR0915, PLR0914
+def determine_patch_generation_strategy(
     diagnosis: Diagnosis,
 ) -> PatchGenerationStrategy:
     logger.info("determining patch generation strategy...")
