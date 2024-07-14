@@ -150,9 +150,9 @@ class SuperYoloLLMStrategy(PatchGenerationStrategy):
     number_patches: int
     whole_file: bool
 
-    @overrides
     @classmethod
-    def applies(cls, _: Diagnosis) -> bool:
+    @overrides
+    def applies(cls, diagnosis: Diagnosis) -> bool:
         return True
 
     @classmethod

@@ -41,9 +41,9 @@ class IncreaseSizeStrategy(TemplateGenerationStrategy):
     declarations_to_repair: list[kaskara.statements.Statement]
     accesses_to_repair: list[kaskara.statements.Statement]
 
-    @overrides
     @classmethod
-    def applies(cls, _: Diagnosis) -> bool:
+    @overrides
+    def applies(cls, diagnosis: Diagnosis) -> bool:
         return False
 
     @classmethod

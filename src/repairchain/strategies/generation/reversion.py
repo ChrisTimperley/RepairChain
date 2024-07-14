@@ -38,7 +38,7 @@ class MinimalPatchReversion(PatchGenerationStrategy):
 
     @classmethod
     @overrides
-    def applies(cls, _: Diagnosis) -> bool:
+    def applies(cls, diagnosis: Diagnosis) -> bool:
         return True
 
     @classmethod

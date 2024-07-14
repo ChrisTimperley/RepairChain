@@ -99,9 +99,9 @@ class BoundsCheckStrategy(TemplateGenerationStrategy):
 
         return diffs
 
-    @overrides
     @classmethod
-    def applies(cls, _: Diagnosis) -> bool:
+    @overrides
+    def applies(cls, diagnosis: Diagnosis) -> bool:
         return False
 
     @overrides

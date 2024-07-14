@@ -88,8 +88,8 @@ class YoloLLMStrategy(PatchGenerationStrategy):
     files: dict[str, str]
     number_patches: int
 
-    @overrides
     @classmethod
+    @overrides
     def applies(cls, diagnosis: Diagnosis) -> bool:
         """Returns whether the diagnosis has sufficient information for LLM repair."""
         if diagnosis.implicated_functions_at_head is None:
