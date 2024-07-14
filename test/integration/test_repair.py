@@ -25,7 +25,6 @@ def test_reversion_repair(
         assert found_patches
 
 
-@pytest.mark.skip(reason="template repair isn't in place")
 @pytest.mark.parametrize("example", [
     "jenkins",
     "linux",
