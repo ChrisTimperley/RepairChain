@@ -13,11 +13,11 @@ pushd "${PROJECT_DIR}" &> /dev/null
 JOBS=$2
 
 echo "(re)installing repairchain..."
-make install > /dev/null
+make install
 echo "(re)installed repairchain"
 
 echo "(re)building examples..."
-make examples > /dev/null
+make examples
 echo "(re)built examples"
 
 poetry run pytest -n ${JOBS} test/integration
