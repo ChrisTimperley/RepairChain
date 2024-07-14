@@ -223,6 +223,27 @@ class ProjectSources:
 
         return file_version
 
+    def obtain_relative_path(
+        self,
+        abs_path: Path,
+        *,
+        version: git.Commit | None = None,
+    ) -> Path | None:
+        """Converts an absolute path from an unknown filesystem into a repo-relative path.
+
+        Returns
+        -------
+        Path | None
+            The relative path of the file within the repository.
+            If the file is not found, None is returned.
+        """
+        segments = abs_path.parts
+        for i in range(len(segments)):
+            path = Path(*segments[i:])
+            if self.exists(path, version=version):
+                return path
+        return None
+
     def replacements_to_diff(
         self,
         replacements: list[Replacement],
