@@ -159,10 +159,16 @@ class SuperYoloLLMStrategy(PatchGenerationStrategy):
     def build(
         cls,
         diagnosis: Diagnosis,
+        *,
+        model: str | None = None,
+        whole_file: bool = True,
     ) -> SuperYoloLLMStrategy:
         llm = LLM.from_settings(diagnosis.project.settings)
         diff = commit_to_diff.commit_to_diff(diagnosis.project.triggering_commit)
         files = commit_to_diff.commit_to_files(diagnosis.project.head, diff)
+
+        if model:
+            llm.model = model
 
         return cls(
             diagnosis=diagnosis,
@@ -171,16 +177,8 @@ class SuperYoloLLMStrategy(PatchGenerationStrategy):
             diff=diff,
             files=files,
             number_patches=Util.number_patches,
-            whole_file=True,
+            whole_file=whole_file,
         )
-
-    def _settings(self, model: str, whole_file: bool) -> None:
-        self._set_model(model)
-        self.whole_file = whole_file
-
-    def _set_model(self, model: str) -> None:
-        self.model = model
-        self.llm.model = model
 
     def _create_system_prompt_file(self) -> str:
         return """
@@ -245,12 +243,11 @@ class SuperYoloLLMStrategy(PatchGenerationStrategy):
 
             llm_output = ""
             if self._prefill_check(self.model):
-                # observed that sometimes claude inserts the prefill again
                 llm_call = self.llm._simple_call_llm(messages)
                 if llm_call is None:
                     attempt += 1
                     continue
-                llm_output = llm_call if llm_call.startswith(PREFILL_CLAUDE) else PREFILL_CLAUDE + llm_call
+                llm_output = PREFILL_CLAUDE + llm_call
             else:
                 llm_call = self.llm._simple_call_llm(messages)
                 if llm_call is None:
@@ -318,7 +315,7 @@ class SuperYoloLLMStrategy(PatchGenerationStrategy):
         messages.append(user_message)
 
         if self._prefill_check(self.model):
-            # force a prefill for clause-3.5
+            # force a prefill for claude-3.5
             messages.append(ChatCompletionAssistantMessageParam(role="assistant", content=PREFILL_CLAUDE))
 
         attempt = 0
@@ -326,12 +323,11 @@ class SuperYoloLLMStrategy(PatchGenerationStrategy):
 
             llm_output = ""
             if self._prefill_check(self.model):
-                # observed that sometimes Claude inserts the prefill again
                 llm_call = self.llm._simple_call_llm(messages)
                 if llm_call is None:
                     attempt += 1
                     continue
-                llm_output = llm_call if llm_call.startswith(PREFILL_CLAUDE) else PREFILL_CLAUDE + llm_call
+                llm_output = PREFILL_CLAUDE + llm_call
             else:
                 llm_call = self.llm._simple_call_llm(messages)
                 if llm_call is None:
@@ -352,7 +348,7 @@ class SuperYoloLLMStrategy(PatchGenerationStrategy):
                                 f"{attempt + 1} / {self.number_patches} "
                                 f"with model {self.model}")
             else:
-                patch_lines = patch_lines[1:len(patch_lines) - 1]
+                patch_lines = Util.remove_starting_and_trailing_lines(patch_lines, "<code>", "</code>")
                 patch_contents = "\n".join(patch_lines)
                 logger.debug(f"Successfully generated a candidate patch "
                                 f"{attempt + 1} / {self.number_patches} "
@@ -376,7 +372,7 @@ class SuperYoloLLMStrategy(PatchGenerationStrategy):
                                                             content="Can you get me a different patch?"))
 
             if self._prefill_check(self.model):
-                # force a prefill for clause-3.5
+                # force a prefill for claude-3.5
                 messages.append(ChatCompletionAssistantMessageParam(role="assistant", content=PREFILL_CLAUDE))
 
             attempt += 1

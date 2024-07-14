@@ -43,11 +43,6 @@ class LLM:
             base_url=self.litellm_url,
         )
 
-        response = client.chat.completions.create(
-            model=model,
-            messages=messages,
-        )
-
         retry_attempts = Util.retry_attempts
         for attempt in range(retry_attempts):
             try:
@@ -58,6 +53,7 @@ class LLM:
 
                 llm_output = response.choices[0].message.content
                 if llm_output is None:
+                    logger.warning("output of LLM is None")
                     return None
                 return llm_output
 
@@ -99,6 +95,7 @@ class LLM:
 
                 llm_output = response.choices[0].message.content
                 if llm_output is None:
+                    logger.warning("output of LLM is None")
                     return None
                 return llm_output
 
