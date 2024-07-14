@@ -161,21 +161,12 @@ class ProjectSources:
         -------
         bool
             Whether the file exists in the repository.
-
-        Raises:
-        ------
-        ValueError
-            If the given filename is not a relative path.
         """
         if version is None:
             version = self.project.head
 
         if isinstance(filename, str):
             filename = Path(filename)
-
-        if not filename.is_absolute():
-            message = f"filename must be a relative path: {filename}"
-            raise ValueError(message)
 
         try:
             version.tree / str(filename)
@@ -207,8 +198,6 @@ class ProjectSources:
 
         Raises:
         ------
-        ValueError
-            If the given filename is not a relative path.
         FileNotFoundError
             If the file does not exist in the repository (version).
         """
@@ -217,10 +206,6 @@ class ProjectSources:
 
         if isinstance(filename, str):
             filename = Path(filename)
-
-        if not filename.is_absolute():
-            message = f"filename must be a relative path: {filename}"
-            raise ValueError(message)
 
         # retrieve the file cache for this commit
         if version not in self._version_to_files:
