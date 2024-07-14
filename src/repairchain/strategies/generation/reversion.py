@@ -94,11 +94,15 @@ class MinimalPatchReversion(PatchGenerationStrategy):
             logger.warning("only one hunk in reverse diff; skipping minimization")
             return reverse_diff
 
+        workers = self.project.settings.workers
+        logger.debug(f"using {workers} workers for build/regression steps during minimization")
+
         def tester(hunks: t.Sequence[FileHunk]) -> bool:
             as_diff = Diff.from_file_hunks(list(hunks))
             outcome = self.project.validator.validate(
                 candidate=as_diff,
                 commit=self.triggering_commit,
+                workers=workers,
             )
             return outcome == PatchOutcome.PASSED
 

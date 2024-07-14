@@ -40,7 +40,7 @@ def _minimize(project: Project) -> Diff:
 
     validator = project.validator
     workers = project.settings.workers
-    logger.debug(f"using {workers} workers for build/regression calls during minimization")
+    logger.debug(f"using {workers} workers for build/regression steps during minimization")
 
     def tester(hunks: t.Sequence[FileHunk]) -> bool:
         as_diff = Diff.from_file_hunks(list(hunks))
@@ -48,6 +48,7 @@ def _minimize(project: Project) -> Diff:
         outcome = validator.validate(
             as_diff,
             commit=triggering_commit_parent,
+            workers=workers,
         )
         logger.debug(f"outcome: {outcome}")
         return outcome == PatchOutcome.FAILED
