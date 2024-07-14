@@ -101,6 +101,6 @@ class TemplateGenerationStrategy(PatchGenerationStrategy):
 
     @classmethod
     @abc.abstractmethod
-    def build(cls, diagnosis: Diagnosis) -> TemplateGenerationStrategy:
+    def build(cls, diagnosis: Diagnosis) -> t.Self:
         """Builds a new instance of this strategy for the given diagnosis."""
         raise NotImplementedError
