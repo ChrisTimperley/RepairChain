@@ -20,6 +20,7 @@ if t.TYPE_CHECKING:
 
     from repairchain.models.container import ProjectContainer
     from repairchain.models.project import Project
+    from repairchain.sources import ProjectSources
 
 COMPILE_COMMANDS_PATH = Path("/compile_commands.json")
 
@@ -70,17 +71,22 @@ class KaskaraIndexCache:
 @dataclass
 class KaskaraIndexer:
     project: Project
+    sources: ProjectSources
     cache: KaskaraIndexCache
     _ignore_errors: bool = field(default=True)
 
     @classmethod
-    def for_project(cls, project: Project) -> KaskaraIndexer:
+    def for_project(
+        cls,
+        project: Project,
+        sources: ProjectSources,
+    ) -> KaskaraIndexer:
         cache_index_to_file = project.settings.cache_index_to_file
         if cache_index_to_file is not None and cache_index_to_file.exists():
             cache = KaskaraIndexCache.load(cache_index_to_file)
         else:
             cache = KaskaraIndexCache(cache_index_to_file)
-        return cls(project=project, cache=cache)
+        return cls(project=project, sources=sources, cache=cache)
 
     def _ensure_compile_commands_exists(self, container: ProjectContainer) -> None:
         """Ensures that compile_commands.json is available in the container.
@@ -231,6 +237,17 @@ class KaskaraIndexer:
 
         if version is None:
             version = self.project.head
+
+        # restrict indexing to files that exist
+        files_that_exist: set[str] = set()
+
+        for filename in files_to_index:
+            if not self.sources.exists(filename):
+                logger.warning(f"file does not exist: {filename} (skipping indexing)")
+            else:
+                files_that_exist.add(filename)
+
+        files_to_index = files_that_exist
 
         # what files do we still need to analyze?
         if cached_analysis := self.cache.get(version):
