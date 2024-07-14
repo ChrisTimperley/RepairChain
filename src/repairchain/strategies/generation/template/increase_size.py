@@ -51,9 +51,9 @@ class IncreaseSizeStrategy(TemplateGenerationStrategy):
                        ) -> frozenset[str]:
         vars_read: frozenset[str] = frozenset([])
         if isinstance(stmt, kaskara.clang.analysis.ClangStatement):
-            vars_read.union(frozenset(stmt.reads if hasattr(stmt, "reads") else []))
+            vars_read = vars_read.union(frozenset(stmt.reads if hasattr(stmt, "reads") else []))
         if isinstance(stmt, kaskara.clang.analysis.ClangStatement) and len(vars_read) == 0:
-            vars_read.union(frozenset(stmt.writes if hasattr(stmt, "writes") else []))
+            vars_read = vars_read.union(frozenset(stmt.writes if hasattr(stmt, "writes") else []))
         return vars_read
 
     @classmethod
@@ -111,11 +111,11 @@ class IncreaseSizeStrategy(TemplateGenerationStrategy):
 
         new_code1 = TEMPLATE_DECREASE_VAR1.format(
                     varname=varname,
-                    code=stmt.content,
+                    stmt_code=stmt.content,
                 )
         new_code2 = TEMPLATE_DECREASE_VAR2.format(
                     varname=varname,
-                    code=stmt.content,
+                    stmt_code=stmt.content,
                 )
         repl1 = Replacement(stmt.location, new_code1)
         repl2 = Replacement(stmt.location, new_code2)
@@ -175,7 +175,8 @@ class IncreaseSizeStrategy(TemplateGenerationStrategy):
         vars_of_interest: frozenset[str] = frozenset([])
         stmts_at_error_location = self.index.statements.at_line(location.file_line)
         for statement in stmts_at_error_location:
-            vars_of_interest = vars_of_interest.union(self._get_variables(statement))
+            vars_from_stmt = self._get_variables(statement)
+            vars_of_interest = vars_of_interest.union(vars_from_stmt)
 
         diffs: list[Diff] = []
 
