@@ -263,6 +263,6 @@ class KaskaraIndexer:
             return complete_analysis
 
         # compute from scratch
-        fresh_analysis = self._index(version, restrict_to_files)
+        fresh_analysis = self._index(version, list(files_to_index))
         self.cache.put(version, fresh_analysis)
         return fresh_analysis

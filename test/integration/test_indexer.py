@@ -7,6 +7,19 @@ if t.TYPE_CHECKING:
     from repairchain.indexer import KaskaraIndexer
 
 
+def test_indexing_file_that_does_not_exist(
+    example_project_factory,
+    test_settings,
+) -> None:
+    with example_project_factory("mock-cp", test_settings) as project:
+        indexer: KaskaraIndexer = project.indexer
+        analysis = indexer.run(
+            version=project.head,
+            restrict_to_files=["nonexistent.c"],
+        )
+        assert len(analysis.files) == 0
+
+
 @pytest.mark.skip(reason="indexing is faster, but workers only help with the compile_commands.json step")
 def test_indexing_is_faster_with_more_workers(
     example_project_factory,
