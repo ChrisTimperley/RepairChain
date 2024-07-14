@@ -33,6 +33,8 @@ def parse_stack_frame_simple(line: str) -> StackFrame | None:
         r"\s*#(?P<frame>\d+) "
         r"0x(?P<address>[0-9a-f]+) in ",
     )
+    if "__libc_start_main" in line:
+        return None
     stack_trace_match = stack_frame_regex.match(line)
     if stack_trace_match:
         return extract_stack_frame_from_line_symbolized(line)

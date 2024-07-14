@@ -16,6 +16,8 @@ from repairchain.strategies.generation.base import PatchGenerationStrategy
 
 if t.TYPE_CHECKING:
 
+    from sourcelocation.fileline import FileLine
+
     from repairchain.models.diagnosis import Diagnosis
     from repairchain.models.sanitizer_report import SanitizerReport
     from repairchain.models.stack_trace import StackFrame
@@ -70,7 +72,25 @@ class TemplateGenerationStrategy(PatchGenerationStrategy):
             return location
         return None
 
-    def _get_potential_declarations(self,
+    def _one_frame_potential_definitions(self,
+                                          varname: str,
+                                          frame_line: FileLine,
+                                          ) -> list[kaskara.statements.Statement]:
+        if self.index is None:
+            logger.warning("Unexpected empty index in template generation.")
+            return []
+        declaring_stmts: list[kaskara.statements.Statement] = []
+        for stmt in self.index.statements.at_line(frame_line):
+            if not isinstance(stmt, kaskara.clang.analysis.ClangStatement):
+                continue
+            stmt_kind = stmt.kind
+            if stmt_kind != "DeclStmt" or stmt_kind != "BinaryOperator":
+                continue
+            if varname in stmt.writes or varname in stmt.declares:
+                declaring_stmts.append(stmt)
+        return declaring_stmts
+
+    def _get_potential_definitions(self,
                                     varname: str) -> list[kaskara.statements.Statement]:
         if self.index is None:
             logger.warning("Unexpected empty index in template generation.")
@@ -90,11 +110,8 @@ class TemplateGenerationStrategy(PatchGenerationStrategy):
             fn = self.index.functions.encloses(as_loc)
             if fn is None:
                 continue
-            declaring_stmts += [
-                    stmt for stmt in self.index.statements
-                    if isinstance(stmt, kaskara.clang.analysis.ClangStatement) and
-                    varname in stmt.declares
-                ]
+            declaring_stmts += self._one_frame_potential_definitions(varname, frame.file_line)
+
         if len(declaring_stmts) == 0:
             logger.warning("No declaring statements found. returning empty list.")
         return declaring_stmts
