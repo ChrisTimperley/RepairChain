@@ -401,6 +401,9 @@ class YoloLLMStrategy(PatchGenerationStrategy):
         patches: list[Diff] = []
         for file in self.files:
             logger.debug(f"looking for potential patches for file {file}")
+            if file not in file_to_functions:
+                logger.error(f"we do not have the functions for file {file}")
+                continue
 
             user_prompt = self._create_user_prompt(file_to_functions[file],
                                                    sanitizer_prompt,

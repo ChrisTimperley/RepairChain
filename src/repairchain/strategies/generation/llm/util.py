@@ -34,8 +34,6 @@ MessageType = (ChatCompletionSystemMessageParam |
 # Define the iterable of the composite message type
 MessagesIterable = list[MessageType]
 
-SIZE_DIFF = 5
-
 
 @dataclass
 class FileLines:
@@ -170,21 +168,43 @@ class Util:
 
     @staticmethod
     def check_patch_format(diff_lines: list[str]) -> bool:
-        # diff has <code>\n+++\n---\n@@ ... @@\n(code)</code>
-        if len(diff_lines) < SIZE_DIFF:
+        # diff after cleanup starts with +++\n---\n@@ ... @@\n
+        if len(diff_lines) < 3:  # noqa: PLR2004
             return False
 
-        if not diff_lines[1].startswith("---"):
+        if not diff_lines[0].startswith("---"):
             logger.debug(f"Unexpected patch format {diff_lines}")
             return False
-        if not diff_lines[2].startswith("+++"):
+        if not diff_lines[1].startswith("+++"):
             logger.debug(f"Unexpected patch format {diff_lines}")
             return False
-        if not diff_lines[3].startswith("@@"):
+        if not diff_lines[2].startswith("@@"):
             logger.debug(f"Unexpected patch format {diff_lines}")
             return False
 
         return True
+
+    @staticmethod
+    def remove_starting_and_trailing_lines(lines: list[str], start: str, trail: str) -> list[str]:
+        result_lines: list[str] = []
+        found_different = False
+
+        for line in lines:
+            if not found_different and (line.strip() == start or not line.strip()):
+                continue
+            found_different = True
+            result_lines.append(line)
+
+        found_different = False
+        result_lines_trail = []
+        for line in reversed(result_lines):
+            if not found_different and (line.strip() == trail or not line.strip()):
+                continue
+            found_different = True
+            result_lines_trail.append(line)
+
+        # return "\n".join(result_lines_trail)
+        return result_lines_trail[::-1]
 
     @staticmethod
     def apply_patch(original: str, diff: str) -> str:
@@ -195,10 +215,11 @@ class Util:
         while diff_lines and not diff_lines[-1]:
             diff_lines.pop()
 
+        diff_lines = Util.remove_starting_and_trailing_lines(diff_lines, "<code>", "</code>")
         if not Util.check_patch_format(diff_lines):
             return ""
 
-        diff_lines = diff_lines[4:len(diff_lines) - 1]
+        diff_lines = diff_lines[3:len(diff_lines)]
 
         patch_original_lines: list[str] = []
         for line in diff_lines:

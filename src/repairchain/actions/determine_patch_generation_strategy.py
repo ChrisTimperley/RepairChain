@@ -26,7 +26,7 @@ AVAILABLE_TEMPLATES: tuple[type[TemplateGenerationStrategy]] = (
 )
 
 
-def determine_patch_generation_strategy(  # noqa: PLR0915, PLR0914
+def determine_patch_generation_strategy(
     diagnosis: Diagnosis,
 ) -> PatchGenerationStrategy:
     logger.info("determining patch generation strategy...")
@@ -55,26 +55,21 @@ def determine_patch_generation_strategy(  # noqa: PLR0915, PLR0914
             yolo_claude35._settings("claude-3.5-sonnet", use_patches_per_file_strategy=False)
             strategies.append(yolo_claude35)
 
-            # gemini from personal testing seems much better than claude with JSON
-            yolo_gemini15 = YoloLLMStrategy.build(diagnosis)
-            yolo_gemini15._settings("gemini-1.5-pro", use_patches_per_file_strategy=False)
-            strategies.append(yolo_gemini15)
-
             # strategies that use single file as context and ask for one patch at a time
             # trying gpt4_turbo to diversify -- more expensive than gpt4o so only one strategy
             yolo_gpt4_turbo = YoloLLMStrategy.build(diagnosis)
             yolo_gpt4_turbo._settings("oai-gpt-4-turbo", use_patches_per_file_strategy=True)
             strategies.append(yolo_gpt4_turbo)
 
-            # our most tested model
+            # claude
+            yolo_claude35_simple = YoloLLMStrategy.build(diagnosis)
+            yolo_claude35_simple._settings("claude-3.5-sonnet", use_patches_per_file_strategy=True)
+            strategies.append(yolo_claude35_simple)
+
+            # gpt4o
             yolo_gpt4o_simple = YoloLLMStrategy.build(diagnosis)
             yolo_gpt4o_simple._settings("oai-gpt-4o", use_patches_per_file_strategy=True)
             strategies.append(yolo_gpt4o_simple)
-
-            # # yolo with gemini
-            yolo_gemini15_simple = YoloLLMStrategy.build(diagnosis)
-            yolo_gemini15_simple._settings("gemini-1.5-pro", use_patches_per_file_strategy=True)
-            strategies.append(yolo_gemini15_simple)
         else:
             logger.warning("using super yolo repair strategy (diagnosis is incomplete)")
             # strategies that try to generate the entire file
@@ -86,10 +81,6 @@ def determine_patch_generation_strategy(  # noqa: PLR0915, PLR0914
             superyolo_claude35_files._settings("claude-3.5-sonnet", whole_file=True)
             strategies.append(superyolo_claude35_files)
 
-            superyolo_gemini15_files = SuperYoloLLMStrategy.build(diagnosis)
-            superyolo_gemini15_files._settings("gemini-1.5-pro", whole_file=True)
-            strategies.append(superyolo_gemini15_files)
-
             # strategies that use unified diffs as patches
             superyolo_gpt4o_diffs = SuperYoloLLMStrategy.build(diagnosis)
             superyolo_gpt4o_diffs._settings("oai-gpt-4o", whole_file=False)
@@ -98,10 +89,6 @@ def determine_patch_generation_strategy(  # noqa: PLR0915, PLR0914
             superyolo_claude35_diffs = SuperYoloLLMStrategy.build(diagnosis)
             superyolo_claude35_diffs._settings("claude-3.5-sonnet", whole_file=False)
             strategies.append(superyolo_claude35_diffs)
-
-            superyolo_gemini15_diffs = SuperYoloLLMStrategy.build(diagnosis)
-            superyolo_gemini15_diffs._settings("gemini-1.5-pro", whole_file=False)
-            strategies.append(superyolo_gemini15_diffs)
 
     else:
         logger.info("skipping yolo repair strategy (disabled)")
