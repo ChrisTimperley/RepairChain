@@ -73,12 +73,10 @@ class TemplateGenerationStrategy(PatchGenerationStrategy):
         return None
 
     def _get_potential_declarations(self,
-                                    vars_of_interest: frozenset[str]) -> list[tuple[kaskara.statements.Statement,
-                                                                        kaskara.functions.Function, FileLine,
-                                                                        str]]:
-        # location is the location of the overflow, should reference at least one variable
-        # look for it in the allocation stack
-        # array - take whatever's in the bracket and mod it with the size
+                                    varname: str) -> list[tuple[kaskara.statements.Statement,
+                                                                kaskara.functions.Function,
+                                                                FileLine,
+                                                                str]]:
         if self.index is None:
             logger.warning("Unexpected empty index in template generation.")
             return []
@@ -106,7 +104,7 @@ class TemplateGenerationStrategy(PatchGenerationStrategy):
             stmts = [(stmt, fn, frame.file_line, file_contents)
                         for stmt in self.index.statements
                             if isinstance(stmt, kaskara.clang.analysis.ClangStatement) and
-                            len(vars_of_interest.intersection(stmt.declares)) > 0
+                            varname in stmt.declares
                     ]
             declaring_stmts.extend(stmts)
         if len(declaring_stmts) == 0:

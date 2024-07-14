@@ -71,6 +71,7 @@ class IncreaseSizeStrategy(TemplateGenerationStrategy):
     def _generate_new_declarations(
         self,
         stmt: kaskara.statements.Statement,
+        varname: str,
     ) -> list[Diff]:
         repls: list[Diff] = []
 
@@ -83,10 +84,10 @@ class IncreaseSizeStrategy(TemplateGenerationStrategy):
 
         stmt_loc = FileLocation(stmt.location.filename, stmt.location.start)
         fn = self.index.functions.encloses(stmt_loc)
-        if fn is None: # I believe this is possible for global decls
+        if fn is None:  # I believe this is possible for global decls
             return []
         fn_src = self._fn_to_text(fn)
-        output = helper.help_with_memory_allocation(fn_src, stmt.content)
+        output = helper.help_with_memory_allocation(fn_src, stmt.content, varname)
         if output is None:
             return []
         for line in output.code:
@@ -97,7 +98,7 @@ class IncreaseSizeStrategy(TemplateGenerationStrategy):
     def _generate_decrease_access(
         self,
         stmt: kaskara.statements.Statement,
-        vars_of_interest: frozenset[str],
+        varname: str,
     ) -> list[Diff]:
         # current statement is at the error location
         # set a read variable to 0, or itself -1
@@ -105,22 +106,21 @@ class IncreaseSizeStrategy(TemplateGenerationStrategy):
         repls: list[Diff] = []
 
         if self.index is None:
-            logger.warning("Unexpected incomplete diagnosis in bounds check template.")
+            logger.warning("Unexpected incomplete diagnosis in increase size template.")
             return []
 
-        for varname in vars_of_interest:
-            new_code1 = TEMPLATE_DECREASE_VAR1.format(
-                        varname=varname,
-                        code=stmt.content,
-                    )
-            new_code2 = TEMPLATE_DECREASE_VAR2.format(
-                        varname=varname,
-                        code=stmt.content,
-                    )
-            repl1 = Replacement(stmt.location, new_code1)
-            repl2 = Replacement(stmt.location, new_code2)
-            repls.append(self.diagnosis.project.sources.replacements_to_diff([repl1]))  # noqa: FURB113
-            repls.append(self.diagnosis.project.sources.replacements_to_diff([repl2]))
+        new_code1 = TEMPLATE_DECREASE_VAR1.format(
+                    varname=varname,
+                    code=stmt.content,
+                )
+        new_code2 = TEMPLATE_DECREASE_VAR2.format(
+                    varname=varname,
+                    code=stmt.content,
+                )
+        repl1 = Replacement(stmt.location, new_code1)
+        repl2 = Replacement(stmt.location, new_code2)
+        repls.append(self.diagnosis.project.sources.replacements_to_diff([repl1]))  # noqa: FURB113
+        repls.append(self.diagnosis.project.sources.replacements_to_diff([repl2]))
         return repls
 
     @classmethod
@@ -177,10 +177,11 @@ class IncreaseSizeStrategy(TemplateGenerationStrategy):
         for statement in stmts_at_error_location:
             vars_of_interest = vars_of_interest.union(self._get_variables(statement))
 
-        stmts = [stmt[0] for stmt in self._get_potential_declarations(vars_of_interest)]
-        diffs: list[Diff] = []
-        for stmt in stmts:
-            diffs += self._generate_new_declarations(stmt)
-            diffs += self._generate_decrease_access(stmt, vars_of_interest)
+        for varname in vars_of_interest:
+            stmts = [stmt[0] for stmt in self._get_potential_declarations(varname)]
+            diffs: list[Diff] = []
+            for stmt in stmts:
+                diffs += self._generate_new_declarations(stmt, varname)
+                diffs += self._generate_decrease_access(stmt, varname)
 
         return diffs

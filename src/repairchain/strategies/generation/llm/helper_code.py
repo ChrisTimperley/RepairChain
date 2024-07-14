@@ -31,6 +31,8 @@ The following code has a memory vulnerability related to memory allocation:
 {code}
 The following line has an issue with memory allocation:
 {line}
+The variable being allocated is:
+{varname}
 <instructions>
 Fix the line by increasing the allocation while keeping the same allocation function.
 Create a JSON object that changes the line.
@@ -239,10 +241,11 @@ class CodeHelper:
 
         return None
 
-    def help_with_memory_allocation(self, code: str, line: str) -> Code | None:
+    def help_with_memory_allocation(self, code: str, line: str, varname: str) -> Code | None:
         user_prompt = CONTEXT_MEMORY.format(
             code=code,
             line=line,
+            varname=varname,
             number_patches=5,
         )
         return self._help_with_template(user_prompt)
