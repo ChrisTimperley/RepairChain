@@ -142,12 +142,12 @@ class IncreaseSizeStrategy(TemplateGenerationStrategy):
         return head_index is not None  # sanity check
 
     def _set_index(self, location: StackFrame) -> None:
-        if location.filename is None:
-            return
-
         sources: ProjectSources = self.diagnosis.project.sources
         indexer: KaskaraIndexer = self.diagnosis.project.indexer
-        files_to_index = list(self.report.alloc_stack_trace.filenames().union([location.filename]))
+        start_fname = []
+        if location.filename is not None:
+            start_fname = [location.filename]
+        files_to_index = list(self.report.alloc_stack_trace.filenames().union(start_fname))
         files_to_index = [
             f for f in files_to_index if sources.exists(f, self.diagnosis.project.head)
         ]
@@ -162,6 +162,7 @@ class IncreaseSizeStrategy(TemplateGenerationStrategy):
 
         self._set_index(location)
         if self.index is None:
+            logger.warning("Unexpected failed index in IncreaseSize, skipping")
             return []
 
         baseloc = Location(location.lineno, location.offset if location.offset is not None else 0)
