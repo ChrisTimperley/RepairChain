@@ -103,7 +103,7 @@ class IncreaseSizeStrategy(TemplateGenerationStrategy):
         # current statement is at the error location
         # set a read variable to 0, or itself -1
         # prepend to error location
-        repls: list[Diff] = []
+        diffs: list[Diff] = []
 
         if self.index is None:
             logger.warning("Unexpected incomplete diagnosis in increase size template.")
@@ -119,9 +119,9 @@ class IncreaseSizeStrategy(TemplateGenerationStrategy):
                 )
         repl1 = Replacement(stmt.location, new_code1)
         repl2 = Replacement(stmt.location, new_code2)
-        repls.append(self.diagnosis.project.sources.replacements_to_diff([repl1]))  # noqa: FURB113
-        repls.append(self.diagnosis.project.sources.replacements_to_diff([repl2]))
-        return repls
+        diffs.append(self.diagnosis.project.sources.replacements_to_diff([repl1]))  # noqa: FURB113
+        diffs.append(self.diagnosis.project.sources.replacements_to_diff([repl2]))
+        return diffs
 
     @classmethod
     @overrides
