@@ -241,10 +241,18 @@ class SuperYoloLLMStrategy(PatchGenerationStrategy):
 
             llm_output = ""
             if self.model == "claude-3.5-sonnet":
-                llm_output += PREFILL_CLAUDE
-                llm_output += self.llm._simple_call_llm(messages)
+                # observed that sometimes Claude inserts the prefill again
+                llm_call = self.llm._simple_call_llm(messages)
+                if llm_call is None:
+                    attempt += 1
+                    continue
+                llm_output = llm_call if llm_call.startswith(PREFILL_CLAUDE) else PREFILL_CLAUDE + llm_call
             else:
-                llm_output = self.llm._simple_call_llm(messages)
+                llm_call = self.llm._simple_call_llm(messages)
+                if llm_call is None:
+                    attempt += 1
+                    continue
+                llm_output = llm_call
 
             if not llm_output:
                 logger.debug("Failed to get output from LLM")
@@ -275,12 +283,10 @@ class SuperYoloLLMStrategy(PatchGenerationStrategy):
                 logger.info(f"Model {self.model} generated a diff patch:\n{diff_patch}\n")
                 diffs.append(Diff.from_unidiff(diff_patch))
 
-            last_llm_output = ChatCompletionAssistantMessageParam(role="assistant",
-                                                                    content=llm_output)
-            messages.append(last_llm_output)
-            user_new_patch = ChatCompletionUserMessageParam(role="user",
-                                                            content="Can you get me a different patch?")
-            messages.append(user_new_patch)
+            messages.append(ChatCompletionAssistantMessageParam(role="assistant",
+                                                                    content=llm_output))
+            messages.append(ChatCompletionUserMessageParam(role="user",
+                                                            content="Can you get me a different patch?"))
 
             if self.model == "claude-3.5-sonnet":
                 # force a prefill for clause-3.5
@@ -289,7 +295,7 @@ class SuperYoloLLMStrategy(PatchGenerationStrategy):
 
             attempt += 1
 
-        logger.debug(f"Found {len(diffs)} patches")
+        logger.info(f"found {len(diffs)} candidate patches with model {self.model}")
         return diffs
 
     # TODO: a lot of code duplication; refactor later
@@ -316,10 +322,18 @@ class SuperYoloLLMStrategy(PatchGenerationStrategy):
 
             llm_output = ""
             if self.model == "claude-3.5-sonnet":
-                llm_output += PREFILL_CLAUDE
-                llm_output += self.llm._simple_call_llm(messages)
+                # observed that sometimes Claude inserts the prefill again
+                llm_call = self.llm._simple_call_llm(messages)
+                if llm_call is None:
+                    attempt += 1
+                    continue
+                llm_output = llm_call if llm_call.startswith(PREFILL_CLAUDE) else PREFILL_CLAUDE + llm_call
             else:
-                llm_output = self.llm._simple_call_llm(messages)
+                llm_call = self.llm._simple_call_llm(messages)
+                if llm_call is None:
+                    attempt += 1
+                    continue
+                llm_output = llm_call
 
             if not llm_output:
                 logger.debug("Failed to get output from LLM")
@@ -352,12 +366,10 @@ class SuperYoloLLMStrategy(PatchGenerationStrategy):
                 logger.info(f"Model {self.model} generated a diff patch:\n{diff_patch}\n")
                 diffs.append(Diff.from_unidiff(diff_patch))
 
-            last_llm_output = ChatCompletionAssistantMessageParam(role="assistant",
-                                                                    content=llm_output)
-            messages.append(last_llm_output)
-            user_new_patch = ChatCompletionUserMessageParam(role="user",
-                                                            content="Can you get me a different patch?")
-            messages.append(user_new_patch)
+            messages.append(ChatCompletionAssistantMessageParam(role="assistant",
+                                                                    content=llm_output))
+            messages.append(ChatCompletionUserMessageParam(role="user",
+                                                            content="Can you get me a different patch?"))
 
             if self.model == "claude-3.5-sonnet":
                 # force a prefill for clause-3.5
@@ -365,7 +377,7 @@ class SuperYoloLLMStrategy(PatchGenerationStrategy):
 
             attempt += 1
 
-        logger.debug(f"Found {len(diffs)} patches")
+        logger.info(f"found {len(diffs)} candidate patches with model {self.model}")
         return diffs
 
     def _get_llm_output(self) -> list[Diff]:

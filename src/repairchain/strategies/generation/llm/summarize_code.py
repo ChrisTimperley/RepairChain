@@ -76,7 +76,10 @@ class ReportSummary:
         self.model = model
 
     def _call_llm_summarize_code(self, llm_object: LLM, messages: MessagesIterable) -> str:
-        return llm_object._call_llm_json(messages)
+        summary = llm_object._call_llm_json(messages)
+        if summary is None:
+            return ""
+        return summary
 
     def _create_user_prompt(self, diagnosis: Diagnosis,
                             files: dict[str, str],
@@ -170,9 +173,15 @@ class ReportSummary:
                 llm_output = ""
                 if self.model == "claude-3.5-sonnet":
                     llm_output += PREFILL_SUMMARY
-                    llm_output += llm._call_llm_json(messages)
+                    llm_call = llm._call_llm_json(messages)
+                    if llm_call is None:
+                        return None
+                    llm_output += llm_call
                 else:
-                    llm_output = llm._call_llm_json(messages)
+                    llm_call = llm._call_llm_json(messages)
+                    if llm_call is None:
+                        return None
+                    llm_output = llm_call
 
                 logger.debug(f"output prompt tokens: {Util.count_tokens(llm_output, self.model)}")
 

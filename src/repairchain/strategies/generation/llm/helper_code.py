@@ -180,9 +180,15 @@ class CodeHelper:
                 llm_output = ""
                 if self.llm.model == "claude-3.5-sonnet":
                     llm_output += PREFILL_HELPER
-                    llm_output += self.llm._call_llm_json(messages)
+                    llm_call = self.llm._call_llm_json(messages)
+                    if llm_call is None:
+                        return None
+                    llm_output += llm_call
                 else:
-                    llm_output = self.llm._call_llm_json(messages)
+                    llm_call = self.llm._call_llm_json(messages)
+                    if llm_call is None:
+                        return None
+                    llm_output = llm_call
 
                 logger.info(f"output prompt tokens: {Util.count_tokens(llm_output, self.llm.model)}")
                 logger.debug(f"LLM output in JSON: {llm_output}")

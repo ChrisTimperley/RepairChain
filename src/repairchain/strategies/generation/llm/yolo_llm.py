@@ -274,9 +274,15 @@ class YoloLLMStrategy(PatchGenerationStrategy):
                 llm_output = ""
                 if self.model == "claude-3.5-sonnet":
                     llm_output += PREFILL_YOLO
-                    llm_output += self.llm._call_llm_json(messages)
+                    llm_call = self.llm._call_llm_json(messages)
+                    if llm_call is None:
+                        return None
+                    llm_output += llm_call
                 else:
-                    llm_output = self.llm._call_llm_json(messages)
+                    llm_call = self.llm._call_llm_json(messages)
+                    if llm_call is None:
+                        return None
+                    llm_output = llm_call
 
                 logger.info(f"output prompt tokens: {Util.count_tokens(llm_output, self.model)}")
                 logger.debug(f"LLM output in JSON: {llm_output}")
@@ -335,8 +341,10 @@ class YoloLLMStrategy(PatchGenerationStrategy):
     # TODO: refactor code to minimize duplication
     def _get_llm_output(self, user_prompt: str, system_prompt: str) -> PatchFile | None:
 
-        logger.info(f"user prompt tokens: {Util.count_tokens(user_prompt, self.model)}")
-        logger.info(f"system prompt tokens: {Util.count_tokens(system_prompt, self.model)}")
+        logger.debug(f"user prompt tokens: {Util.count_tokens(user_prompt, self.model)}")
+        logger.debug(f"user prompt:\n{user_prompt}")
+        logger.debug(f"system prompt tokens: {Util.count_tokens(system_prompt, self.model)}")
+        logger.debug(f"system prompt:\n{system_prompt}")
 
         messages: MessagesIterable = []
         system_message = ChatCompletionSystemMessageParam(role="system", content=system_prompt)
@@ -392,7 +400,7 @@ class YoloLLMStrategy(PatchGenerationStrategy):
 
         patches: list[Diff] = []
         for file in self.files:
-            logger.debug(f"[yolo] looking for potential patches for file {file}")
+            logger.debug(f"looking for potential patches for file {file}")
 
             user_prompt = self._create_user_prompt(file_to_functions[file],
                                                    sanitizer_prompt,
@@ -401,6 +409,8 @@ class YoloLLMStrategy(PatchGenerationStrategy):
             repaired_files: PatchFile | None = self._get_llm_output(user_prompt, system_prompt)
             if repaired_files is not None:
                 patches.extend(Util.extract_patches(self.diagnosis, self.files, repaired_files.patch))
+
+        logger.info(f"found {len(patches)} candidate patches with model {self.model}")
 
         return patches
 
@@ -433,7 +443,10 @@ class YoloLLMStrategy(PatchGenerationStrategy):
         repaired_files: PatchFile | None = self._get_llm_output(user_prompt, system_prompt)
         if repaired_files is None:
             return []
-        return Util.extract_patches(self.diagnosis, self.files, repaired_files.patch)
+
+        patches: list[Diff] = Util.extract_patches(self.diagnosis, self.files, repaired_files.patch)
+        logger.info(f"found {len(patches)} candidate patches with model {self.model}")
+        return patches
 
     def run(self) -> list[Diff]:
         summary: ReportSummary = ReportSummary(self.model)
@@ -443,4 +456,4 @@ class YoloLLMStrategy(PatchGenerationStrategy):
 
         if self.use_patches_per_file_strategy:
             return self._get_patches_per_file(code_summary)
-        return self._get_patches_per_file(code_summary)
+        return self._get_patches_any_file(code_summary)

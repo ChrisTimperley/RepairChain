@@ -35,7 +35,7 @@ class LLM:
             master_key=settings.litellm_key,
         )
 
-    def _simple_call_llm(self, messages: MessagesIterable) -> str:
+    def _simple_call_llm(self, messages: MessagesIterable) -> str | None:
         logger.info(f"Calling LLM with model={self.model}")
         model = self.model
         client = openai.OpenAI(
@@ -58,7 +58,7 @@ class LLM:
 
                 llm_output = response.choices[0].message.content
                 if llm_output is None:
-                    return ""
+                    return None
                 return llm_output
 
             except openai.APITimeoutError as e:
@@ -76,11 +76,11 @@ class LLM:
             except openai.OpenAIError as e:
                 # do not retry in this case
                 logger.warning(f"General OpenAI API error: {e}.")
-                return ""
+                return None
 
-        return ""
+        return None
 
-    def _call_llm_json(self, messages: MessagesIterable) -> str:
+    def _call_llm_json(self, messages: MessagesIterable) -> str | None:
         logger.info(f"Calling LLM with model={self.model}")
         model = self.model
         client = openai.OpenAI(
@@ -99,7 +99,7 @@ class LLM:
 
                 llm_output = response.choices[0].message.content
                 if llm_output is None:
-                    return ""
+                    return None
                 return llm_output
 
             except openai.APITimeoutError as e:
@@ -117,6 +117,6 @@ class LLM:
             except openai.OpenAIError as e:
                 # do not retry in this case
                 logger.warning(f"General OpenAI API error: {e}.")
-                return ""
+                return None
 
-        return ""
+        return None
