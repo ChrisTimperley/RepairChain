@@ -11,6 +11,7 @@ from pathlib import Path
 
 import git
 from loguru import logger
+from overrides import overrides
 
 from repairchain.actions.commit_to_diff import commit_to_diff
 from repairchain.models.diff import Diff
@@ -36,6 +37,7 @@ class MinimalPatchReversion(PatchGenerationStrategy):
     project: Project
 
     @classmethod
+    @overrides
     def applies(cls, diagnosis: Diagnosis) -> bool:
         return True
 
