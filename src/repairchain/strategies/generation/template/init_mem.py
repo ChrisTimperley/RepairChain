@@ -57,7 +57,7 @@ class InitializeMemoryStrategy(TemplateGenerationStrategy):
                                                      ):
             return
         self.index = indexer.run(version=self.diagnosis.project.head,
-                                     restrict_to_files=list(location.filename))
+                                     restrict_to_files=[location.filename])
         return
 
     @overrides
@@ -78,7 +78,7 @@ class InitializeMemoryStrategy(TemplateGenerationStrategy):
             if fn is None:
                 continue
             fn_src = self._fn_to_text(fn)
-            output = helper.help_with_memory_initialization(fn_src, stmt.content)
+            output = helper.help_with_memory_initialization(fn_src, stmt.content, 5)
 
             if output is None:
                 continue
