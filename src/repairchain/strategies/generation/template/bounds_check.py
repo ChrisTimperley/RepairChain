@@ -28,6 +28,7 @@ class BoundsCheckStrategy(TemplateGenerationStrategy):
     stack_trace: StackTrace
 
     @classmethod
+    @overrides
     def build(cls, diagnosis: Diagnosis) -> t.Self:
         report = diagnosis.project.sanitizer_report
 

@@ -47,6 +47,7 @@ class IncreaseSizeStrategy(TemplateGenerationStrategy):
         return False
 
     @classmethod
+    @overrides
     def build(cls, diagnosis: Diagnosis) -> t.Self:
         # for these, we want to try to increase the size of the thing
         # or POSSIBLY decrease the size of the access.

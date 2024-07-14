@@ -23,6 +23,7 @@ class InitializeMemoryStrategy(TemplateGenerationStrategy):
         return False
 
     @classmethod
+    @overrides
     def build(cls, diagnosis: Diagnosis) -> t.Self:
         raise NotImplementedError
 
