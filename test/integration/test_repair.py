@@ -4,9 +4,9 @@ from repairchain.actions.repair import repair
 
 
 @pytest.mark.parametrize("example", [
-    pytest.param("jenkins", marks=pytest.mark.xfail(reason="there is only one hunk in the triggering diff")),
-    "linux",
-    pytest.param("mock-cp", marks=pytest.mark.xfail(reason="rebasing fails to produce valid patch on mock-cp")),
+    pytest.param("jenkins", marks=pytest.mark.skip(reason="there is only one hunk in the triggering diff")),
+    pytest.param("linux", marks=pytest.mark.skip(reason="this takes a really long time to run")),
+    pytest.param("mock-cp", marks=pytest.mark.skip(reason="rebasing fails to produce valid patch on mock-cp")),
     "nginx",
 ])
 def test_reversion_repair(

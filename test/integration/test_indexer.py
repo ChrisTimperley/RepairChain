@@ -7,6 +7,37 @@ if t.TYPE_CHECKING:
     from repairchain.indexer import KaskaraIndexer
 
 
+@pytest.mark.skip(reason="indexing is faster, but workers only help with the compile_commands.json step")
+def test_indexing_is_faster_with_more_workers(
+    example_project_factory,
+    test_settings,
+    log_kaskara,
+) -> None:
+    settings = test_settings
+
+    files_to_index = {"src/core/nginx.c"}
+
+    time_with_one_worker: float
+    time_with_eight_workers: float
+
+    settings.workers = 1
+    with example_project_factory("nginx", settings) as project:
+        indexer: KaskaraIndexer = project.indexer
+        with Stopwatch() as timer:
+            analysis = indexer.run(version=project.head, restrict_to_files=files_to_index)
+            time_with_one_worker = timer.duration
+
+    settings.workers = 8
+    with example_project_factory("nginx", settings) as project:
+        indexer: KaskaraIndexer = project.indexer
+        with Stopwatch() as timer:
+            analysis = indexer.run(version=project.head, restrict_to_files=files_to_index)
+            time_with_eight_workers = timer.duration
+
+    speedup = time_with_one_worker / time_with_eight_workers
+    assert speedup >= 1.3
+
+
 # @pytest.mark.skip(reason="This test is too slow")
 def test_incremental_functions_at_head(
     example_project_factory,
@@ -14,7 +45,7 @@ def test_incremental_functions_at_head(
     log_kaskara,
 ) -> None:
     settings = test_settings
-    settings.workers = 4
+    settings.workers = 8
     with example_project_factory("nginx", settings) as project:
         indexer: KaskaraIndexer = project.indexer
 
