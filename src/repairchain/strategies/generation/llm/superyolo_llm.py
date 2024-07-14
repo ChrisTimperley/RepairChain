@@ -150,8 +150,8 @@ class SuperYoloLLMStrategy(PatchGenerationStrategy):
     number_patches: int
     whole_file: bool
 
-    @classmethod
     @overrides
+    @classmethod
     def applies(cls, _: Diagnosis) -> bool:
         return True
 
