@@ -234,9 +234,10 @@ class Project:
 
     def sanity_check(self) -> None:
         """Ensures that this project is valid."""
-        with self.provision() as container:
+        workers = self.settings.workers
+        with self.provision(build_jobs=workers) as container:
             logger.info("running sanity check")
-            assert container.run_regression_tests()
+            assert container.run_regression_tests(jobs=workers)
             assert not container.run_pov()
 
     @contextlib.contextmanager
