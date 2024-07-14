@@ -217,6 +217,10 @@ class SuperYoloLLMStrategy(PatchGenerationStrategy):
             file=filename,
         )
 
+    def _prefill_check(self, model: str) -> bool:
+        models_for_prefill = ["claude-3.5-sonnet", "gemini-1.5-pro"]
+        return model in models_for_prefill
+
     def _get_llm_output_diffs(self, file: str) -> list[Diff]:
         diffs: list[Diff] = []
         system_prompt = self._create_system_prompt_diffs()
@@ -231,8 +235,8 @@ class SuperYoloLLMStrategy(PatchGenerationStrategy):
         messages.append(system_message)
         messages.append(user_message)
 
-        if self.model == "claude-3.5-sonnet":
-            # force a prefill for clause-3.5
+        if self._prefill_check(self.model):
+            # force a prefill for claude-3.5
             prefill_message = ChatCompletionAssistantMessageParam(role="assistant", content=PREFILL_CLAUDE)
             messages.append(prefill_message)
 
@@ -240,8 +244,8 @@ class SuperYoloLLMStrategy(PatchGenerationStrategy):
         while attempt < self.number_patches:
 
             llm_output = ""
-            if self.model == "claude-3.5-sonnet":
-                # observed that sometimes Claude inserts the prefill again
+            if self._prefill_check(self.model):
+                # observed that sometimes claude inserts the prefill again
                 llm_call = self.llm._simple_call_llm(messages)
                 if llm_call is None:
                     attempt += 1
@@ -288,8 +292,8 @@ class SuperYoloLLMStrategy(PatchGenerationStrategy):
             messages.append(ChatCompletionUserMessageParam(role="user",
                                                             content="Can you get me a different patch?"))
 
-            if self.model == "claude-3.5-sonnet":
-                # force a prefill for clause-3.5
+            if self._prefill_check(self.model):
+                # force a prefill for claude-3.5
                 prefill_message = ChatCompletionAssistantMessageParam(role="assistant", content=PREFILL_CLAUDE)
                 messages.append(prefill_message)
 
@@ -313,7 +317,7 @@ class SuperYoloLLMStrategy(PatchGenerationStrategy):
         messages.append(system_message)
         messages.append(user_message)
 
-        if self.model == "claude-3.5-sonnet":
+        if self._prefill_check(self.model):
             # force a prefill for clause-3.5
             messages.append(ChatCompletionAssistantMessageParam(role="assistant", content=PREFILL_CLAUDE))
 
@@ -321,7 +325,7 @@ class SuperYoloLLMStrategy(PatchGenerationStrategy):
         while attempt < self.number_patches:
 
             llm_output = ""
-            if self.model == "claude-3.5-sonnet":
+            if self._prefill_check(self.model):
                 # observed that sometimes Claude inserts the prefill again
                 llm_call = self.llm._simple_call_llm(messages)
                 if llm_call is None:
@@ -371,7 +375,7 @@ class SuperYoloLLMStrategy(PatchGenerationStrategy):
             messages.append(ChatCompletionUserMessageParam(role="user",
                                                             content="Can you get me a different patch?"))
 
-            if self.model == "claude-3.5-sonnet":
+            if self._prefill_check(self.model):
                 # force a prefill for clause-3.5
                 messages.append(ChatCompletionAssistantMessageParam(role="assistant", content=PREFILL_CLAUDE))
 
