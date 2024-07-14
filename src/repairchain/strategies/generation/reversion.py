@@ -172,7 +172,7 @@ class MinimalPatchReversion(PatchGenerationStrategy):
             logger.exception("failed to apply minimal changes")
             return None
 
-        repo.git.add(A=True)
+        repo.git.add(update=True)
         repo.index.commit("undo minimal changes")
 
         match conflict_strategy:
