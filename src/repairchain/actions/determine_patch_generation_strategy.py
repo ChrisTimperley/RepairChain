@@ -67,9 +67,9 @@ def determine_patch_generation_strategy(
             strategies.append(yolo_gpt4o_simple)
 
             # gemini for diversity
-            yolo_gemini15_simple = YoloLLMStrategy.build(diagnosis)
-            yolo_gemini15_simple._settings("gemini-1.5-pro", use_patches_per_file_strategy=True)
-            strategies.append(yolo_gemini15_simple)
+            # yolo_gemini15_simple = YoloLLMStrategy.build(diagnosis)
+            # yolo_gemini15_simple._settings("gemini-1.5-pro", use_patches_per_file_strategy=True)
+            # strategies.append(yolo_gemini15_simple)
         else:
             logger.warning("using super yolo repair strategy (diagnosis is incomplete)")
             # strategies that try to generate the entire file
