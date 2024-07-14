@@ -11,12 +11,14 @@ from sourcelocation.location import FileLocation, Location
 from repairchain.models.bug_type import BugType
 from repairchain.models.diagnosis import Diagnosis
 from repairchain.models.replacement import Replacement
+from repairchain.models.stack_trace import StackFrame
 from repairchain.strategies.generation.llm.helper_code import CodeHelper
 from repairchain.strategies.generation.llm.llm import LLM
 from repairchain.strategies.generation.template.base import TemplateGenerationStrategy
 
 if t.TYPE_CHECKING:
     from repairchain.indexer import KaskaraIndexer
+    from repairchain.sources import ProjectSources
 
 TEMPLATE_DECREASE_VAR1 = """
 {varname} = {varname} - 1;
@@ -81,13 +83,15 @@ class IncreaseSizeStrategy(TemplateGenerationStrategy):
 
         stmt_loc = FileLocation(stmt.location.filename, stmt.location.start)
         fn = self.index.functions.encloses(stmt_loc)
-        if fn is not None:  # I believe this is possible for global decls
-            fn_src = self._fn_to_text(fn)
-            output = helper.help_with_memory_allocation(fn_src, stmt.content)
-            if output is not None:
-                for line in output.code:
-                    repl = Replacement(stmt.location, line.line)
-                    repls.append(self.diagnosis.project.sources.replacements_to_diff([repl]))
+        if fn is None: # I believe this is possible for global decls
+            return []
+        fn_src = self._fn_to_text(fn)
+        output = helper.help_with_memory_allocation(fn_src, stmt.content)
+        if output is None:
+            return []
+        for line in output.code:
+            repl = Replacement(stmt.location, line.line)
+            repls.append(self.diagnosis.project.sources.replacements_to_diff([repl]))
         return repls
 
     def _generate_decrease_access(
@@ -134,21 +138,31 @@ class IncreaseSizeStrategy(TemplateGenerationStrategy):
         location = cls._get_error_location(diagnosis)
         if location is None:
             return False
-        if location.lineno is None or location.filename is None:
-            return False
         head_index = diagnosis.index_at_head
         return head_index is not None  # sanity check
+
+    def _set_index(self, location: StackFrame) -> None:
+        if location.filename is None:
+            return
+
+        sources: ProjectSources = self.diagnosis.project.sources
+        indexer: KaskaraIndexer = self.diagnosis.project.indexer
+        files_to_index = list(self.report.alloc_stack_trace.filenames().union([location.filename]))
+        files_to_index = [
+            f for f in files_to_index if sources.exists(f, self.diagnosis.project.head)
+        ]
+        self.index = indexer.run(version=self.diagnosis.project.head,
+                                     restrict_to_files=files_to_index)
 
     @overrides
     def run(self) -> list[Diff]:
         location = self._get_error_location(self.diagnosis)
-        if location is None or location.lineno is None or location.filename is None or location.file_line is None:
+        if location is None or location.filename is None or location.lineno is None or location.file_line is None:
             return []
-        files_to_index = [location.filename]
-        files_to_index.extend(self.report.alloc_stack_trace.filenames())
-        indexer: KaskaraIndexer = self.diagnosis.project.indexer
-        self.index = indexer.run(version=self.diagnosis.project.head,
-                                     restrict_to_files=files_to_index)
+
+        self._set_index(location)
+        if self.index is None:
+            return []
 
         baseloc = Location(location.lineno, location.offset if location.offset is not None else 0)
         as_loc = FileLocation(location.filename, baseloc)
@@ -156,19 +170,16 @@ class IncreaseSizeStrategy(TemplateGenerationStrategy):
         if fn is None:
             return []
 
+        # collect vars of interest
         vars_of_interest: frozenset[str] = frozenset([])
         stmts_at_error_location = self.index.statements.at_line(location.file_line)
         for statement in stmts_at_error_location:
             vars_of_interest = vars_of_interest.union(self._get_variables(statement))
 
-        # increase size of declaration
         stmts = [stmt[0] for stmt in self._get_potential_declarations(vars_of_interest)]
         diffs: list[Diff] = []
         for stmt in stmts:
             diffs += self._generate_new_declarations(stmt)
             diffs += self._generate_decrease_access(stmt, vars_of_interest)
-        # decrease potential accesses
-        # this is actually kind of a wasteful way to do this, should just go one statement, var
-        # at a time instead of unioning them.  But, will fix later.
 
         return diffs
