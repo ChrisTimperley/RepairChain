@@ -174,6 +174,10 @@ class SuperYoloLLMStrategy(PatchGenerationStrategy):
             whole_file=True,
         )
 
+    def _settings(self, model: str, whole_file: bool) -> None:
+        self._set_model(model)
+        self.whole_file = whole_file
+
     def _set_model(self, model: str) -> None:
         self.model = model
         self.llm.model = model
@@ -213,13 +217,17 @@ class SuperYoloLLMStrategy(PatchGenerationStrategy):
             file=filename,
         )
 
+    def _prefill_check(self, model: str) -> bool:
+        models_for_prefill = ["claude-3.5-sonnet", "gemini-1.5-pro"]
+        return model in models_for_prefill
+
     def _get_llm_output_diffs(self, file: str) -> list[Diff]:
         diffs: list[Diff] = []
         system_prompt = self._create_system_prompt_diffs()
         user_prompt = self._create_user_prompt_diffs(self.files[file], file)
 
-        logger.info(f"user prompt tokens: {Util.count_tokens(user_prompt, self.model)}")
-        logger.info(f"system prompt tokens: {Util.count_tokens(system_prompt, self.model)}")
+        logger.debug(f"user prompt tokens: {Util.count_tokens(user_prompt, self.model)}")
+        logger.debug(f"system prompt tokens: {Util.count_tokens(system_prompt, self.model)}")
 
         messages: MessagesIterable = []
         system_message = ChatCompletionSystemMessageParam(role="system", content=system_prompt)
@@ -227,8 +235,8 @@ class SuperYoloLLMStrategy(PatchGenerationStrategy):
         messages.append(system_message)
         messages.append(user_message)
 
-        if self.model == "claude-3.5-sonnet":
-            # force a prefill for clause-3.5
+        if self._prefill_check(self.model):
+            # force a prefill for claude-3.5
             prefill_message = ChatCompletionAssistantMessageParam(role="assistant", content=PREFILL_CLAUDE)
             messages.append(prefill_message)
 
@@ -236,11 +244,19 @@ class SuperYoloLLMStrategy(PatchGenerationStrategy):
         while attempt < self.number_patches:
 
             llm_output = ""
-            if self.model == "claude-3.5-sonnet":
-                llm_output += PREFILL_CLAUDE
-                llm_output += self.llm._simple_call_llm(messages)
+            if self._prefill_check(self.model):
+                # observed that sometimes claude inserts the prefill again
+                llm_call = self.llm._simple_call_llm(messages)
+                if llm_call is None:
+                    attempt += 1
+                    continue
+                llm_output = llm_call if llm_call.startswith(PREFILL_CLAUDE) else PREFILL_CLAUDE + llm_call
             else:
-                llm_output = self.llm._simple_call_llm(messages)
+                llm_call = self.llm._simple_call_llm(messages)
+                if llm_call is None:
+                    attempt += 1
+                    continue
+                llm_output = llm_call
 
             if not llm_output:
                 logger.debug("Failed to get output from LLM")
@@ -251,11 +267,11 @@ class SuperYoloLLMStrategy(PatchGenerationStrategy):
             patch_contents = Util.apply_patch(original_contents, llm_output)
 
             if not patch_contents:
-                logger.debug(f"Failed to generate patch "
+                logger.debug(f"Failed to generate a candidate patch "
                                 f"{attempt + 1} / {self.number_patches} "
                                 f"with model {self.model}")
             else:
-                logger.debug(f"Successfully generated a patch "
+                logger.debug(f"Successfully generated a candidate patch "
                                 f"{attempt + 1} / {self.number_patches} "
                                 f"with model {self.model}")
                 # Generate the diff
@@ -268,23 +284,22 @@ class SuperYoloLLMStrategy(PatchGenerationStrategy):
 
                 # Convert the diff to a string and add to the diffs list
                 diff_patch = "".join(diff)
+                logger.info(f"Model {self.model} generated a diff patch:\n{diff_patch}\n")
                 diffs.append(Diff.from_unidiff(diff_patch))
 
-            last_llm_output = ChatCompletionAssistantMessageParam(role="assistant",
-                                                                    content=llm_output)
-            messages.append(last_llm_output)
-            user_new_patch = ChatCompletionUserMessageParam(role="user",
-                                                            content="Can you get me a different patch?")
-            messages.append(user_new_patch)
+            messages.append(ChatCompletionAssistantMessageParam(role="assistant",
+                                                                    content=llm_output))
+            messages.append(ChatCompletionUserMessageParam(role="user",
+                                                            content="Can you get me a different patch?"))
 
-            if self.model == "claude-3.5-sonnet":
-                # force a prefill for clause-3.5
+            if self._prefill_check(self.model):
+                # force a prefill for claude-3.5
                 prefill_message = ChatCompletionAssistantMessageParam(role="assistant", content=PREFILL_CLAUDE)
                 messages.append(prefill_message)
 
             attempt += 1
 
-        logger.info(f"Found {len(diffs)} patches")
+        logger.info(f"found {len(diffs)} candidate patches with model {self.model}")
         return diffs
 
     # TODO: a lot of code duplication; refactor later
@@ -293,8 +308,8 @@ class SuperYoloLLMStrategy(PatchGenerationStrategy):
         system_prompt = self._create_system_prompt_file()
         user_prompt = self._create_user_prompt_file(self.files[file], file)
 
-        logger.info(f"user prompt tokens: {Util.count_tokens(user_prompt, self.model)}")
-        logger.info(f"system prompt tokens: {Util.count_tokens(system_prompt, self.model)}")
+        logger.debug(f"user prompt tokens: {Util.count_tokens(user_prompt, self.model)}")
+        logger.debug(f"system prompt tokens: {Util.count_tokens(system_prompt, self.model)}")
 
         messages: MessagesIterable = []
         system_message = ChatCompletionSystemMessageParam(role="system", content=system_prompt)
@@ -302,7 +317,7 @@ class SuperYoloLLMStrategy(PatchGenerationStrategy):
         messages.append(system_message)
         messages.append(user_message)
 
-        if self.model == "claude-3.5-sonnet":
+        if self._prefill_check(self.model):
             # force a prefill for clause-3.5
             messages.append(ChatCompletionAssistantMessageParam(role="assistant", content=PREFILL_CLAUDE))
 
@@ -310,11 +325,19 @@ class SuperYoloLLMStrategy(PatchGenerationStrategy):
         while attempt < self.number_patches:
 
             llm_output = ""
-            if self.model == "claude-3.5-sonnet":
-                llm_output += PREFILL_CLAUDE
-                llm_output += self.llm._simple_call_llm(messages)
+            if self._prefill_check(self.model):
+                # observed that sometimes Claude inserts the prefill again
+                llm_call = self.llm._simple_call_llm(messages)
+                if llm_call is None:
+                    attempt += 1
+                    continue
+                llm_output = llm_call if llm_call.startswith(PREFILL_CLAUDE) else PREFILL_CLAUDE + llm_call
             else:
-                llm_output = self.llm._simple_call_llm(messages)
+                llm_call = self.llm._simple_call_llm(messages)
+                if llm_call is None:
+                    attempt += 1
+                    continue
+                llm_output = llm_call
 
             if not llm_output:
                 logger.debug("Failed to get output from LLM")
@@ -325,13 +348,13 @@ class SuperYoloLLMStrategy(PatchGenerationStrategy):
             original_contents = self.files[file]
             patch_lines = llm_output.split("\n")
             if len(patch_lines) < 2:  # noqa: PLR2004
-                logger.debug(f"Failed to generate patch "
+                logger.debug(f"Failed to generate a candidate patch "
                                 f"{attempt + 1} / {self.number_patches} "
                                 f"with model {self.model}")
             else:
                 patch_lines = patch_lines[1:len(patch_lines) - 1]
                 patch_contents = "\n".join(patch_lines)
-                logger.debug(f"Successfully generated a patch "
+                logger.debug(f"Successfully generated a candidate patch "
                                 f"{attempt + 1} / {self.number_patches} "
                                 f"with model {self.model}")
                 # Generate the diff
@@ -344,22 +367,21 @@ class SuperYoloLLMStrategy(PatchGenerationStrategy):
 
                 # Convert the diff to a string and add to the diffs list
                 diff_patch = "".join(diff)
+                logger.info(f"Model {self.model} generated a diff patch:\n{diff_patch}\n")
                 diffs.append(Diff.from_unidiff(diff_patch))
 
-            last_llm_output = ChatCompletionAssistantMessageParam(role="assistant",
-                                                                    content=llm_output)
-            messages.append(last_llm_output)
-            user_new_patch = ChatCompletionUserMessageParam(role="user",
-                                                            content="Can you get me a different patch?")
-            messages.append(user_new_patch)
+            messages.append(ChatCompletionAssistantMessageParam(role="assistant",
+                                                                    content=llm_output))
+            messages.append(ChatCompletionUserMessageParam(role="user",
+                                                            content="Can you get me a different patch?"))
 
-            if self.model == "claude-3.5-sonnet":
+            if self._prefill_check(self.model):
                 # force a prefill for clause-3.5
                 messages.append(ChatCompletionAssistantMessageParam(role="assistant", content=PREFILL_CLAUDE))
 
             attempt += 1
 
-        logger.info(f"Found {len(diffs)} patches")
+        logger.info(f"found {len(diffs)} candidate patches with model {self.model}")
         return diffs
 
     def _get_llm_output(self) -> list[Diff]:

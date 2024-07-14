@@ -35,7 +35,7 @@ class LLM:
             master_key=settings.litellm_key,
         )
 
-    def _simple_call_llm(self, messages: MessagesIterable) -> str:
+    def _simple_call_llm(self, messages: MessagesIterable) -> str | None:
         logger.info(f"Calling LLM with model={self.model}")
         model = self.model
         client = openai.OpenAI(
@@ -58,7 +58,7 @@ class LLM:
 
                 llm_output = response.choices[0].message.content
                 if llm_output is None:
-                    return ""
+                    return None
                 return llm_output
 
             except openai.APITimeoutError as e:
@@ -76,11 +76,11 @@ class LLM:
             except openai.OpenAIError as e:
                 # do not retry in this case
                 logger.warning(f"General OpenAI API error: {e}.")
-                return ""
+                return None
 
-        return ""
+        return None
 
-    def _call_llm_json(self, messages: MessagesIterable) -> str:
+    def _call_llm_json(self, messages: MessagesIterable) -> str | None:
         logger.info(f"Calling LLM with model={self.model}")
         model = self.model
         client = openai.OpenAI(
@@ -99,24 +99,24 @@ class LLM:
 
                 llm_output = response.choices[0].message.content
                 if llm_output is None:
-                    return ""
+                    return None
                 return llm_output
 
             except openai.APITimeoutError as e:
-                logger.info(f"API timeout error: {e}. Retrying {attempt + 1}/{retry_attempts}...")
+                logger.warning(f"API timeout error: {e}. Retrying {attempt + 1}/{retry_attempts}...")
                 time.sleep(Util.short_sleep)  # brief wait before retrying
             except openai.InternalServerError as e:
-                logger.info(f"Internal server error: {e}. Retrying {attempt + 1}/{retry_attempts}...")
+                logger.warning(f"Internal server error: {e}. Retrying {attempt + 1}/{retry_attempts}...")
                 time.sleep(Util.short_sleep)  # brief wait before retrying
             except openai.RateLimitError as e:
-                logger.info(f"Rate limit error: {e}. Retrying {attempt + 1}/{retry_attempts}...")
+                logger.warning(f"Rate limit error: {e}. Retrying {attempt + 1}/{retry_attempts}...")
                 time.sleep(Util.long_sleep)  # wait longer before retrying
             except openai.UnprocessableEntityError as e:
-                logger.info(f"Unprocessable entity error: {e}. Retrying {attempt + 1}/{retry_attempts}...")
+                logger.warning(f"Unprocessable entity error: {e}. Retrying {attempt + 1}/{retry_attempts}...")
                 time.sleep(Util.short_sleep)  # brief wait before retrying
             except openai.OpenAIError as e:
                 # do not retry in this case
-                logger.info(f"General OpenAI API error: {e}.")
-                return ""
+                logger.warning(f"General OpenAI API error: {e}.")
+                return None
 
-        return ""
+        return None

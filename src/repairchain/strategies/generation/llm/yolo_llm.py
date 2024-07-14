@@ -83,6 +83,7 @@ class YoloLLMStrategy(PatchGenerationStrategy):
     use_report: bool  # option to use report in context
     use_context_files: bool  # option to use full files in context
     use_one_patch_for_iter: bool
+    use_patches_per_file_strategy: bool
     llm: LLM
     diff: Diff
     files: dict[str, str]
@@ -121,7 +122,12 @@ class YoloLLMStrategy(PatchGenerationStrategy):
             diff=diff,
             files=files,
             number_patches=Util.number_patches,
+            use_patches_per_file_strategy=False,
         )
+
+    def _settings(self, model: str, use_patches_per_file_strategy: bool) -> None:
+        self._set_model(model)
+        self.use_patches_per_file_strategy = use_patches_per_file_strategy
 
     def _set_model(self, model: str) -> None:
         self.model = model
@@ -159,11 +165,11 @@ class YoloLLMStrategy(PatchGenerationStrategy):
             fl: FileLines | None = Util.extract_begin_end_lines(self.diagnosis, name)
             filename: str | None = Util.function_to_filename(self.diagnosis, name)
             if fl is None:
-                logger.info(f"function was not found: {name}")
+                logger.warning(f"function was not found: {name}")
                 continue
 
             if filename is None:
-                logger.info(f"filename was not found: {filename}")
+                logger.warning(f"filename was not found: {filename}")
                 continue
 
             # Check if the key 'filename' exists in the dictionary files
@@ -171,12 +177,12 @@ class YoloLLMStrategy(PatchGenerationStrategy):
                 contents = Util.extract_lines_between_indices(self.files[filename], fl.begin, fl.end)
             else:
                 # Handle the case where the key 'name' does not exist
-                logger.info(f"Key {name} does not exist in the dictionary files.")
-                logger.info(f"keys {print(list(self.files.keys()))}")
+                logger.warning(f"Key {name} does not exist in the dictionary files.")
+                logger.warning(f"keys {print(list(self.files.keys()))}")
                 contents = ""
 
             if contents is None:
-                logger.info(f"Could not extract function {name} from {filename}")
+                logger.warning(f"Could not extract function {name} from {filename}")
                 contents = ""
 
             logger.debug(f"Contents of function: {contents}")
@@ -190,7 +196,7 @@ class YoloLLMStrategy(PatchGenerationStrategy):
             code_context += (rf"<file:{filename}>\n{contents}\</file:{filename}>\n")
             logger.debug(f"Contents of context: {code_context}")
 
-        logger.info(f"Function {max_function_name} in {max_function_filename} needs {max_function_size} tokens")
+        logger.debug(f"Function {max_function_name} in {max_function_filename} needs {max_function_size} tokens")
 
         return FunctionContext(code_context,
                                Util.count_tokens(code_context, self.model),
@@ -212,9 +218,9 @@ class YoloLLMStrategy(PatchGenerationStrategy):
         local_number_patches = number_patches
         llm_limit = (Util.limit_llm_output / 2)  # being conservative since output has more than code
         if function_context.max_function_size * number_patches > llm_limit:
-            logger.info(f"Function too large to ask for {number_patches} patches")
+            logger.info(f"function too large to ask for {number_patches} patches")
             if function_context.max_function_size > llm_limit:
-                logger.info("Function too large to ask for one patch!")
+                logger.info(f"function too large to ask for one patch! (requires {function_context.max_function_size})")
                 local_number_patches = 0
             else:
                 local_number_patches = max(1, math.floor(llm_limit / function_context.max_function_size))
@@ -268,9 +274,15 @@ class YoloLLMStrategy(PatchGenerationStrategy):
                 llm_output = ""
                 if self.model == "claude-3.5-sonnet":
                     llm_output += PREFILL_YOLO
-                    llm_output += self.llm._call_llm_json(messages)
+                    llm_call = self.llm._call_llm_json(messages)
+                    if llm_call is None:
+                        return None
+                    llm_output += llm_call
                 else:
-                    llm_output = self.llm._call_llm_json(messages)
+                    llm_call = self.llm._call_llm_json(messages)
+                    if llm_call is None:
+                        return None
+                    llm_output = llm_call
 
                 logger.info(f"output prompt tokens: {Util.count_tokens(llm_output, self.model)}")
                 logger.debug(f"LLM output in JSON: {llm_output}")
@@ -329,8 +341,10 @@ class YoloLLMStrategy(PatchGenerationStrategy):
     # TODO: refactor code to minimize duplication
     def _get_llm_output(self, user_prompt: str, system_prompt: str) -> PatchFile | None:
 
-        logger.info(f"user prompt tokens: {Util.count_tokens(user_prompt, self.model)}")
-        logger.info(f"system prompt tokens: {Util.count_tokens(system_prompt, self.model)}")
+        logger.debug(f"user prompt tokens: {Util.count_tokens(user_prompt, self.model)}")
+        logger.debug(f"user prompt:\n{user_prompt}")
+        logger.debug(f"system prompt tokens: {Util.count_tokens(system_prompt, self.model)}")
+        logger.debug(f"system prompt:\n{system_prompt}")
 
         messages: MessagesIterable = []
         system_message = ChatCompletionSystemMessageParam(role="system", content=system_prompt)
@@ -369,14 +383,40 @@ class YoloLLMStrategy(PatchGenerationStrategy):
             return llm_patches
         return self._query_llm(messages)
 
-    def run(self) -> list[Diff]:
-        summary: ReportSummary = ReportSummary(self.model)
-        code_summary: list[FunctionSummary] | None = None
-        if self.use_report:
-            code_summary = summary._get_llm_code_report(self.diagnosis)
+    def _get_patches_per_file(self, code_summary: list[FunctionSummary] | None) -> list[Diff]:
+        file_to_functions: dict[str, list[str]] = {}
+        if self.diagnosis.implicated_functions_at_head is None:
+            return []
+
+        for function in self.diagnosis.implicated_functions_at_head:
+            file_to_functions.setdefault(function.filename, []).append(function.name)
+
+        # ask for one patch at each time
+        self.use_one_patch_for_iter = True
+        self.number_patches = 1
 
         system_prompt = self._create_system_prompt()
+        sanitizer_prompt = self._create_sanitizer_report_prompt(code_summary)
 
+        patches: list[Diff] = []
+        for file in self.files:
+            logger.debug(f"looking for potential patches for file {file}")
+
+            user_prompt = self._create_user_prompt(file_to_functions[file],
+                                                   sanitizer_prompt,
+                                                   self.number_patches)
+
+            repaired_files: PatchFile | None = self._get_llm_output(user_prompt, system_prompt)
+            if repaired_files is not None:
+                patches.extend(Util.extract_patches(self.diagnosis, self.files, repaired_files.patch))
+
+        logger.info(f"found {len(patches)} candidate patches with model {self.model}")
+
+        return patches
+
+    def _get_patches_any_file(self, code_summary: list[FunctionSummary] | None) -> list[Diff]:
+
+        system_prompt = self._create_system_prompt()
         sanitizer_prompt = self._create_sanitizer_report_prompt(code_summary)
 
         if self.use_one_patch_for_iter:
@@ -387,14 +427,15 @@ class YoloLLMStrategy(PatchGenerationStrategy):
                                                self.number_patches)
 
         if self.number_patches == 0:
+            logger.warning("some function is too large to repair as a whole")
             return []  # function is too large to repair as a whole
 
         if self.number_patches != Util.number_patches:
             self.use_one_patch_for_iter = True
 
-        logger.info(f"system prompt tokens: {Util.count_tokens(system_prompt, self.model)}")
+        logger.debug(f"system prompt tokens: {Util.count_tokens(system_prompt, self.model)}")
         logger.debug(f"system prompt: {system_prompt}")
-        logger.info(f"user prompt tokens: {Util.count_tokens(user_prompt, self.model)}")
+        logger.debug(f"user prompt tokens: {Util.count_tokens(user_prompt, self.model)}")
         logger.debug(f"user prompt: {user_prompt}")
 
         sanitizer_prompt = self._create_sanitizer_report_prompt(code_summary)
@@ -402,4 +443,17 @@ class YoloLLMStrategy(PatchGenerationStrategy):
         repaired_files: PatchFile | None = self._get_llm_output(user_prompt, system_prompt)
         if repaired_files is None:
             return []
-        return Util.extract_patches(self.diagnosis, self.files, repaired_files.patch)
+
+        patches: list[Diff] = Util.extract_patches(self.diagnosis, self.files, repaired_files.patch)
+        logger.info(f"found {len(patches)} candidate patches with model {self.model}")
+        return patches
+
+    def run(self) -> list[Diff]:
+        summary: ReportSummary = ReportSummary(self.model)
+        code_summary: list[FunctionSummary] | None = None
+        if self.use_report:
+            code_summary = summary._get_llm_code_report(self.diagnosis)
+
+        if self.use_patches_per_file_strategy:
+            return self._get_patches_per_file(code_summary)
+        return self._get_patches_any_file(code_summary)
