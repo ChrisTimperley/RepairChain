@@ -177,10 +177,10 @@ class IncreaseSizeStrategy(TemplateGenerationStrategy):
         for statement in stmts_at_error_location:
             vars_of_interest = vars_of_interest.union(self._get_variables(statement))
 
+        diffs: list[Diff] = []
+
         for varname in vars_of_interest:
-            stmts = [stmt[0] for stmt in self._get_potential_declarations(varname)]
-            diffs: list[Diff] = []
-            for stmt in stmts:
+            for stmt in self._get_potential_declarations(varname):
                 diffs += self._generate_new_declarations(stmt, varname)
                 diffs += self._generate_decrease_access(stmt, varname)
 

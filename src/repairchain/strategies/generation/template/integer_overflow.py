@@ -149,8 +149,7 @@ class IntegerOverflowStrategy(TemplateGenerationStrategy):
             return []
 
         # step 2: get rewrites for the declarations
-        decls_to_upcast = self._get_potential_declarations(varname)
-        for (decl_stmt, _, _, _) in decls_to_upcast:
+        for decl_stmt in self._get_potential_declarations(varname):
             new_decl_code = llm_helper.help_with_upcast_decl(decl_stmt.content,
                                                              varname,
                                                              info_helper.problem_type,

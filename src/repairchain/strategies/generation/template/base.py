@@ -11,12 +11,10 @@ import kaskara.functions
 from loguru import logger
 from sourcelocation.location import FileLocation, Location
 
-from repairchain.actions.commit_to_diff import get_file_contents_at_commit
 from repairchain.models.diagnosis import Diagnosis
 from repairchain.strategies.generation.base import PatchGenerationStrategy
 
 if t.TYPE_CHECKING:
-    from sourcelocation.fileline import FileLine
 
     from repairchain.models.diagnosis import Diagnosis
     from repairchain.models.sanitizer_report import SanitizerReport
@@ -73,10 +71,7 @@ class TemplateGenerationStrategy(PatchGenerationStrategy):
         return None
 
     def _get_potential_declarations(self,
-                                    varname: str) -> list[tuple[kaskara.statements.Statement,
-                                                                kaskara.functions.Function,
-                                                                FileLine,
-                                                                str]]:
+                                    varname: str) -> list[kaskara.statements.Statement]:
         if self.index is None:
             logger.warning("Unexpected empty index in template generation.")
             return []
@@ -85,9 +80,7 @@ class TemplateGenerationStrategy(PatchGenerationStrategy):
         if allocated_stack is None:
             return []
 
-        declaring_stmts: list[tuple[kaskara.statements.Statement,
-                                    kaskara.functions.Function, FileLine,
-                                    str]] = []
+        declaring_stmts: list[kaskara.statements.Statement] = []
 
         for frame in allocated_stack.frames:
             if frame.filename is None or frame.lineno is None or frame.file_line is None:
@@ -97,16 +90,11 @@ class TemplateGenerationStrategy(PatchGenerationStrategy):
             fn = self.index.functions.encloses(as_loc)
             if fn is None:
                 continue
-            file_contents = get_file_contents_at_commit(
-                        self.diagnosis.project.repository.active_branch.commit,
-                        fn.filename,
-                    )
-            stmts = [(stmt, fn, frame.file_line, file_contents)
-                        for stmt in self.index.statements
-                            if isinstance(stmt, kaskara.clang.analysis.ClangStatement) and
-                            varname in stmt.declares
-                    ]
-            declaring_stmts.extend(stmts)
+            declaring_stmts += [
+                    stmt for stmt in self.index.statements
+                    if isinstance(stmt, kaskara.clang.analysis.ClangStatement) and
+                    varname in stmt.declares
+                ]
         if len(declaring_stmts) == 0:
             logger.info("No declaring statements found. returning empty list.")
         return declaring_stmts
