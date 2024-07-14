@@ -63,7 +63,7 @@ class Project:
         self.sources = ProjectSources.for_project(self)
         self.evaluation_cache = PatchOutcomeCache.for_settings(self.settings)
         self.validator = ThreadedPatchValidator.for_project(self)
-        self.indexer = KaskaraIndexer.for_project(self)
+        self.indexer = KaskaraIndexer.for_project(self, self.sources)
 
     @classmethod
     @contextlib.contextmanager
