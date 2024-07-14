@@ -91,6 +91,10 @@ class StackTrace(t.Sequence[StackFrame]):
         """Returns the set of function names in the stack trace."""
         return {frame.funcname for frame in self.frames if frame.funcname is not None}
 
+    def filenames(self) -> set[str]:
+        """Returns the set of file names in the stack trace."""
+        return {frame.filename for frame in self.frames if frame.filename is not None}
+
 
 def extract_location_symbolized(line: str) -> tuple[str, int | None, int | None]:
     filename = line

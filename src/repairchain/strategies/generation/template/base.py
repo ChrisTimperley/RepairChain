@@ -27,6 +27,7 @@ if t.TYPE_CHECKING:
 class TemplateGenerationStrategy(PatchGenerationStrategy):
     """Base class for all template-based patch generation strategies."""
     report: SanitizerReport
+    index: kaskara.analysis.Analysis | None
 
     def _fn_to_text(self, fn: kaskara.functions.Function) -> str:
         # You can get the range of the function and then plug that into ProjectSources
@@ -78,9 +79,8 @@ class TemplateGenerationStrategy(PatchGenerationStrategy):
         # location is the location of the overflow, should reference at least one variable
         # look for it in the allocation stack
         # array - take whatever's in the bracket and mod it with the size
-        head_index = self.diagnosis.index_at_head
-        if head_index is None:
-            logger.warning("Unexpected empty head index in template generation.")
+        if self.index is None:
+            logger.warning("Unexpected empty index in template generation.")
             return []
 
         allocated_stack = self.report.alloc_stack_trace
@@ -93,17 +93,16 @@ class TemplateGenerationStrategy(PatchGenerationStrategy):
                 if frame.filename is not None and frame.lineno is not None:
                     baseloc = Location(frame.lineno, frame.offset if frame.offset is not None else 0)
                     as_loc = FileLocation(frame.filename, baseloc)
-                    fn = head_index.functions.encloses(as_loc)
-                    # FIXME: need kaskara to index on demand for this to work.
+                    fn = self.index.functions.encloses(as_loc)
                     if fn is None:
                         return []
                     file_contents = get_file_contents_at_commit(
                         self.diagnosis.project.repository.active_branch.commit,
                         fn.filename,
                     )
-                    if frame.file_line is not None:
+                    if frame.file_line is not None and self.index is not None:
                         stmts = [(stmt, fn, frame.file_line, file_contents)
-                                  for stmt in head_index.statements
+                                  for stmt in self.index.statements
                                     if isinstance(stmt, kaskara.clang.analysis.ClangStatement) and
                                     len(vars_of_interest.intersection(stmt.declares)) > 0
                                 ]

@@ -15,6 +15,9 @@ from repairchain.strategies.generation.llm.helper_code import CodeHelper
 from repairchain.strategies.generation.llm.llm import LLM
 from repairchain.strategies.generation.template.base import TemplateGenerationStrategy
 
+if t.TYPE_CHECKING:
+    from repairchain.indexer import KaskaraIndexer
+
 TEMPLATE_DECREASE_VAR1 = """
 {varname} = {varname} - 1;
 {stmt_code}
@@ -45,9 +48,6 @@ class IncreaseSizeStrategy(TemplateGenerationStrategy):
                         stmt: kaskara.statements.Statement,
                        ) -> frozenset[str]:
         vars_read: frozenset[str] = frozenset([])
-        head_index = self.diagnosis.index_at_head
-        assert head_index is not None
-        # TODO: filter variables by type to cut it down
         if isinstance(stmt, kaskara.clang.analysis.ClangStatement):
             vars_read.union(frozenset(stmt.reads if hasattr(stmt, "reads") else []))
         if isinstance(stmt, kaskara.clang.analysis.ClangStatement) and len(vars_read) == 0:
@@ -62,6 +62,7 @@ class IncreaseSizeStrategy(TemplateGenerationStrategy):
         return cls(
             diagnosis=diagnosis,
             report=diagnosis.sanitizer_report,
+            index=None,
             llm=LLM.from_settings(diagnosis.project.settings),
         )
 
@@ -74,13 +75,12 @@ class IncreaseSizeStrategy(TemplateGenerationStrategy):
         # this statement should be a declaration statement, so all we need to do
         # is get a new one and replace it
         helper = CodeHelper(self.llm)
-        head_index = self.diagnosis.index_at_head
-        if head_index is None:
+        if self.index is None:
             logger.warning("Unexpected incomplete diagnosis in bounds check template.")
             return []
 
         stmt_loc = FileLocation(stmt.location.filename, stmt.location.start)
-        fn = head_index.functions.encloses(stmt_loc)
+        fn = self.index.functions.encloses(stmt_loc)
         if fn is not None:  # I believe this is possible for global decls
             fn_src = self._fn_to_text(fn)
             output = helper.help_with_memory_allocation(fn_src, stmt.content)
@@ -100,8 +100,7 @@ class IncreaseSizeStrategy(TemplateGenerationStrategy):
         # prepend to error location
         repls: list[Diff] = []
 
-        head_index = self.diagnosis.index_at_head
-        if head_index is None:
+        if self.index is None:
             logger.warning("Unexpected incomplete diagnosis in bounds check template.")
             return []
 
@@ -138,34 +137,27 @@ class IncreaseSizeStrategy(TemplateGenerationStrategy):
         if location.lineno is None or location.filename is None:
             return False
         head_index = diagnosis.index_at_head
-        if head_index is None:
-            return False
-
-        baseloc = Location(location.lineno, location.offset if location.offset is not None else 0)
-        as_loc = FileLocation(location.filename, baseloc)
-        fn = head_index.functions.encloses(as_loc)
-        return fn is not None
+        return head_index is not None  # sanity check
 
     @overrides
     def run(self) -> list[Diff]:
-
         location = self._get_error_location(self.diagnosis)
-        head_index = self.diagnosis.index_at_head
-        if head_index is None:
-            logger.warning("Unexpected incomplete diagnosis in bounds check template.")
-            return []
-
         if location is None or location.lineno is None or location.filename is None or location.file_line is None:
             return []
+        files_to_index = [location.filename]
+        files_to_index.extend(self.report.alloc_stack_trace.filenames())
+        indexer: KaskaraIndexer = self.diagnosis.project.indexer
+        self.index = indexer.run(version=self.diagnosis.project.head,
+                                     restrict_to_files=files_to_index)
 
         baseloc = Location(location.lineno, location.offset if location.offset is not None else 0)
         as_loc = FileLocation(location.filename, baseloc)
-        fn = head_index.functions.encloses(as_loc)
+        fn = self.index.functions.encloses(as_loc)
         if fn is None:
             return []
 
         vars_of_interest: frozenset[str] = frozenset([])
-        stmts_at_error_location = head_index.statements.at_line(location.file_line)
+        stmts_at_error_location = self.index.statements.at_line(location.file_line)
         for statement in stmts_at_error_location:
             vars_of_interest = vars_of_interest.union(self._get_variables(statement))
 

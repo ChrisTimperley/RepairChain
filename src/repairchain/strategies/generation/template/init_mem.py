@@ -13,6 +13,9 @@ from repairchain.strategies.generation.llm.helper_code import CodeHelper
 from repairchain.strategies.generation.llm.llm import LLM
 from repairchain.strategies.generation.template.base import TemplateGenerationStrategy
 
+if t.TYPE_CHECKING:
+    from repairchain.indexer import KaskaraIndexer
+
 
 @dataclass
 class InitializeMemoryStrategy(TemplateGenerationStrategy):
@@ -26,6 +29,7 @@ class InitializeMemoryStrategy(TemplateGenerationStrategy):
         return cls(
             diagnosis=diagnosis,
             report=diagnosis.sanitizer_report,
+            index=None,
             llm=LLM.from_settings(diagnosis.project.settings),
         )
 
@@ -44,20 +48,20 @@ class InitializeMemoryStrategy(TemplateGenerationStrategy):
 
     @overrides
     def run(self) -> list[Diff]:
-
         repls: list[Diff] = []
-
         location = self._get_error_location(self.diagnosis)
-
         helper = CodeHelper(self.llm)
-        head_index = self.diagnosis.index_at_head
-        if head_index is None or location is None or location.file_line is None:
+        indexer: KaskaraIndexer = self.diagnosis.project.indexer
+
+        if location is None or location.filename is None or location.file_line is None:
             return []
-        stmts_at_error_location = head_index.statements.at_line(location.file_line)
+        self.index = indexer.run(version=self.diagnosis.project.head,
+                                     restrict_to_files=list(location.filename))
+        stmts_at_error_location = self.index.statements.at_line(location.file_line)
 
         for stmt in stmts_at_error_location:
             stmt_loc = FileLocation(stmt.location.filename, stmt.location.start)
-            fn = head_index.functions.encloses(stmt_loc)
+            fn = self.index.functions.encloses(stmt_loc)
             if fn is not None:
                 fn_src = self._fn_to_text(fn)
                 output = helper.help_with_memory_initialization(fn_src, stmt.content)
