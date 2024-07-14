@@ -26,14 +26,72 @@ AVAILABLE_TEMPLATES: tuple[type[TemplateGenerationStrategy]] = (
 )
 
 
+def _build_yolo_strategies_with_kaskara_indices(
+    diagnosis: Diagnosis,
+) -> list[PatchGenerationStrategy]:
+    strategies: list[PatchGenerationStrategy] = []
+
+    # try different models
+    # - note that claude has some issues with JSON format and needs to requery
+    for model in ("oai-gpt-4o", "claude-3.5-sonnet"):
+        # and try:
+        # (a) use all files in context and ask for multiple patches at once (preferred)
+        # (b) use a single file as context and ask for one patch at a time
+        for use_patches_per_file_strategy in (True, False):
+            strategy = YoloLLMStrategy.build(
+                diagnosis=diagnosis,
+                model=model,
+                use_patches_per_file_strategy=use_patches_per_file_strategy,
+            )
+            strategies.append(strategy)
+
+    # gpt4-turbo is much more expensive, so we only try one strategy
+    yolo_gpt4_turbo = YoloLLMStrategy.build(
+        diagnosis=diagnosis,
+        model="oai-gpt-4-turbo",
+        use_patches_per_file_strategy=True,
+    )
+    strategies.append(yolo_gpt4_turbo)
+
+    return strategies
+
+
+def _build_yolo_strategies_without_kaskara_indices(
+    diagnosis: Diagnosis,
+) -> list[PatchGenerationStrategy]:
+    strategies: list[PatchGenerationStrategy] = []
+    for model in ("oai-gpt-4o", "claude-3.5-sonnet"):
+        # vary:
+        # (a) try to generate the entire file
+        # (b) unified diffs as patches
+        for whole_file in (True, False):
+            strategy = SuperYoloLLMStrategy.build(
+                diagnosis=diagnosis,
+                model=model,
+                whole_file=whole_file,
+            )
+            strategies.append(strategy)
+
+    return strategies
+
+
+def _determine_yolo_strategies(
+    diagnosis: Diagnosis,
+) -> list[PatchGenerationStrategy]:
+    if diagnosis.is_complete():
+        logger.info("using yolo repair strategy with full kaskara indices")
+        return _build_yolo_strategies_with_kaskara_indices(diagnosis)
+
+    logger.warning("using super yolo repair strategy (diagnosis is incomplete)")
+    return _build_yolo_strategies_without_kaskara_indices(diagnosis)
+
+
 def determine_patch_generation_strategy(
     diagnosis: Diagnosis,
 ) -> PatchGenerationStrategy:
     logger.info("determining patch generation strategy...")
     settings = diagnosis.project.settings
     strategies: list[PatchGenerationStrategy] = []
-
-    diagnosis_is_complete = diagnosis.is_complete()
 
     if settings.enable_reversion_repair:
         logger.info("using reversion repair strategy")
@@ -42,83 +100,8 @@ def determine_patch_generation_strategy(
         logger.info("skipping reversion repair strategy (disabled)")
 
     if settings.enable_yolo_repair:
-        # FIXME this should be more precise
-        if diagnosis_is_complete:
-            logger.info("using yolo repair strategy")
-            # strategies that use all files in context and ask for multiple patches at once
-            # this is the preferred model
-            yolo_gpt4o = YoloLLMStrategy.build(
-                diagnosis=diagnosis,
-                model="oai-gpt-4o",
-                use_patches_per_file_strategy=False,
-            )
-            strategies.append(yolo_gpt4o)
-
-            # claude has some issues with JSON format and needs to requery
-            yolo_claude35 = YoloLLMStrategy.build(
-                diagnosis=diagnosis,
-                model="claude-3.5-sonnet",
-                use_patches_per_file_strategy=False,
-            )
-            strategies.append(yolo_claude35)
-
-            # strategies that use single file as context and ask for one patch at a time
-            # trying gpt4_turbo to diversify -- more expensive than gpt4o so only one strategy
-            yolo_gpt4_turbo = YoloLLMStrategy.build(
-                diagnosis=diagnosis,
-                model="oai-gpt-4-turbo",
-                use_patches_per_file_strategy=True,
-            )
-            strategies.append(yolo_gpt4_turbo)
-
-            # claude
-            yolo_claude35_simple = YoloLLMStrategy.build(
-                diagnosis=diagnosis,
-                model="claude-3.5-sonnet",
-                use_patches_per_file_strategy=True,
-            )
-            strategies.append(yolo_claude35_simple)
-
-            # gpt4o
-            yolo_gpt4o_simple = YoloLLMStrategy.build(
-                diagnosis=diagnosis,
-                model="oai-gpt-4o",
-                use_patches_per_file_strategy=True,
-            )
-            strategies.append(yolo_gpt4o_simple)
-        else:
-            logger.warning("using super yolo repair strategy (diagnosis is incomplete)")
-
-            # strategies that try to generate the entire file
-            superyolo_gpt4o_files = SuperYoloLLMStrategy.build(
-                diagnosis=diagnosis,
-                model="oai-gpt-4o",
-                whole_file=True,
-            )
-            strategies.append(superyolo_gpt4o_files)
-
-            superyolo_claude35_files = SuperYoloLLMStrategy.build(
-                diagnosis=diagnosis,
-                model="claude-3.5-sonnet",
-                whole_file=True,
-            )
-            strategies.append(superyolo_claude35_files)
-
-            # strategies that use unified diffs as patches
-            superyolo_gpt4o_diffs = SuperYoloLLMStrategy.build(
-                diagnosis=diagnosis,
-                model="oai-gpt-4o",
-                whole_file=False,
-            )
-            strategies.append(superyolo_gpt4o_diffs)
-
-            superyolo_claude35_diffs = SuperYoloLLMStrategy.build(
-                diagnosis=diagnosis,
-                model="claude-3.5-sonnet",
-                whole_file=False,
-            )
-            strategies.append(superyolo_claude35_diffs)
-
+        logger.info("using yolo repair strategies")
+        strategies += _determine_yolo_strategies(diagnosis)
     else:
         logger.info("skipping yolo repair strategy (disabled)")
 
