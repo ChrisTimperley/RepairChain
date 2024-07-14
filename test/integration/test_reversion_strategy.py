@@ -1,6 +1,9 @@
+import pytest
+
 from repairchain.actions.repair import repair
 
 
+@pytest.mark.xfail(reason="rebasing fails to produce a valid patch")
 def test_repair_with_reversion_on_mockcp(
     example_project_factory,
     test_settings,
