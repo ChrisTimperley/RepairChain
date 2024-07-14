@@ -174,6 +174,10 @@ class SuperYoloLLMStrategy(PatchGenerationStrategy):
             whole_file=True,
         )
 
+    def _settings(self, model: str, whole_file: bool) -> None:
+        self._set_model(model)
+        self.whole_file = whole_file
+
     def _set_model(self, model: str) -> None:
         self.model = model
         self.llm.model = model

@@ -44,28 +44,44 @@ def determine_patch_generation_strategy(
     if settings.enable_yolo_repair:
         if diagnosis_is_complete:
             logger.info("using yolo repair strategy")
+            # strategies that use all files in context and ask for multiple patches at once
+            # this is the preferred model
             yolo_gpt4o = YoloLLMStrategy.build(diagnosis)
-            yolo_gpt4o._set_model("oai-gpt-4o")
+            yolo_gpt4o._settings("oai-gpt-4o", use_patches_per_file_strategy=False)
             strategies.append(yolo_gpt4o)
+
+            # clause has some issues with JSON format and needs to requery
             yolo_claude35 = YoloLLMStrategy.build(diagnosis)
-            yolo_claude35._set_model("claude-3.5-sonnet")
+            yolo_claude35._settings("claude-3.5-sonnet", use_patches_per_file_strategy=False)
             strategies.append(yolo_claude35)
+
+            # strategies that use single file as context and ask for one patch at a time
+            # trying gpt4_turbo to diversify -- more expensive than gpt4o so only one strategy
+            yolo_gpt4_turbo = YoloLLMStrategy.build(diagnosis)
+            yolo_gpt4_turbo._settings("oai-gpt-4-turbo", use_patches_per_file_strategy=True)
+            strategies.append(yolo_gpt4_turbo)
+
+            yolo_gpt4o_simple = YoloLLMStrategy.build(diagnosis)
+            yolo_gpt4o_simple._settings("oai-gpt-4o", use_patches_per_file_strategy=True)
+            strategies.append(yolo_gpt4o_simple)
         else:
             logger.warning("using super yolo repair strategy (diagnosis is incomplete)")
+            # strategies that try to generate the entire file
             superyolo_gpt4o_files = SuperYoloLLMStrategy.build(diagnosis)
-            superyolo_gpt4o_files.whole_file = True
+            superyolo_gpt4o_files._settings("oai-gpt-4o", whole_file=True)
             strategies.append(superyolo_gpt4o_files)
 
-            superyolo_gpt4o_diffs = SuperYoloLLMStrategy.build(diagnosis)
-            strategies.append(superyolo_gpt4o_diffs)
-
             superyolo_claude35_files = SuperYoloLLMStrategy.build(diagnosis)
-            superyolo_claude35_files._set_model("claude-3.5-sonnet")
-            superyolo_claude35_files.whole_file = True
+            superyolo_claude35_files._settings("claude-3.5-sonnet", whole_file=True)
             strategies.append(superyolo_claude35_files)
 
+            # strategies that use unified diffs as patches
+            superyolo_gpt4o_diffs = SuperYoloLLMStrategy.build(diagnosis)
+            superyolo_gpt4o_diffs._settings("oai-gpt-4o", whole_file=False)
+            strategies.append(superyolo_gpt4o_diffs)
+
             superyolo_claude35_diffs = SuperYoloLLMStrategy.build(diagnosis)
-            superyolo_claude35_diffs._set_model("claude-3.5-sonnet")
+            superyolo_claude35_diffs._settings("claude-3.5-sonnet", whole_file=True)
             strategies.append(superyolo_claude35_diffs)
 
     else:
