@@ -183,6 +183,8 @@ class Project:
             raise ValueError(message)
 
         sanitizer_report = SanitizerReport.load(sanitizer_report_path)
+        sanitizer_report.normalize_paths(docker_repository_path)
+
         logger.debug(f"sanitizer report: {sanitizer_report}")
         with dockerblade.DockerDaemon(url=docker_url) as docker_daemon:
             project = cls(
