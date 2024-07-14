@@ -61,15 +61,15 @@ def determine_patch_generation_strategy(
             yolo_gpt4_turbo._settings("oai-gpt-4-turbo", use_patches_per_file_strategy=True)
             strategies.append(yolo_gpt4_turbo)
 
-            # our most tested model
+            # claude
+            yolo_claude35_simple = YoloLLMStrategy.build(diagnosis)
+            yolo_claude35_simple._settings("claude-3.5-sonnet", use_patches_per_file_strategy=True)
+            strategies.append(yolo_claude35_simple)
+
+            # gpt4o
             yolo_gpt4o_simple = YoloLLMStrategy.build(diagnosis)
             yolo_gpt4o_simple._settings("oai-gpt-4o", use_patches_per_file_strategy=True)
             strategies.append(yolo_gpt4o_simple)
-
-            # gemini for diversity
-            # yolo_gemini15_simple = YoloLLMStrategy.build(diagnosis)
-            # yolo_gemini15_simple._settings("gemini-1.5-pro", use_patches_per_file_strategy=True)
-            # strategies.append(yolo_gemini15_simple)
         else:
             logger.warning("using super yolo repair strategy (diagnosis is incomplete)")
             # strategies that try to generate the entire file
