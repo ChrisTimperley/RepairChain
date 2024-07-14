@@ -66,6 +66,7 @@ select = [
     "ALL",  # includes all rules (including new ones)
 ]
 extend-ignore = [
+    "ARG003",   # unused class method argument
     "TRY300",   # consider moving this statement to an 'else' block
     "PLR6301",  # no-self-use
     "S404",     # `subprocess` module is possibly insecure
