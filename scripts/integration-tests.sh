@@ -1,8 +1,10 @@
 #!/bin/bash
 set -eu
 
-if [ "$#" -ne 2 ] || [ "$1" != "-n" ]; then
-    echo "Usage: $0 -n {jobs}"
+REBUILD="${REBUILD:-false}"
+
+if [ "$#" -lt 2 ] || [ "$1" != "-n" ]; then
+    echo "Usage: $0 -n {jobs} ..."
     exit 1
 fi
 
@@ -12,12 +14,23 @@ pushd "${PROJECT_DIR}" &> /dev/null
 
 JOBS=$2
 
-echo "(re)installing repairchain..."
-make install
-echo "(re)installed repairchain"
+if [ "$#" -lt 3 ]; then
+    TARGETS="test/integration"
+else
+    TARGETS="${@:3}"
+fi
 
-echo "(re)building examples..."
-make examples
-echo "(re)built examples"
+if [ "${REBUILD}" = "true" ]; then
+  echo "rebuilding repairchain..."
+  make
+  echo "rebuilt repairchain"
+
+  echo "(re)building examples..."
+  make examples
+  echo "(re)built examples"
+fi
+
+run_litellm
+sleep 5
 
 poetry run pytest -n ${JOBS} test/integration
