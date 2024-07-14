@@ -49,7 +49,7 @@ The following code has a security vulnerability related to uninitialized memory 
 The following line has an issue with accessing uninitialized memory:
 {line}
 <instructions>
-Fix the line by creating a new line of code that initializes the memory.
+Fix the code by creating a new line of code that initializes the uninitialized memory.
 Create a JSON object with the new line of code.
 The parent object is called "code" that corresponds to fixes for the line of code.
 Each child object has the following properties:
@@ -250,11 +250,11 @@ class CodeHelper:
         )
         return self._help_with_template(user_prompt)
 
-    def help_with_memory_initialization(self, code: str, line: str) -> Code | None:
+    def help_with_memory_initialization(self, code: str, line: str, num_patches: int) -> Code | None:
         user_prompt = CONTEXT_UNINIT_MEMORY.format(
             code=code,
             line=line,
-            number_patches=5,
+            number_patches=num_patches,
         )
         return self._help_with_template(user_prompt)
 
