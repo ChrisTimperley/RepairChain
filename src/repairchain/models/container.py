@@ -37,6 +37,7 @@ class ProjectContainer:
         project: Project,
         version: git.Commit | None = None,
         diff: Diff | None = None,
+        build_jobs: int = 1,
     ) -> t.Iterator[t.Self]:
         """Constructs a ready-to-use container for the project at a given version with an optional patch.
 
@@ -49,6 +50,8 @@ class ProjectContainer:
             If :code:`None` is given, the container is built for the current version (i.e., HEAD).
         diff: Diff | None
             The patch to apply to the project, if any.
+        build_jobs: int
+            The number of jobs to use (i.e., NPROC_VAL) for building the project.
         """
         with project.docker_daemon.provision(
             image=project.image,
@@ -67,7 +70,7 @@ class ProjectContainer:
             if diff:
                 container.patch(diff)
             if version or diff:
-                container.build()
+                container.build(jobs=build_jobs)
             yield container
 
     @property
@@ -151,6 +154,9 @@ class ProjectContainer:
         BuildFailure
             If the build fails.
         """
+        if jobs > 1:
+            logger.debug(f"using {jobs} jobs to build project")
+
         time_limit = self.project.settings.build_time_limit
         command = self.project.build_command
         env = {"NPROC_VAL": str(jobs)}
@@ -205,6 +211,9 @@ class ProjectContainer:
         bool
             :code:`True` if the regression tests pass, :code:`False` otherwise.
         """
+        if jobs > 1:
+            logger.debug(f"using {jobs} jobs to run regression tests")
+
         time_limit = self.project.settings.regression_time_limit
         command = self.project.regression_test_command
         env = {"NPROC_VAL": str(jobs)}

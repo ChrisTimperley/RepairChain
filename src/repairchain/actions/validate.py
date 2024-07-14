@@ -39,18 +39,37 @@ class PatchValidator(abc.ABC):
         self,
         candidate: Diff,
         commit: git.Commit,
+        *,
+        workers: int = 1,
     ) -> PatchOutcome:
+        """Validates a single patch and returns the outcome.
+
+        Arguments:
+        ---------
+        candidate: Diff
+            The patch to validate.
+        commit: git.Commit
+            The commit to which the patch should be applied.
+        workers: int
+            The number of workers to use during the build and regression test steps.
+
+        Returns:
+        -------
+        PatchOutcome
+            The outcome of the validation process.
+        """
         head_commit = self.project.head
         try:
             with self.project.provision(
                 version=commit,
                 diff=candidate,
+                build_jobs=workers,
             ) as container:
                 if not container.run_pov():
                     return PatchOutcome.FAILED
 
                 if commit == head_commit:
-                    if not container.run_regression_tests():
+                    if not container.run_regression_tests(jobs=workers):
                         return PatchOutcome.FAILED
                 else:
                     logger.debug("skipping regression tests for non-head commit")
@@ -64,8 +83,21 @@ class PatchValidator(abc.ABC):
         self,
         candidate: Diff,
         commit: git.Commit | None,
+        *,
+        workers: int = 1,
     ) -> PatchOutcome:
-        """Validates a single patch and returns the outcome."""
+        """Validates a single patch and returns the outcome.
+
+        Arguments:
+        ---------
+        candidate: Diff
+            The patch to validate.
+        commit: git.Commit | None
+            The commit to which the patch should be applied.
+            If None, the project's head commit is used.
+        workers: int
+            The number of workers to use during the build and regression test steps.
+        """
         if commit is None:
             commit = self.project.head
         logger.info(f"validating patch (applied to {commit}):\n{candidate}")
@@ -75,7 +107,7 @@ class PatchValidator(abc.ABC):
             logger.debug(f"cache hit: {outcome}")
             return outcome
 
-        outcome = self._validate(candidate, commit)
+        outcome = self._validate(candidate, commit, workers=workers)
         logger.debug(f"outcome: {outcome}")
         self.cache.store(commit, candidate, outcome)
         return outcome
