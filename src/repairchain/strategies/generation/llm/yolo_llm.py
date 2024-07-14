@@ -107,10 +107,16 @@ class YoloLLMStrategy(PatchGenerationStrategy):
     def build(
         cls,
         diagnosis: Diagnosis,
+        *,
+        model: str | None = None,
+        use_patches_per_file_strategy: bool = False,
     ) -> YoloLLMStrategy:
         llm = LLM.from_settings(diagnosis.project.settings)
         diff = commit_to_diff.commit_to_diff(diagnosis.project.triggering_commit)
         files = commit_to_diff.commit_to_files(diagnosis.project.head, diff)
+
+        if model:
+            llm.model = model
 
         return cls(
             diagnosis=diagnosis,
@@ -122,19 +128,10 @@ class YoloLLMStrategy(PatchGenerationStrategy):
             diff=diff,
             files=files,
             number_patches=Util.number_patches,
-            use_patches_per_file_strategy=False,
+            use_patches_per_file_strategy=use_patches_per_file_strategy,
         )
 
-    def _settings(self, model: str, use_patches_per_file_strategy: bool) -> None:
-        self._set_model(model)
-        self.use_patches_per_file_strategy = use_patches_per_file_strategy
-
-    def _set_model(self, model: str) -> None:
-        self.model = model
-        self.llm.model = model
-
     def _create_sanitizer_report_prompt(self, summary: list[FunctionSummary] | None) -> str:
-
         if summary is None:
             return ""
 
