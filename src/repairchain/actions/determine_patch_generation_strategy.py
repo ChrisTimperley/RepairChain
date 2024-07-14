@@ -18,7 +18,7 @@ if t.TYPE_CHECKING:
     from repairchain.strategies.generation import PatchGenerationStrategy
     from repairchain.strategies.generation.template.base import TemplateGenerationStrategy
 
-AVAILABLE_TEMPLATES: tuple[type[TemplateGenerationStrategy]]= (
+AVAILABLE_TEMPLATES: tuple[type[TemplateGenerationStrategy]] = (
     BoundsCheckStrategy,
     # IncreaseSizeStrategy,
     # InitializeMemoryStrategy,
