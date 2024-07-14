@@ -96,7 +96,7 @@ class TemplateGenerationStrategy(PatchGenerationStrategy):
                     varname in stmt.declares
                 ]
         if len(declaring_stmts) == 0:
-            logger.info("No declaring statements found. returning empty list.")
+            logger.warning("No declaring statements found. returning empty list.")
         return declaring_stmts
 
     @classmethod
