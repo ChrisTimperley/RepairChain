@@ -20,7 +20,7 @@ if t.TYPE_CHECKING:
     from repairchain.models.diagnosis import Diagnosis
     from repairchain.strategies.generation import PatchGenerationStrategy
 
-available_templates = [BoundsCheckStrategy,
+AVAILABLE_TEMPLATES = [BoundsCheckStrategy,
                        IncreaseSizeStrategy,
                        InitializeMemoryStrategy,
                        IntegerOverflowStrategy]
