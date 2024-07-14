@@ -152,7 +152,7 @@ class SuperYoloLLMStrategy(PatchGenerationStrategy):
 
     @classmethod
     @overrides
-    def applies(cls, diagnosis: Diagnosis) -> bool:  # noqa: ARG003
+    def applies(cls, diagnosis: Diagnosis) -> bool:
         return True
 
     @classmethod

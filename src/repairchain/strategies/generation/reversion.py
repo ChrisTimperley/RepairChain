@@ -36,7 +36,7 @@ class MinimalPatchReversion(PatchGenerationStrategy):
     project: Project
 
     @classmethod
-    def applies(cls, diagnosis: Diagnosis) -> bool:  # noqa: ARG003
+    def applies(cls, diagnosis: Diagnosis) -> bool:
         return True
 
     @classmethod
