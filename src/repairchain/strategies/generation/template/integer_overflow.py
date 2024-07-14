@@ -10,6 +10,8 @@ from sourcelocation.location import FileLocation
 from repairchain.models.bug_type import BugType
 from repairchain.models.diagnosis import Diagnosis
 from repairchain.models.replacement import Replacement
+from repairchain.models.stack_trace import StackFrame
+from repairchain.sources import ProjectSources
 from repairchain.strategies.generation.llm.helper_code import CodeHelper
 from repairchain.strategies.generation.llm.llm import LLM
 from repairchain.strategies.generation.template.base import TemplateGenerationStrategy
@@ -96,43 +98,89 @@ class IntegerOverflowStrategy(TemplateGenerationStrategy):
                     _, _, type_str = rhs.partition("type ")
                     type_str = type_str.replace("'", "")
         return OverflowHelper(
-            type_str,
-            exp_str,
-            signed,
-            unsigned,
+            problem_type=type_str,
+            problem_expr=exp_str,
+            signed=signed,
+            unsigned=unsigned,
         )
+
+    def _statement_is_declaration(self,
+                                  stmt: kaskara.statements.Statement,
+                                  decls: frozenset[str],
+                                  info_helper: OverflowHelper,
+                                  llm_helper: CodeHelper,
+                               ) -> list[Diff]:
+        new_type = upcast_dict[info_helper.problem_type]
+        diffs: list[Diff] = []
+        for decl in decls:
+            new_decl_code = llm_helper.help_with_upcast_decl(stmt.content,
+                                                             decl,
+                                                             info_helper.problem_type,
+                                                             new_type)
+            if new_decl_code is None:
+                continue
+
+            for line in new_decl_code.code:
+                complete_repl = llm_helper.help_with_upcast_expr(line.line,
+                                                                 info_helper.problem_expr,
+                                                                 info_helper.problem_type,
+                                                                  new_type)
+                if complete_repl is None:
+                    continue
+                for repl_line in complete_repl.code:
+                    repl = Replacement(stmt.location, repl_line.line)
+                    diffs.append(self.diagnosis.project.sources.replacements_to_diff([repl]))
+        return diffs
+
+    def _statement_is_not_declaration(self,
+                                      stmt: kaskara.statements.Statement,
+                                      info_helper: OverflowHelper,
+                                      llm_helper: CodeHelper) -> list[Diff]:
+        this_repls = []
+        diffs: list[Diff] = []
+        new_type = upcast_dict[info_helper.problem_type]
+
+        # step 1: rewrite the overflow
+        new_overflow = llm_helper.help_with_upcast_expr(stmt.content,
+                                                        info_helper.problem_expr,
+                                                        info_helper.problem_type,
+                                                        new_type)
+        if new_overflow is None:
+            return this_repls
+        for repl_line in new_overflow.code:
+            this_repls = [Replacement(stmt.location, repl_line.line)]
+
+        # step 2: rewrite declarations
+        decls_to_upcast = self._get_potential_declarations(writes)
+        for (decl_stmt, _, _, _) in decls_to_upcast:
+            new_decl_code = llm_helper.help_with_upcast_decl(decl_stmt.content,
+                                                             "varname-fixme",  # FIXME: what's the varname
+                                                            info_helper.problem_type,
+                                                             new_type)
+
+            if new_decl_code is None:
+                continue
+            for repl_line in new_decl_code.code:
+                this_repls += [Replacement(decl_stmt.location, repl_line.line)]
+                diffs.append(self.diagnosis.project.sources.replacements_to_diff(this_repls))
+        return diffs
 
     def _handle_with_info(self,
                           stmts: list[kaskara.statements.Statement],
                           info_helper: OverflowHelper,
                           llm_helper: CodeHelper) -> list[Diff]:
         diffs: list[Diff] = []
-
         new_type = upcast_dict[info_helper.problem_type]
 
-        for stmt in stmts:  # noqa: PLR1702
+        for stmt in stmts:
             # either the declaration itself overflows
             decls = frozenset(stmt.declares if hasattr(stmt, "declares") else [])
-            if decls:  # We just need to rewrite the one statement.
-                for decl in decls:
-                    new_decl_code = llm_helper.help_with_upcast_decl(stmt.content,
-                                                                     decl,
-                                                                     info_helper.problem_type,
-                                                                     new_type)
-                    if new_decl_code is not None:
-                        for line in new_decl_code.code:
-                            complete_repl = llm_helper.help_with_upcast_expr(line.line,
-                                                                             info_helper.problem_expr,
-                                                                             info_helper.problem_type,
-                                                                             new_type)
-                            if complete_repl is not None:
-                                for repl_line in complete_repl.code:
-                                    repl = Replacement(stmt.location, repl_line.line)
-                                    diffs.append(self.diagnosis.project.sources.replacements_to_diff([repl]))
+            if decls:  # ...so we just need to rewrite the one statement.
+                diffs += self._statement_is_declaration(stmt, decls, info_helper, llm_helper)
             else:  # or we need to try to find the declaration that overflows, and rewrite two things
                 writes = frozenset(stmt.writes if hasattr(stmt, "writes") else [])
                 if not writes:
-                    return diffs
+                    continue
                 # step 1: rewrite the statement with the overflow
                 this_repls = []
                 new_overflow = llm_helper.help_with_upcast_expr(stmt.content,
@@ -190,6 +238,18 @@ class IntegerOverflowStrategy(TemplateGenerationStrategy):
                 diffs.append(self.diagnosis.project.sources.replacements_to_diff([repl]))
         return diffs
 
+    def _set_index(self, location: StackFrame) -> None:
+        sources: ProjectSources = self.diagnosis.project.sources
+        indexer: KaskaraIndexer = self.diagnosis.project.indexer
+        start_fname = []
+        if location.filename is not None:
+            start_fname = [location.filename]
+        files_to_index = list(self.report.alloc_stack_trace.filenames().union(start_fname))
+        files_to_index = [
+            f for f in files_to_index if sources.exists(f, self.diagnosis.project.head)
+        ]
+        self.index = indexer.run(version=self.diagnosis.project.head,
+                                     restrict_to_files=files_to_index)
     @overrides
     def run(self) -> list[Diff]:
         llm_helper = CodeHelper(self.llm)
@@ -197,16 +257,15 @@ class IntegerOverflowStrategy(TemplateGenerationStrategy):
         if location is None or location.filename is None or location.file_line is None:
             return []
 
-        files_to_index = [location.filename]
-        files_to_index.extend(self.diagnosis.project.report.call_stack_trace.filenames())
-        indexer: KaskaraIndexer = self.diagnosis.project.indexer
-        self.index = indexer.run(version=self.diagnosis.project.head,
-                                     restrict_to_files=files_to_index)
+        self._set_index(location)
+        if self.index is None:
+            logger.warning("Unexpected failed index in IntegerOverflow, skipping")
+            return []
 
         stmts = self.index.statements.at_line(location.file_line)
 
         if self.diagnosis.project.report.extra_info is not None:
             info_helper = self._parse_extra_info(self.diagnosis.project.report.extra_info)
-            # TODO: consider some validity checking, though this shouldn't crash
+            # TODO: consider some validity checking, though this shouldn't crash at least
             return self._handle_with_info(list(stmts), info_helper, llm_helper)
         return self._handle_without_info(list(stmts), llm_helper)
