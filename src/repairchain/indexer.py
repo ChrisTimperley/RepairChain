@@ -8,6 +8,7 @@ import typing as t
 from dataclasses import dataclass, field
 from pathlib import Path
 
+import dockerblade
 import kaskara
 import kaskara.clang.analyser
 from dockerblade.stopwatch import Stopwatch
@@ -113,7 +114,22 @@ class KaskaraIndexer:
 
     def _determine_bear_prefix(self, container: ProjectContainer) -> str:
         """Determines the bear prefix to use based on the bear version."""
-        version_string = container._shell.check_output("bear --version", text=True)
+        bear_path = "/opt/bear/bin/bear"
+        fallback_bear_path = "bear"
+        if not container.exists(bear_path):
+            logger.warning(
+                f"bear not found at expected location: {bear_path}"
+                f" (falling back to {fallback_bear_path})",
+            )
+            bear_path = fallback_bear_path
+
+        command = f"{bear_path} --version"
+        logger.debug(f"determining bear version via: {command}")
+        try:
+            version_string = container._shell.check_output(command, text=True)
+        except dockerblade.exceptions.CalledProcessError as err:
+            message = "failed to determine bear version"
+            raise RuntimeError(message) from err
         version_string = strip_prefix("bear ", version_string).strip()
         version_parts = version_string.split(".")
         major_version = version_parts[0]
