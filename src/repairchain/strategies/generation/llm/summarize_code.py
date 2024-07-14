@@ -151,9 +151,9 @@ class ReportSummary:
         system_prompt = self._create_system_prompt()
         llm = LLM.from_settings(diagnosis.project.settings, model=self.model)
 
-        logger.info(f"system prompt tokens: {Util.count_tokens(system_prompt, self.model)}")
+        logger.debug(f"system prompt tokens: {Util.count_tokens(system_prompt, self.model)}")
         logger.debug(f"system prompt: {system_prompt}")
-        logger.info(f"user prompt tokens: {Util.count_tokens(user_prompt, self.model)}")
+        logger.debug(f"user prompt tokens: {Util.count_tokens(user_prompt, self.model)}")
         logger.debug(f"user prompt: {user_prompt}")
 
         messages: MessagesIterable = []
@@ -174,7 +174,7 @@ class ReportSummary:
                 else:
                     llm_output = llm._call_llm_json(messages)
 
-                logger.info(f"output prompt tokens: {Util.count_tokens(llm_output, self.model)}")
+                logger.debug(f"output prompt tokens: {Util.count_tokens(llm_output, self.model)}")
 
                 logger.debug(f"LLM output in JSON: {llm_output}")
 
@@ -186,7 +186,7 @@ class ReportSummary:
 
             # TODO: test if the these error handling is working properly
             except json.JSONDecodeError as e:
-                logger.info(f"Failed to decode JSON: {e}. Retrying {attempt + 1}/{retry_attempts}...")
+                logger.warning(f"Failed to decode JSON: {e}. Retrying {attempt + 1}/{retry_attempts}...")
                 messages.append(ChatCompletionAssistantMessageParam(role="assistant", content=llm_output))
                 error_message = (
                     f"The JSON is not valid. Failed to decode JSON: {e}."
@@ -195,7 +195,7 @@ class ReportSummary:
                 self._check_prefill(messages)
 
             except KeyError as e:
-                logger.info(f"Missing expected key in JSON data: {e}. Retrying {attempt + 1}/{retry_attempts}...")
+                logger.warning(f"Missing expected key in JSON data: {e}. Retrying {attempt + 1}/{retry_attempts}...")
                 messages.append(ChatCompletionAssistantMessageParam(role="assistant", content=llm_output))
                 error_message = (f"The JSON is not valid. Missing expected key in JSON data: {e}."
                                 "Please fix the issue and return a fixed JSON.")
@@ -203,7 +203,7 @@ class ReportSummary:
                 self._check_prefill(messages)
 
             except TypeError as e:
-                logger.info(f"Unexpected type encountered: {e}. Retrying {attempt + 1}/{retry_attempts}...")
+                logger.warning(f"Unexpected type encountered: {e}. Retrying {attempt + 1}/{retry_attempts}...")
                 messages.append(ChatCompletionAssistantMessageParam(role="assistant", content=llm_output))
                 error_message = (f"The JSON is not valid. Unexpected type encountered: {e}."
                                 "Please fix the issue and return a fixed JSON.")

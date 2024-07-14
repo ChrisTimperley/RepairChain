@@ -63,7 +63,7 @@ class Util:
     retry_attempts: int = field(default=5)
     short_sleep: int = field(default=5)
     long_sleep: int = field(default=30)
-    sanitizer_report_size: int = field(default=50000)
+    sanitizer_report_size: int = field(default=10000)
     number_patches: int = field(default=10)
     limit_llm_output: int = field(default=4096)
 
