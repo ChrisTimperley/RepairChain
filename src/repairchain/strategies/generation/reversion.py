@@ -89,6 +89,11 @@ class MinimalPatchReversion(PatchGenerationStrategy):
 
     def _minimize_reverse_diff(self, reverse_diff: Diff) -> Diff:
         """Minimizes the reverse diff to the smallest possible diff that still undoes the triggering commit."""
+        num_hunks = len(list(reverse_diff.file_hunks))
+        if num_hunks == 1:
+            logger.warning("only one hunk in reverse diff; skipping minimization")
+            return reverse_diff
+
         def tester(hunks: t.Sequence[FileHunk]) -> bool:
             as_diff = Diff.from_file_hunks(list(hunks))
             outcome = self.project.validator.validate(
