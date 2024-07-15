@@ -17,7 +17,7 @@ class PatchGenerationStrategy(abc.ABC):
     diagnosis: Diagnosis
 
     @abc.abstractmethod
-    def run(self) -> list[Diff]:
+    def run(self) -> t.Iterator[Diff]:
         raise NotImplementedError
 
     @classmethod

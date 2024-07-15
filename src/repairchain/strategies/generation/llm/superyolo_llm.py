@@ -398,5 +398,9 @@ class SuperYoloLLMStrategy(PatchGenerationStrategy):
 
         return diffs
 
-    def run(self) -> list[Diff]:
+    @overrides
+    def run(self) -> t.Iterator[Diff]:
+        yield from self.old_run()
+
+    def old_run(self) -> list[Diff]:
         return self._get_llm_output()

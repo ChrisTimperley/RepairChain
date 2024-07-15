@@ -194,7 +194,8 @@ class MinimalPatchReversion(PatchGenerationStrategy):
         # transform the rebased reversion commit into a diff
         return commit_to_diff(self.project.repository.active_branch.commit)
 
-    def run(self) -> list[Diff]:
+    @overrides
+    def run(self) -> t.Iterator[Diff]:
         repo = self.project.repository
         reverse_diff = self._compute_reverse_diff()
         reverse_diff = self._minimize_reverse_diff(reverse_diff)
@@ -221,11 +222,10 @@ class MinimalPatchReversion(PatchGenerationStrategy):
         ):
             patch_with_no_conflict_strategy = self._rebase_patch_onto_head(reverse_diff, restore_to)
             if patch_with_no_conflict_strategy:
-                return [patch_with_no_conflict_strategy]
+                yield patch_with_no_conflict_strategy
+                return
 
         # try again with different conflict strategies
-        patches: list[Diff] = []
-
         with (
             suppress(subprocess.CalledProcessError, git.exc.GitCommandError),
             self.reset_repo_after(restore_to),
@@ -236,7 +236,7 @@ class MinimalPatchReversion(PatchGenerationStrategy):
                 conflict_strategy=ConflictStrategy.ours,
             )
             if diff_with_ours:
-                patches.append(diff_with_ours)
+                yield diff_with_ours
 
         with (
             suppress(subprocess.CalledProcessError, git.exc.GitCommandError),
@@ -248,6 +248,4 @@ class MinimalPatchReversion(PatchGenerationStrategy):
                 conflict_strategy=ConflictStrategy.theirs,
             )
             if diff_with_theirs:
-                patches.append(diff_with_theirs)
-
-        return patches
+                yield diff_with_theirs

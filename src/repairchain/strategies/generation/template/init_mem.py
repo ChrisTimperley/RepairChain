@@ -45,7 +45,10 @@ class InitializeMemoryStrategy(TemplateGenerationStrategy):
         return location is not None
 
     @overrides
-    def run(self) -> list[Diff]:
+    def run(self) -> t.Iterator[Diff]:
+        yield from self.old_run()
+
+    def old_run(self) -> list[Diff]:
         location = self._get_error_location(self.diagnosis)
 
         if location is None:

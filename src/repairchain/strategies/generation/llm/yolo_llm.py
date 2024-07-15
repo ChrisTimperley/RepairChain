@@ -448,7 +448,11 @@ class YoloLLMStrategy(PatchGenerationStrategy):
         logger.info(f"found {len(patches)} candidate patches with model {self.model}")
         return patches
 
-    def run(self) -> list[Diff]:
+    @overrides
+    def run(self) -> t.Iterator[Diff]:
+        yield from self.old_run()
+
+    def old_run(self) -> list[Diff]:
         summary: ReportSummary = ReportSummary(self.model)
         code_summary: list[FunctionSummary] | None = None
         if self.use_report:

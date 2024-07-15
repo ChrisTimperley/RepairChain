@@ -24,18 +24,16 @@ class SequenceStrategy(PatchGenerationStrategy):
         return True
 
     @overrides
-    def run(self) -> list[Diff]:
-        candidates: list[Diff] = []
-
+    def run(self) -> t.Iterator[Diff]:
         for strategy in self.strategies:
+            num_patches_generated_by_strategy = 0
             try:
                 name = strategy.__class__.__name__
                 logger.info(f"generating patches with strategy: {name}...")
-                generated_patches = strategy.run()
-                candidates += generated_patches
+                for candidate in strategy.run():
+                    yield candidate
+                    num_patches_generated_by_strategy += 1
             except Exception:  # noqa: BLE001
                 logger.exception(f"failed to generate patches with strategy: {name}")
             else:
-                logger.info(f"generated {len(generated_patches)} patches with strategy: {name}")
-
-        return candidates
+                logger.info(f"generated {num_patches_generated_by_strategy} patches with strategy: {name}")

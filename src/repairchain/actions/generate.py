@@ -16,4 +16,4 @@ def generate(project: Project) -> list[Diff]:
     """Generates a list of candidate patches for the given project."""
     diagnosis = diagnose(project)
     patch_generator = determine_patch_generation_strategy(diagnosis)
-    return patch_generator.run()
+    return list(patch_generator.run())

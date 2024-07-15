@@ -100,7 +100,10 @@ class BoundsCheckStrategy(TemplateGenerationStrategy):
         return diffs
 
     @overrides
-    def run(self) -> list[Diff]:
+    def run(self) -> t.Iterator[Diff]:
+        yield from self.old_run()
+
+    def old_run(self) -> list[Diff]:
         diffs: list[Diff] = []
         both_traces = list(self.report.alloc_stack_trace.frames) + list(self.report.call_stack_trace.frames)
         self._set_index(both_traces)
