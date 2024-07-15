@@ -5,9 +5,9 @@ from repairchain.actions.repair import repair
 
 # TODO add another parameter to test with kaskara enabled/disabled
 @pytest.mark.parametrize("example", [
-    pytest.param("jenkins", marks=pytest.mark.skip(reason="there is only one hunk in the triggering diff")),
+    pytest.param("jenkins", marks=pytest.mark.skip(reason="there is only one hunk in the triggering diff; reversion breaks the build")),
     pytest.param("linux", marks=pytest.mark.skip(reason="this takes a really long time to run")),
-    pytest.param("mock-cp", marks=pytest.mark.skip(reason="rebasing fails to produce valid patch on mock-cp")),
+    pytest.param("mock-cp", marks=pytest.mark.skip(reason="rebasing fails to produce a valid patch on mock-cp")),
     "nginx",
 ])
 def test_reversion_repair(
