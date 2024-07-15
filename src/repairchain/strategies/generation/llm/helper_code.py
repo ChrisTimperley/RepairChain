@@ -44,10 +44,12 @@ There must be {number_patches} children, each corresponding to a modified line.
 """
 
 CONTEXT_UNINIT_MEMORY = """
-The following code has a security vulnerability related to uninitialized memory access:
+The following function has a vulnerability related to uninitialized memory access:
 {code}
-The following line has an issue with accessing uninitialized memory:
-{line}
+The line with the uninitialized memory access vulnerability is:
+{error_line}
+The unitialized memory is allocated here:
+{alloc_line}
 <instructions>
 Fix the code by creating a new line of code that initializes the uninitialized memory.
 Create a JSON object with the new line of code.
@@ -255,10 +257,15 @@ class CodeHelper:
         )
         return self._help_with_template(user_prompt)
 
-    def help_with_memory_initialization(self, code: str, line: str, num_patches: int) -> Code | None:
+    def help_with_memory_initialization(self,
+                                        code: str,
+                                        error_line: str,
+                                        alloc_line: str,
+                                        num_patches: int) -> Code | None:
         user_prompt = CONTEXT_UNINIT_MEMORY.format(
             code=code,
-            line=line,
+            error_line=error_line,
+            alloc_line=alloc_line,
             number_patches=num_patches,
         )
         return self._help_with_template(user_prompt)
