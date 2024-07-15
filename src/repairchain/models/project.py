@@ -49,6 +49,7 @@ class Project:
     crash_command_template: str
     sanitizer_output: str
     pov_payload: bytes = field(repr=False)
+    kernel_backtrace_text: str | None
     settings: Settings
     evaluation_cache: PatchOutcomeCache = field(init=False, repr=False)
     validator: PatchValidator = field(init=False, repr=False)
@@ -184,6 +185,13 @@ class Project:
         with sanitizer_report_path.open("r") as file:
             sanitizer_output = file.read()
 
+        # try to read the kernel backtrace if one was provided
+        kernel_backtrace_path = settings.kernel_backtrace_path
+        kernel_backtrace_text: str | None = None
+        if kernel_backtrace_path and kernel_backtrace_path.is_file():
+            with kernel_backtrace_path.open("r") as file:
+                kernel_backtrace_text = file.read()
+
         with dockerblade.DockerDaemon(url=docker_url) as docker_daemon:
             project = cls(
                 docker_daemon=docker_daemon,
@@ -200,6 +208,7 @@ class Project:
                 triggering_commit=commit,
                 pov_payload=pov_payload,
                 settings=settings,
+                kernel_backtrace_text=kernel_backtrace_text,
             )
             try:
                 yield project
