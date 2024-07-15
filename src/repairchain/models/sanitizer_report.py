@@ -84,6 +84,10 @@ def easy_find_loc(find_triggered_loc: str, line: str) -> StackFrame | None:
             filename, lineno, offset = extract_location_symbolized(loc_str)
         elif "+" in loc_str:
             funcname, bytes_offset = extract_location_not_symbolized(loc_str)
+        filename = filename.strip() if filename is not None else None
+        funcname = funcname.strip() if funcname is not None else None
+        bytes_offset = bytes_offset.strip() if bytes_offset is not None else None
+
         return StackFrame(
             funcname=funcname,
             filename=filename,
@@ -174,6 +178,7 @@ def parse_kasan(kasan_output: str) -> tuple[str, StackFrame | None, StackTrace, 
             else:
                 # got nothing, probably a functionname?
                 _, _, funcname = info_line.partition("BUG: KFENCE: ")
+            filename = filename.strip() if filename is not None else None
             funcname = funcname.strip() if funcname is not None else None
             bytes_offset = bytes_offset.strip() if bytes_offset is not None else None
             return StackFrame(
@@ -226,6 +231,7 @@ def parse_kfence(kfence_output: str) -> tuple[str, StackFrame | None, StackTrace
             else:
                 # got nothing, probably a functionname?
                 _, _, funcname = info_line.partition("BUG: KFENCE: ")
+            filename = filename.strip() if filename is not None else None
             funcname = funcname.strip() if funcname is not None else None
             bytes_offset = bytes_offset.strip() if bytes_offset is not None else None
             return StackFrame(
@@ -345,6 +351,7 @@ def parse_ubsan(ubsan_output: str) -> tuple[str, StackFrame | None, StackTrace, 
         if "runtime error:" in stripped:
             _, _, extra_information = stripped.partition("error: ")
     funcname = funcname.strip() if funcname is not None else None
+    filename = filename.strip() if filename is not None else None
     frame = StackFrame(
         funcname=funcname,
         filename=filename,

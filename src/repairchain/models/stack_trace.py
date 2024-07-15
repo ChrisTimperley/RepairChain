@@ -131,12 +131,18 @@ def extract_location_symbolized(line: str) -> tuple[str, int | None, int | None]
         offset = int(offsetstr.strip())
     except ValueError:
         offset = None
-    filename = filename.strip() if filename is not None else None
+
+    filename = filename.strip()
 
     return filename, lineno, offset
 
 
 def extract_stack_frame_from_line_symbolized(line: str) -> StackFrame:
+    funcname: str | None = None
+    lineno: int | None = None
+    offset: int | None = None
+    filename = line
+
     _, _, restline = line.partition(" in ")
     if ")" in restline:
         funcname, _, restline = restline.partition("(")
@@ -145,6 +151,8 @@ def extract_stack_frame_from_line_symbolized(line: str) -> StackFrame:
         funcname, _, restline = restline.partition(" ")
 
     filename, lineno, offset = extract_location_symbolized(restline)
+    filename = filename.strip()
+    funcname = funcname.strip() if funcname is not None else funcname
 
     return StackFrame(
         funcname=funcname,
@@ -155,12 +163,19 @@ def extract_stack_frame_from_line_symbolized(line: str) -> StackFrame:
     )
 
 
-def extract_location_not_symbolized(line: str) -> tuple[str, str | None]:
-    # should return function name, byte offset
-    raise NotImplementedError
-
-
 def extract_stack_frame_from_line_not_symbolized(line: str) -> StackFrame:
+    funcname, bytes_offset = extract_location_not_symbolized(line)
+    funcname = funcname.strip() if funcname is not None else None
+    bytes_offset = bytes_offset.strip() if bytes_offset is not None else None
+    return StackFrame(
+        funcname=funcname,
+        filename=None,
+        lineno=None,
+        offset=None,
+        bytes_offset=bytes_offset)
+
+
+def extract_location_not_symbolized(line: str) -> tuple[str | None, str | None]:
     funcname: str | None = None
     bytes_offset: str | None = None
 
@@ -173,10 +188,4 @@ def extract_stack_frame_from_line_not_symbolized(line: str) -> StackFrame:
         funcname, _, bytes_offset = line.partition("+")
     funcname = funcname.strip() if funcname is not None else None
     bytes_offset = bytes_offset.strip() if bytes_offset is not None else None
-
-    return StackFrame(
-        funcname=funcname,
-        filename=None,
-        lineno=None,
-        offset=None,
-        bytes_offset=bytes_offset)
+    return funcname, bytes_offset
