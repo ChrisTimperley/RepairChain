@@ -68,7 +68,7 @@ class LLM:
                 time.sleep(Util.short_sleep)  # brief wait before retrying
             except openai.RateLimitError as e:
                 logger.warning(f"Rate limit error: {e}. Retrying {attempt + 1}/{retry_attempts}...")
-                time.sleep(Util.short_sleep * (attempt + 1))  # long wait before retrying
+                time.sleep(Util.short_sleep * (attempt + 1) * 2)  # long wait before retrying
             except openai.UnprocessableEntityError as e:
                 logger.warning(f"Unprocessable entity error: {e}. Retrying {attempt + 1}/{retry_attempts}...")
                 time.sleep(Util.short_sleep)  # brief wait before retrying
@@ -113,7 +113,7 @@ class LLM:
                 time.sleep(Util.short_sleep)  # brief wait before retrying
             except openai.RateLimitError as e:
                 logger.warning(f"Rate limit error: {e}. Retrying {attempt + 1}/{retry_attempts}...")
-                time.sleep(Util.short_sleep * (attempt + 1))  # long wait before retrying
+                time.sleep(Util.short_sleep * (attempt + 1) * 2)  # long wait before retrying
             except openai.UnprocessableEntityError as e:
                 logger.warning(f"Unprocessable entity error: {e}. Retrying {attempt + 1}/{retry_attempts}...")
                 time.sleep(Util.short_sleep)  # brief wait before retrying
