@@ -84,6 +84,10 @@ def easy_find_loc(find_triggered_loc: str, line: str) -> StackFrame | None:
             filename, lineno, offset = extract_location_symbolized(loc_str)
         elif "+" in loc_str:
             funcname, bytes_offset = extract_location_not_symbolized(loc_str)
+        filename = filename.strip() if filename is not None else None
+        funcname = funcname.strip() if funcname is not None else None
+        bytes_offset = bytes_offset.strip() if bytes_offset is not None else None
+
         return StackFrame(
             funcname=funcname,
             filename=filename,
@@ -174,6 +178,9 @@ def parse_kasan(kasan_output: str) -> tuple[str, StackFrame | None, StackTrace, 
             else:
                 # got nothing, probably a functionname?
                 _, _, funcname = info_line.partition("BUG: KFENCE: ")
+            filename = filename.strip() if filename is not None else None
+            funcname = funcname.strip() if funcname is not None else None
+            bytes_offset = bytes_offset.strip() if bytes_offset is not None else None
             return StackFrame(
                 funcname=funcname,
                 filename=filename,
@@ -224,6 +231,9 @@ def parse_kfence(kfence_output: str) -> tuple[str, StackFrame | None, StackTrace
             else:
                 # got nothing, probably a functionname?
                 _, _, funcname = info_line.partition("BUG: KFENCE: ")
+            filename = filename.strip() if filename is not None else None
+            funcname = funcname.strip() if funcname is not None else None
+            bytes_offset = bytes_offset.strip() if bytes_offset is not None else None
             return StackFrame(
                 funcname=funcname,
                 filename=filename,
@@ -268,15 +278,15 @@ def parse_memsan(memsan_output: str) -> tuple[str, StackFrame | None, StackTrace
     Returns the extra bug info, frame describing location error triggered, and call trace
     and allocated trace as available.
     """
-    find_extra_info = partial(easy_match_extra_info, "WARNING: Memory Sanitizer: ")
-    find_triggering_loc = partial(easy_find_loc, "SUMMARY: AddressSanitizer: ")
+    find_extra_info = partial(easy_match_extra_info, "WARNING: MemorySanitizer: ")
+    find_triggering_loc = partial(easy_find_loc, "SUMMARY: MemorySanitizer: ")
 
     return parse_report_generic(
         memsan_output,
         find_extra_info,
         find_triggering_loc,
         parse_stack_frame_simple,
-        "WARNING: Memory Sanitizer: ",
+        "WARNING: MemorySanitizer: ",
         "value was created by",
     )
 
@@ -299,15 +309,16 @@ def _extract_location_ubsan(line: str) -> tuple[str, int | None, int | None]:
             line, _, offsetstr = linenostr.partition(" ")
 
     try:
-        lineno = int(line)
+        lineno = int(line.strip())
     except ValueError:
         lineno = None
     try:
         if " " in offsetstr:
             offsetstr, _, _ = offsetstr.partition(" ")
-        offset = int(offsetstr)
+        offset = int(offsetstr.strip())
     except ValueError:
         offset = None
+    filename = filename.strip() if filename is not None else None
     return filename, lineno, offset
 
 
@@ -318,6 +329,7 @@ def parse_ubsan(ubsan_output: str) -> tuple[str, StackFrame | None, StackTrace, 
     """
     # runtime error: signed integer overflow: 2147483647 + 1 cannot be represented in type 'int'
     # SUMMARY: UndefinedBehaviorSanitizer: undefined-behavior file.cpp:7:21
+    # TODO: ultimately, can parse allocation stacks, but not using them yet.
 
     filename: str | None = None
     lineno: int | None = None
@@ -338,6 +350,8 @@ def parse_ubsan(ubsan_output: str) -> tuple[str, StackFrame | None, StackTrace, 
             filename, lineno, offset = _extract_location_ubsan(location)
         if "runtime error:" in stripped:
             _, _, extra_information = stripped.partition("error: ")
+    funcname = funcname.strip() if funcname is not None else None
+    filename = filename.strip() if filename is not None else None
     frame = StackFrame(
         funcname=funcname,
         filename=filename,
@@ -353,6 +367,7 @@ def parse_java_stack_trace(line: str) -> StackFrame:
     funcname = None
     filename = None
     lineno = None
+    lineno_int = None
     if "(" in line:
         funcname, _, filenamepart = line.partition("(")
         if filenamepart.endswith(")"):
@@ -361,7 +376,13 @@ def parse_java_stack_trace(line: str) -> StackFrame:
             filename, _, lineno = filenamepart.partition(":")
     else:
         funcname = line
-    lineno_int = int(lineno) if lineno is not None else None
+    try:
+        lineno_int = int(lineno.strip()) if lineno is not None else None
+    except ValueError:
+        lineno_int = None
+
+    funcname = funcname.strip() if funcname is not None else None
+    filename = filename.strip() if filename is not None else None
     return StackFrame(
         funcname=funcname,
         filename=filename,
