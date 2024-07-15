@@ -56,7 +56,9 @@ If empty lines are removed they must be marked with `-`.
 
 If you insert lines with `}` or `{` do not forget to mark them with `+`.
 
-Make minimal changes.
+Make minimal changes and maintain the functionality of the code.
+The bug is only in one function. Your patch can only edit the buggy function.
+Do not modify the code besides the hunk in the buggy function.
 
 An example that follows these instructions is the following:
 @@ ... @@
@@ -185,6 +187,7 @@ class SuperYoloLLMStrategy(PatchGenerationStrategy):
         You are an expert security analyst.
         You can find security vulnerabilities and suggest patches to fix them.
         You always do minimal changes to the code.
+        You can assume that the bug is always located in a single function.
         You always provide a patch to the code by returning the entire modified file.
         """
 
@@ -193,6 +196,7 @@ class SuperYoloLLMStrategy(PatchGenerationStrategy):
         You are an expert security analyst.
         You can find security vulnerabilities and suggest patches to fix them.
         You always do minimal changes to the code.
+        You can assume that the bug is always located in a single function.
         You always provide a patch to the code in valid unified diffs format.
         """
 

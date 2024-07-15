@@ -240,6 +240,7 @@ class YoloLLMStrategy(PatchGenerationStrategy):
         You are an expert security analyst.
         You can find security vulnerabilities and suggest patches to fix them.
         You always do minimal changes to the code.
+        When patching Java functions you never write annotations (starting with `@`) above them.
         You always provide an output in valid JSON.
         The resulting JSON object should be in this format:
         {
@@ -265,18 +266,20 @@ class YoloLLMStrategy(PatchGenerationStrategy):
 
     def _query_llm(self, messages: MessagesIterable) -> PatchFile | None:
 
+        current_messages = list(messages)
+
         retry_attempts = Util.retry_attempts
         for attempt in range(retry_attempts):
             try:
                 llm_output = ""
                 if self.model == "claude-3.5-sonnet":
                     llm_output += PREFILL_YOLO
-                    llm_call = self.llm._call_llm_json(messages)
+                    llm_call = self.llm._call_llm_json(current_messages)
                     if llm_call is None:
                         return None
                     llm_output += llm_call
                 else:
-                    llm_call = self.llm._call_llm_json(messages)
+                    llm_call = self.llm._call_llm_json(current_messages)
                     if llm_call is None:
                         return None
                     llm_output = llm_call
@@ -294,41 +297,44 @@ class YoloLLMStrategy(PatchGenerationStrategy):
 
             # TODO: test if the error handling is working properly
             except json.JSONDecodeError as e:
-                logger.info(f"Failed to decode JSON: {e}. Retrying {attempt + 1}/{retry_attempts}...")
-                messages.append(ChatCompletionAssistantMessageParam(role="assistant", content=llm_output))
+                logger.warning(f"Failed to decode JSON: {e}. Retrying {attempt + 1}/{retry_attempts}...")
+                current_messages = list(messages)
+                current_messages.append(ChatCompletionAssistantMessageParam(role="assistant", content=llm_output))
                 error_message = (
                     f"The JSON is not valid. Failed to decode JSON: {e}."
                     "Please fix the issue and return a fixed JSON.")
-                messages.append(ChatCompletionUserMessageParam(role="user", content=error_message))
+                current_messages.append(ChatCompletionUserMessageParam(role="user", content=error_message))
 
                 if self.model == "claude-3.5-sonnet":
                     # force a prefill for clause-3.5
                     prefill_message = ChatCompletionAssistantMessageParam(role="assistant", content=PREFILL_YOLO)
-                    messages.append(prefill_message)
+                    current_messages.append(prefill_message)
 
             except KeyError as e:
-                logger.info(f"Missing expected key in JSON data: {e}. Retrying {attempt + 1}/{retry_attempts}...")
-                messages.append(ChatCompletionAssistantMessageParam(role="assistant", content=llm_output))
+                logger.warning(f"Missing expected key in JSON data: {e}. Retrying {attempt + 1}/{retry_attempts}...")
+                current_messages = list(messages)
+                current_messages.append(ChatCompletionAssistantMessageParam(role="assistant", content=llm_output))
                 error_message = (f"The JSON is not valid. Missing expected key in JSON data: {e}."
                                 "Please fix the issue and return a fixed JSON.")
-                messages.append(ChatCompletionUserMessageParam(role="user", content=error_message))
+                current_messages.append(ChatCompletionUserMessageParam(role="user", content=error_message))
 
                 if self.model == "claude-3.5-sonnet":
                     # force a prefill for clause-3.5
                     prefill_message = ChatCompletionAssistantMessageParam(role="assistant", content=PREFILL_YOLO)
-                    messages.append(prefill_message)
+                    current_messages.append(prefill_message)
 
             except TypeError as e:
-                logger.info(f"Unexpected type encountered: {e}. Retrying {attempt + 1}/{retry_attempts}...")
-                messages.append(ChatCompletionAssistantMessageParam(role="assistant", content=llm_output))
+                logger.warning(f"Unexpected type encountered: {e}. Retrying {attempt + 1}/{retry_attempts}...")
+                current_messages = list(messages)
+                current_messages.append(ChatCompletionAssistantMessageParam(role="assistant", content=llm_output))
                 error_message = (f"The JSON is not valid. Unexpected type encountered: {e}."
                                 "Please fix the issue and return a fixed JSON.")
-                messages.append(ChatCompletionUserMessageParam(role="user", content=error_message))
+                current_messages.append(ChatCompletionUserMessageParam(role="user", content=error_message))
 
                 if self.model == "claude-3.5-sonnet":
                     # force a prefill for clause-3.5
                     prefill_message = ChatCompletionAssistantMessageParam(role="assistant", content=PREFILL_YOLO)
-                    messages.append(prefill_message)
+                    current_messages.append(prefill_message)
 
             # Wait briefly before retrying
             time.sleep(Util.short_sleep)
@@ -411,6 +417,8 @@ class YoloLLMStrategy(PatchGenerationStrategy):
                 patches.extend(Util.extract_patches(self.diagnosis, self.files, repaired_files.patch))
 
         logger.info(f"found {len(patches)} candidate patches with model {self.model}")
+        for p in patches:
+            logger.debug(f"patch with model {self.model}:\n{p}")
 
         return patches
 
@@ -446,6 +454,8 @@ class YoloLLMStrategy(PatchGenerationStrategy):
 
         patches: list[Diff] = Util.extract_patches(self.diagnosis, self.files, repaired_files.patch)
         logger.info(f"found {len(patches)} candidate patches with model {self.model}")
+        for p in patches:
+            logger.debug(f"patch with model {self.model}:\n{p}")
         return patches
 
     @overrides

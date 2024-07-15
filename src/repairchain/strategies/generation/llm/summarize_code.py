@@ -145,7 +145,7 @@ class ReportSummary:
             prefill_message = ChatCompletionAssistantMessageParam(role="assistant", content=PREFILL_SUMMARY)
             messages.append(prefill_message)
 
-    def _get_llm_code_report(self, diagnosis: Diagnosis) -> list[FunctionSummary] | None:
+    def _get_llm_code_report(self, diagnosis: Diagnosis) -> list[FunctionSummary] | None:  # noqa: PLR0915
 
         diff = commit_to_diff.commit_to_diff(diagnosis.project.triggering_commit)
         files = commit_to_diff.commit_to_files(diagnosis.project.triggering_commit, diff)
@@ -167,18 +167,20 @@ class ReportSummary:
 
         self._check_prefill(messages)
 
+        current_messages = list(messages)
+
         retry_attempts = Util.retry_attempts
         for attempt in range(retry_attempts):
             try:
                 llm_output = ""
                 if self.model == "claude-3.5-sonnet":
                     llm_output += PREFILL_SUMMARY
-                    llm_call = llm._call_llm_json(messages)
+                    llm_call = llm._call_llm_json(current_messages)
                     if llm_call is None:
                         return None
                     llm_output += llm_call
                 else:
-                    llm_call = llm._call_llm_json(messages)
+                    llm_call = llm._call_llm_json(current_messages)
                     if llm_call is None:
                         return None
                     llm_output = llm_call
@@ -196,28 +198,31 @@ class ReportSummary:
             # TODO: test if the these error handling is working properly
             except json.JSONDecodeError as e:
                 logger.warning(f"Failed to decode JSON: {e}. Retrying {attempt + 1}/{retry_attempts}...")
-                messages.append(ChatCompletionAssistantMessageParam(role="assistant", content=llm_output))
+                current_messages = list(messages)
+                current_messages.append(ChatCompletionAssistantMessageParam(role="assistant", content=llm_output))
                 error_message = (
                     f"The JSON is not valid. Failed to decode JSON: {e}."
                     "Please fix the issue and return a fixed JSON.")
-                messages.append(ChatCompletionUserMessageParam(role="user", content=error_message))
-                self._check_prefill(messages)
+                current_messages.append(ChatCompletionUserMessageParam(role="user", content=error_message))
+                self._check_prefill(current_messages)
 
             except KeyError as e:
                 logger.warning(f"Missing expected key in JSON data: {e}. Retrying {attempt + 1}/{retry_attempts}...")
-                messages.append(ChatCompletionAssistantMessageParam(role="assistant", content=llm_output))
+                current_messages = list(messages)
+                current_messages.append(ChatCompletionAssistantMessageParam(role="assistant", content=llm_output))
                 error_message = (f"The JSON is not valid. Missing expected key in JSON data: {e}."
                                 "Please fix the issue and return a fixed JSON.")
-                messages.append(ChatCompletionUserMessageParam(role="user", content=error_message))
-                self._check_prefill(messages)
+                current_messages.append(ChatCompletionUserMessageParam(role="user", content=error_message))
+                self._check_prefill(current_messages)
 
             except TypeError as e:
                 logger.warning(f"Unexpected type encountered: {e}. Retrying {attempt + 1}/{retry_attempts}...")
-                messages.append(ChatCompletionAssistantMessageParam(role="assistant", content=llm_output))
+                current_messages = list(messages)
+                current_messages.append(ChatCompletionAssistantMessageParam(role="assistant", content=llm_output))
                 error_message = (f"The JSON is not valid. Unexpected type encountered: {e}."
                                 "Please fix the issue and return a fixed JSON.")
-                messages.append(ChatCompletionUserMessageParam(role="user", content=error_message))
-                self._check_prefill(messages)
+                current_messages.append(ChatCompletionUserMessageParam(role="user", content=error_message))
+                self._check_prefill(current_messages)
 
             # Wait briefly before retrying
             time.sleep(Util.short_sleep)
