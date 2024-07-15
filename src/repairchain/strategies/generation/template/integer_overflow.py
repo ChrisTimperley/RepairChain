@@ -113,7 +113,7 @@ class IntegerOverflowStrategy(TemplateGenerationStrategy):
             declared_var,
             info_helper.problem_type,
             new_type,
-            5,
+            2,
         )
         if new_decl_code is None:
             return
@@ -124,7 +124,7 @@ class IntegerOverflowStrategy(TemplateGenerationStrategy):
                 info_helper.problem_expr,
                 info_helper.problem_type,
                 new_type,
-                5,
+                2,
             )
             if complete_repl is None:
                 continue
@@ -149,7 +149,7 @@ class IntegerOverflowStrategy(TemplateGenerationStrategy):
             info_helper.problem_expr,
             info_helper.problem_type,
             new_type,
-            5,
+            2,
         )
 
         if new_expr_upcast is None:
@@ -162,7 +162,7 @@ class IntegerOverflowStrategy(TemplateGenerationStrategy):
                 varname,
                 info_helper.problem_type,
                 new_type,
-                5,
+                2,
             )
 
             if new_decl_code is None:
