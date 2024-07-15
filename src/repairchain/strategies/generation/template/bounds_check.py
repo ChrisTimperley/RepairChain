@@ -20,11 +20,9 @@ from repairchain.strategies.generation.template.base import TemplateGenerationSt
 if t.TYPE_CHECKING:
     import kaskara.functions
 
-    from repairchain.indexer import KaskaraIndexer
     from repairchain.models.diagnosis import Diagnosis
     from repairchain.models.diff import Diff
     from repairchain.models.sanitizer_report import StackTrace
-    from repairchain.sources import ProjectSources
 
 
 @dataclass
@@ -116,22 +114,12 @@ class BoundsCheckStrategy(TemplateGenerationStrategy):
         stack_trace = self.report.call_stack_trace
         stack_trace = stack_trace.restrict_to_functions(implicated_functions)
 
-        # find the set of localized functions
+        self._set_index(list(stack_trace.frames))
+
+        # find the set of localized functions in the call stack trace
         functions_to_repair = [
             f for f in implicated_functions if f.name in stack_trace.functions()
         ]
-
-        # index as necessary
-        sources: ProjectSources = self.diagnosis.project.sources
-        indexer: KaskaraIndexer = self.diagnosis.project.indexer
-        filenames = [
-            f.filename for f in functions_to_repair if sources.exists(f.filename, self.diagnosis.project.head)
-        ]
-        if not filenames:
-            logger.warning("skipping BoundsCheckTemplate, no files to index, likely inadequate info from sanitizer")
-            return []
-        self.index = indexer.run(version=self.diagnosis.project.head,
-                                restrict_to_files=filenames)
 
         for function in functions_to_repair:
             diffs += self._generate_for_function(function, stack_trace)

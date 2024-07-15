@@ -15,10 +15,6 @@ from repairchain.strategies.generation.llm.helper_code import CodeHelper
 from repairchain.strategies.generation.llm.llm import LLM
 from repairchain.strategies.generation.template.base import TemplateGenerationStrategy
 
-if t.TYPE_CHECKING:
-    from repairchain.indexer import KaskaraIndexer
-    from repairchain.sources import ProjectSources
-
 TEMPLATE_SET_TO_MAX = """
 if({varname} > 2147483647) {
     {varname} = 2147483647;
@@ -229,30 +225,17 @@ class IntegerOverflowStrategy(TemplateGenerationStrategy):
                 diffs.append(self.diagnosis.project.sources.replacements_to_diff([repl]))
         return diffs
 
-    def _set_index(self, location: StackFrame) -> None:
-        sources: ProjectSources = self.diagnosis.project.sources
-        indexer: KaskaraIndexer = self.diagnosis.project.indexer
-        start_fname = []
-        if location.filename is not None:
-            start_fname = [location.filename]
-        files_to_index = list(self.report.alloc_stack_trace.filenames().union(start_fname))
-        files_to_index = [
-            f for f in files_to_index if sources.exists(f, self.diagnosis.project.head)
-        ]
-        if not files_to_index:
-            logger.warning("No files to index in IntegerOverflow template, skipping")
-            return
-        self.index = indexer.run(version=self.diagnosis.project.head,
-                                     restrict_to_files=files_to_index)
-
     @overrides
     def run(self) -> list[Diff]:
         llm_helper = CodeHelper(self.llm)
         location = self._get_error_location(self.diagnosis)
-        if location is None or location.filename is None or location.file_line is None:
+        if location is None or location.file_line is None:
+            logger.warning("Inadequate location information in IntegerOverflowStrategy, skipping")
             return []
 
-        self._set_index(location)
+        to_index = list(self.report.alloc_stack_trace.frames) + list(self.report.call_stack_trace.frames) + [location]
+        self._set_index(to_index)
+
         if self.index is None:
             logger.warning("Unexpected failed index in IntegerOverflow, skipping")
             return []

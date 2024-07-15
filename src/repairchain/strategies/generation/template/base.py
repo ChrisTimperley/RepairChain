@@ -20,9 +20,11 @@ if t.TYPE_CHECKING:
 
     from sourcelocation.fileline import FileLine
 
+    from repairchain.indexer import KaskaraIndexer
     from repairchain.models.diagnosis import Diagnosis
     from repairchain.models.sanitizer_report import SanitizerReport
     from repairchain.models.stack_trace import StackFrame
+    from repairchain.sources import ProjectSources
 
 
 @dataclass
@@ -30,6 +32,20 @@ class TemplateGenerationStrategy(PatchGenerationStrategy):
     """Base class for all template-based patch generation strategies."""
     report: SanitizerReport
     index: kaskara.analysis.Analysis | None
+
+    def _set_index(self, locations: list[StackFrame]) -> None:
+        sources: ProjectSources = self.diagnosis.project.sources
+        indexer: KaskaraIndexer = self.diagnosis.project.indexer
+        head_commit = self.diagnosis.project.head
+
+        filenames = [
+            f.filename for f in locations if f.filename is not None and sources.exists(f.filename, head_commit)
+        ]
+        if not filenames:
+            logger.warning("Skipping index in TemplateGeneration, no files to index.")
+            return
+        self.index = indexer.run(version=self.diagnosis.project.head,
+                                 restrict_to_files=list(set(filenames)))
 
     def _fn_to_text(self, fn: kaskara.functions.Function) -> str:
         # You can get the range of the function and then plug that into ProjectSources

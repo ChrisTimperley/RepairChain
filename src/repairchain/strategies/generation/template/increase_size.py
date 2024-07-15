@@ -11,14 +11,9 @@ from sourcelocation.location import FileLocation
 from repairchain.models.bug_type import BugType
 from repairchain.models.diagnosis import Diagnosis
 from repairchain.models.replacement import Replacement
-from repairchain.models.stack_trace import StackTrace
 from repairchain.strategies.generation.llm.helper_code import CodeHelper
 from repairchain.strategies.generation.llm.llm import LLM
 from repairchain.strategies.generation.template.base import TemplateGenerationStrategy
-
-if t.TYPE_CHECKING:
-    from repairchain.indexer import KaskaraIndexer
-    from repairchain.sources import ProjectSources
 
 TEMPLATE_DECREASE_VAR1 = """
 {varname} = {varname} - 1;
@@ -140,39 +135,13 @@ class IncreaseSizeStrategy(TemplateGenerationStrategy):
             case _:
                 return False
         location = cls._get_error_location(diagnosis)
-        if location is None:
-            return False
-        head_index = diagnosis.index_at_head
-        return head_index is not None  # sanity check
-
-    def _set_index(self,
-                   alloc_trace: StackTrace,
-                   call_trace: StackTrace) -> None:
-        sources: ProjectSources = self.diagnosis.project.sources
-        indexer: KaskaraIndexer = self.diagnosis.project.indexer
-        filenames: set[str] = set()
-        for frame in alloc_trace:
-            if frame.filename is None or frame.lineno is None:
-                continue
-            filenames.add(frame.filename)
-        for frame in call_trace:
-            if frame.filename is None or frame.lineno is None:
-                continue
-            filenames.add(frame.filename)
-        files_to_index = [
-            f for f in filenames if sources.exists(f, self.diagnosis.project.head)
-        ]
-        if not files_to_index:
-            logger.warning("skipping IncreaseSizeTemplate, no files to index, likely inadequate info from sanitizer")
-            return
-
-        self.index = indexer.run(version=self.diagnosis.project.head,
-                                     restrict_to_files=files_to_index)
+        return location is not None
 
     @overrides
     def run(self) -> list[Diff]:
-        self._set_index(self.diagnosis.sanitizer_report.alloc_stack_trace,
-                        self.diagnosis.sanitizer_report.call_stack_trace)
+        both_traces = list(self.report.alloc_stack_trace.frames) + list(self.report.call_stack_trace.frames)
+        self._set_index(both_traces)
+
         if self.index is None:
             logger.warning("Unexpected failed index in IncreaseSize, skipping")
             return []
