@@ -172,7 +172,7 @@ class CodeHelper:
         messages.append(system_message)
         messages.append(user_message)
 
-        current_messages = messages
+        current_messages = list(messages)
 
         # TODO: code that we use in yolo_llm;  refactor later
         # claude-3.5-sonnet is not as good for JSON and requires some prefill
@@ -204,7 +204,7 @@ class CodeHelper:
 
             except json.JSONDecodeError as e:
                 logger.warning(f"Failed to decode JSON: {e}. Retrying {attempt + 1}/{retry_attempts}...")
-                current_messages = messages
+                current_messages = list(messages)
                 current_messages.append(ChatCompletionAssistantMessageParam(role="assistant", content=llm_output))
                 error_message = (
                     f"The JSON is not valid. Failed to decode JSON: {e}."
@@ -218,7 +218,7 @@ class CodeHelper:
 
             except KeyError as e:
                 logger.warning(f"Missing expected key in JSON data: {e}. Retrying {attempt + 1}/{retry_attempts}...")
-                current_messages = messages
+                current_messages = list(messages)
                 current_messages.append(ChatCompletionAssistantMessageParam(role="assistant", content=llm_output))
                 error_message = (f"The JSON is not valid. Missing expected key in JSON data: {e}."
                                 "Please fix the issue and return a fixed JSON.")
@@ -231,7 +231,7 @@ class CodeHelper:
 
             except TypeError as e:
                 logger.warning(f"Unexpected type encountered: {e}. Retrying {attempt + 1}/{retry_attempts}...")
-                current_messages = messages
+                current_messages = list(messages)
                 current_messages.append(ChatCompletionAssistantMessageParam(role="assistant", content=llm_output))
                 error_message = (f"The JSON is not valid. Unexpected type encountered: {e}."
                                 "Please fix the issue and return a fixed JSON.")

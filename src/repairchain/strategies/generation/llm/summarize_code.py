@@ -167,7 +167,7 @@ class ReportSummary:
 
         self._check_prefill(messages)
 
-        current_messages: MessagesIterable = messages
+        current_messages = list(messages)
 
         retry_attempts = Util.retry_attempts
         for attempt in range(retry_attempts):
@@ -198,7 +198,7 @@ class ReportSummary:
             # TODO: test if the these error handling is working properly
             except json.JSONDecodeError as e:
                 logger.warning(f"Failed to decode JSON: {e}. Retrying {attempt + 1}/{retry_attempts}...")
-                current_messages = messages
+                current_messages = list(messages)
                 current_messages.append(ChatCompletionAssistantMessageParam(role="assistant", content=llm_output))
                 error_message = (
                     f"The JSON is not valid. Failed to decode JSON: {e}."
@@ -208,7 +208,7 @@ class ReportSummary:
 
             except KeyError as e:
                 logger.warning(f"Missing expected key in JSON data: {e}. Retrying {attempt + 1}/{retry_attempts}...")
-                current_messages = messages
+                current_messages = list(messages)
                 current_messages.append(ChatCompletionAssistantMessageParam(role="assistant", content=llm_output))
                 error_message = (f"The JSON is not valid. Missing expected key in JSON data: {e}."
                                 "Please fix the issue and return a fixed JSON.")
@@ -217,7 +217,7 @@ class ReportSummary:
 
             except TypeError as e:
                 logger.warning(f"Unexpected type encountered: {e}. Retrying {attempt + 1}/{retry_attempts}...")
-                current_messages = messages
+                current_messages = list(messages)
                 current_messages.append(ChatCompletionAssistantMessageParam(role="assistant", content=llm_output))
                 error_message = (f"The JSON is not valid. Unexpected type encountered: {e}."
                                 "Please fix the issue and return a fixed JSON.")

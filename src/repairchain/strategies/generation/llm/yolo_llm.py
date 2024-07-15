@@ -240,6 +240,7 @@ class YoloLLMStrategy(PatchGenerationStrategy):
         You are an expert security analyst.
         You can find security vulnerabilities and suggest patches to fix them.
         You always do minimal changes to the code.
+        When patching Java functions you never write annotations (starting with `@`) above them.
         You always provide an output in valid JSON.
         The resulting JSON object should be in this format:
         {
@@ -265,7 +266,7 @@ class YoloLLMStrategy(PatchGenerationStrategy):
 
     def _query_llm(self, messages: MessagesIterable) -> PatchFile | None:
 
-        current_messages = messages
+        current_messages = list(messages)
 
         retry_attempts = Util.retry_attempts
         for attempt in range(retry_attempts):
@@ -297,7 +298,7 @@ class YoloLLMStrategy(PatchGenerationStrategy):
             # TODO: test if the error handling is working properly
             except json.JSONDecodeError as e:
                 logger.warning(f"Failed to decode JSON: {e}. Retrying {attempt + 1}/{retry_attempts}...")
-                current_messages = messages
+                current_messages = list(messages)
                 current_messages.append(ChatCompletionAssistantMessageParam(role="assistant", content=llm_output))
                 error_message = (
                     f"The JSON is not valid. Failed to decode JSON: {e}."
@@ -311,7 +312,7 @@ class YoloLLMStrategy(PatchGenerationStrategy):
 
             except KeyError as e:
                 logger.warning(f"Missing expected key in JSON data: {e}. Retrying {attempt + 1}/{retry_attempts}...")
-                current_messages = messages
+                current_messages = list(messages)
                 current_messages.append(ChatCompletionAssistantMessageParam(role="assistant", content=llm_output))
                 error_message = (f"The JSON is not valid. Missing expected key in JSON data: {e}."
                                 "Please fix the issue and return a fixed JSON.")
@@ -324,7 +325,7 @@ class YoloLLMStrategy(PatchGenerationStrategy):
 
             except TypeError as e:
                 logger.warning(f"Unexpected type encountered: {e}. Retrying {attempt + 1}/{retry_attempts}...")
-                current_messages = messages
+                current_messages = list(messages)
                 current_messages.append(ChatCompletionAssistantMessageParam(role="assistant", content=llm_output))
                 error_message = (f"The JSON is not valid. Unexpected type encountered: {e}."
                                 "Please fix the issue and return a fixed JSON.")
