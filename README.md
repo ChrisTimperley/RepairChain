@@ -72,6 +72,7 @@ poetry run repairchain repair --help
 | `REPAIRCHAIN_LOG_TO_FILE` |  `` | if specified, writes a log to a given file |
 | `REPAIRCHAIN_GENERATE_COMPILE_COMMANDS` | `true` | enables (or disables) the generation of compile_commands.json via bear |
 | `LITELLM_MODEL` | `oai-gpt-4o` | specifies the model that should be used by YOLO |
+| `REPAIRCHAIN_KERNEL_BACKTRACE_PATH` | `` | optionally specifies the path to a symbolized kernel backtrace |
 
 ## Input Format
 
