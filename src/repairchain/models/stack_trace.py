@@ -2,9 +2,13 @@ from __future__ import annotations
 
 import typing as t
 from dataclasses import dataclass
+from pathlib import Path
 
 import kaskara
 from sourcelocation.fileline import FileLine
+
+if t.TYPE_CHECKING:
+    from repairchain.sources import ProjectSources
 
 
 @dataclass
@@ -46,6 +50,13 @@ class StackFrame:
         if isinstance(function, kaskara.functions.Function):
             function = function.name
         return self.funcname == function
+
+    def normalize_file_paths(self, sources: ProjectSources) -> None:
+        if self.filename is None:
+            return
+        maybe_abs_path = Path(self.filename)
+        if normalized_path := sources.obtain_relative_path(maybe_abs_path):
+            self.filename = str(normalized_path)
 
 
 @dataclass
@@ -90,6 +101,14 @@ class StackTrace(t.Sequence[StackFrame]):
     def functions(self) -> set[str]:
         """Returns the set of function names in the stack trace."""
         return {frame.funcname for frame in self.frames if frame.funcname is not None}
+
+    def filenames(self) -> set[str]:
+        """Returns the set of file names in the stack trace."""
+        return {frame.filename for frame in self.frames if frame.filename is not None}
+
+    def normalize_file_paths(self, sources: ProjectSources) -> None:
+        for frame in self.frames:
+            frame.normalize_file_paths(sources)
 
 
 def extract_location_symbolized(line: str) -> tuple[str, int | None, int | None]:

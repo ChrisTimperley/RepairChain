@@ -20,7 +20,6 @@ class SequenceStrategy(PatchGenerationStrategy):
     strategies: t.Sequence[PatchGenerationStrategy]
 
     @classmethod
-    @overrides
     def applies(cls, diagnosis: Diagnosis) -> bool:
         return True
 

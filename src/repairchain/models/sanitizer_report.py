@@ -25,7 +25,9 @@ from loguru import logger
 
 if t.TYPE_CHECKING:
     from collections.abc import Callable
-    from pathlib import Path
+
+    from repairchain.models.project import Project
+    from repairchain.sources import ProjectSources
 
 
 def parse_stack_frame_simple(line: str) -> StackFrame | None:
@@ -33,6 +35,8 @@ def parse_stack_frame_simple(line: str) -> StackFrame | None:
         r"\s*#(?P<frame>\d+) "
         r"0x(?P<address>[0-9a-f]+) in ",
     )
+    if "__libc_start_main" in line:
+        return None
     stack_trace_match = stack_frame_regex.match(line)
     if stack_trace_match:
         return extract_stack_frame_from_line_symbolized(line)
@@ -118,7 +122,6 @@ def parse_report_generic(  # noqa: PLR0917
         extra_info = extra_info_find(line) if extra_info is None else extra_info
         loc_triggered = find_triggered_loc(line) if loc_triggered is None else loc_triggered
 
-        # FIXME: do I care to break early?  Possibly unimportant
         if processing_call_trace:
             stack_frame = parse_trace_ele(line)
             if stack_frame is not None:
@@ -278,6 +281,36 @@ def parse_memsan(memsan_output: str) -> tuple[str, StackFrame | None, StackTrace
     )
 
 
+def _extract_location_ubsan(line: str) -> tuple[str, int | None, int | None]:
+    """Special handling for ubsan locations.
+
+    It's possible this could be folded into regular location extraction, but I don't want to
+    risk it so close to the deadline.
+    """
+    filename = line
+    lineno: int | None = None
+    offset: int | None = None
+    offsetstr = ""
+    if ":" in line:
+        filename, _, linenostr = line.partition(":")
+        if ":" in linenostr:
+            line, _, offsetstr = linenostr.partition(":")
+        elif " " in linenostr:
+            line, _, offsetstr = linenostr.partition(" ")
+
+    try:
+        lineno = int(line)
+    except ValueError:
+        lineno = None
+    try:
+        if " " in offsetstr:
+            offsetstr, _, _ = offsetstr.partition(" ")
+        offset = int(offsetstr)
+    except ValueError:
+        offset = None
+    return filename, lineno, offset
+
+
 def parse_ubsan(ubsan_output: str) -> tuple[str, StackFrame | None, StackTrace, StackTrace]:
     """Parse ubsan info.
 
@@ -289,17 +322,24 @@ def parse_ubsan(ubsan_output: str) -> tuple[str, StackFrame | None, StackTrace, 
     filename: str | None = None
     lineno: int | None = None
     offset: int | None = None
+    funcname: str | None = None
+
     extra_information = ""
 
     for line in ubsan_output.splitlines():
         stripped = line.strip()
         if "SUMMARY: UndefinedBehaviorSanitizer: undefined-behavior" in stripped:
+            if " in " in line:
+                _, _, funcname = line.partition(" in ")
+
             _, _, location = stripped.partition("undefined-behavior ")
-            filename, lineno, offset = extract_location_symbolized(location)
+            # special handling ubsan reports
+
+            filename, lineno, offset = _extract_location_ubsan(location)
         if "runtime error:" in stripped:
             _, _, extra_information = stripped.partition("error: ")
     frame = StackFrame(
-        funcname=None,
+        funcname=funcname,
         filename=filename,
         lineno=lineno,
         offset=offset,
@@ -363,12 +403,11 @@ sanitizer_to_report_parser: dict[Sanitizer, Callable[[str], tuple[str, StackFram
 class SanitizerReport:
     contents: str = field(repr=False)
     sanitizer: Sanitizer
-    bug_type: BugType = BugType.UNKNOWN
-    # FIXME move this into a separate subclass
-    # possible thought: this information might vary by sanitizer, bug type
-    # possibly condition on that?
-    call_stack_trace: StackTrace | None = field(default=None)
-    alloc_stack_trace: StackTrace | None = field(default=None)
+    # FIXME: change the order of initialization here because I have
+    # to set a default empty stack trace in build and that's dumb.
+    call_stack_trace: StackTrace
+    alloc_stack_trace: StackTrace
+    bug_type: BugType = field(default=BugType.UNKNOWN)
     error_location: StackFrame | None = field(default=None)
     extra_info: str | None = field(default=None)
 
@@ -392,13 +431,20 @@ class SanitizerReport:
         return Sanitizer.UNKNOWN
 
     @classmethod
-    def from_report_text(cls, text: str) -> t.Self:
+    def build(cls, project: Project) -> t.Self:
+        text = project.sanitizer_output
+
         sanitizer = cls._find_sanitizer(text)
         logger.info(f"determined sanitizer from report text: {sanitizer}")
+
         bug_type = determine_bug_type(text, sanitizer)
         logger.info(f"determined bug type from report text: {bug_type}")
+
+        # build a partial report
         report = cls(
             contents=text,
+            call_stack_trace=StackTrace([]),
+            alloc_stack_trace=StackTrace([]),
             sanitizer=sanitizer,
             bug_type=bug_type,
         )
@@ -406,8 +452,6 @@ class SanitizerReport:
         if sanitizer not in sanitizer_to_report_parser:
             return report
 
-        # TODO need to deal with stack traces that may contain a mix of relative
-        # and absolute paths
         try:
             parser_func = sanitizer_to_report_parser[sanitizer]
             (report.extra_info,
@@ -417,15 +461,14 @@ class SanitizerReport:
 
         # if we can't parse the report, just return the report without the stack trace
         except Exception:  # noqa: BLE001
-            logger.exception("failed to parse sanitizer report")
+            logger.exception("failed to fully parse sanitizer report")
+        else:
+            report.normalize_paths(project.sources)
 
         return report
 
-    @classmethod
-    def load(cls, path: Path) -> t.Self:
-        if not path.exists():
-            message = f"sanitizer report not found at {path}"
-            raise FileNotFoundError(message)
-
-        contents = path.read_text()
-        return cls.from_report_text(contents)
+    def normalize_paths(self, sources: ProjectSources) -> None:
+        self.alloc_stack_trace.normalize_file_paths(sources)
+        self.call_stack_trace.normalize_file_paths(sources)
+        if self.error_location is not None:
+            self.error_location.normalize_file_paths(sources)

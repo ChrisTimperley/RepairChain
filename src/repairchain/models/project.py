@@ -21,7 +21,6 @@ from repairchain.actions.validate import (
 from repairchain.indexer import KaskaraIndexer
 from repairchain.models.container import ProjectContainer
 from repairchain.models.patch_outcome import PatchOutcomeCache
-from repairchain.models.sanitizer_report import SanitizerReport
 from repairchain.sources import ProjectSources
 
 if t.TYPE_CHECKING:
@@ -48,7 +47,7 @@ class Project:
     clean_command: str
     regression_test_command: str
     crash_command_template: str
-    sanitizer_report: SanitizerReport
+    sanitizer_output: str
     pov_payload: bytes = field(repr=False)
     settings: Settings
     evaluation_cache: PatchOutcomeCache = field(init=False, repr=False)
@@ -182,8 +181,9 @@ class Project:
             message = f"triggering commit ({commit}) is the initial commit"
             raise ValueError(message)
 
-        sanitizer_report = SanitizerReport.load(sanitizer_report_path)
-        logger.debug(f"sanitizer report: {sanitizer_report}")
+        with sanitizer_report_path.open("r") as file:
+            sanitizer_output = file.read()
+
         with dockerblade.DockerDaemon(url=docker_url) as docker_daemon:
             project = cls(
                 docker_daemon=docker_daemon,
@@ -196,7 +196,7 @@ class Project:
                 kind=project_kind,
                 regression_test_command=regression_test_command,
                 repository=repository,
-                sanitizer_report=sanitizer_report,
+                sanitizer_output=sanitizer_output,
                 triggering_commit=commit,
                 pov_payload=pov_payload,
                 settings=settings,
