@@ -102,6 +102,9 @@ class BoundsCheckStrategy(TemplateGenerationStrategy):
     @overrides
     def run(self) -> list[Diff]:
         diffs: list[Diff] = []
+        both_traces = list(self.report.alloc_stack_trace.frames) + list(self.report.call_stack_trace.frames)
+        self._set_index(both_traces)
+
         implicated_functions = self.diagnosis.implicated_functions_at_head
 
         if implicated_functions is None or len(self.report.call_stack_trace) == 0:
@@ -113,8 +116,6 @@ class BoundsCheckStrategy(TemplateGenerationStrategy):
         # filter the stack trace to only those functions that are implicated
         stack_trace = self.report.call_stack_trace
         stack_trace = stack_trace.restrict_to_functions(implicated_functions)
-
-        self._set_index(list(stack_trace.frames))
 
         # find the set of localized functions in the call stack trace
         functions_to_repair = [
