@@ -75,7 +75,7 @@ class IntegerOverflowStrategy(TemplateGenerationStrategy):
             case BugType.SIGNED_INTEGER_OVERFLOW:
                 pass
             case _:
-                return False
+                return True
         location = cls._get_error_location(diagnosis)
         return location is not None
 
@@ -104,7 +104,7 @@ class IntegerOverflowStrategy(TemplateGenerationStrategy):
             unsigned=unsigned,
         )
 
-    def _statement_is_declaration(self,
+    def _generate_diffs_for_decls(self,
                                   stmt: kaskara.statements.Statement,
                                   declared_var: str,
                                   info_helper: OverflowHelper,
@@ -132,9 +132,10 @@ class IntegerOverflowStrategy(TemplateGenerationStrategy):
                 diffs.append(self.diagnosis.project.sources.replacements_to_diff([repl]))
         return diffs
 
-    def _statement_is_not_declaration(self,
+    def _generate_diffs_for_not_decls(self,
                                       stmt: kaskara.statements.Statement,
                                       varname: str,
+                                      error_location: StackFrame,
                                       info_helper: OverflowHelper,
                                       llm_helper: CodeHelper) -> list[Diff]:
         diffs: list[Diff] = []
@@ -149,7 +150,7 @@ class IntegerOverflowStrategy(TemplateGenerationStrategy):
             return []
 
         # step 2: get rewrites for the declarations
-        for decl_stmt in self._get_potential_definitions(varname):
+        for decl_stmt in self._get_potential_declarations(error_location, varname):
             new_decl_code = llm_helper.help_with_upcast_decl(decl_stmt.content,
                                                              varname,
                                                              info_helper.problem_type,
@@ -169,22 +170,29 @@ class IntegerOverflowStrategy(TemplateGenerationStrategy):
 
     def _handle_with_info(self,
                           stmts: list[kaskara.statements.Statement],
+                          error_location: StackFrame,
                           info_helper: OverflowHelper,
                           llm_helper: CodeHelper) -> list[Diff]:
         diffs: list[Diff] = []
 
         for stmt in stmts:
             # either the declaration itself overflows
+            if not isinstance(stmt, kaskara.clang.analysis.ClangStatement):
+                continue
             decls = frozenset(stmt.declares if hasattr(stmt, "declares") else [])
             if decls:  # ...so we just need to rewrite the one statement.
                 for decl in decls:
-                    diffs += self._statement_is_declaration(stmt, decl, info_helper, llm_helper)
+                    diffs += self._generate_diffs_for_decls(stmt, decl, info_helper, llm_helper)
             else:  # or we need to try to find the declaration that overflows, and rewrite two things
                 writes = frozenset(stmt.writes if hasattr(stmt, "writes") else [])
                 if not writes:
                     continue
                 for written_var in writes:
-                    diffs += self._statement_is_not_declaration(stmt, written_var, info_helper, llm_helper)
+                    diffs += self._generate_diffs_for_not_decls(stmt,
+                                                                written_var,
+                                                                error_location,
+                                                                info_helper,
+                                                                llm_helper)
         return diffs
 
     def _handle_without_info(self,
@@ -231,9 +239,11 @@ class IntegerOverflowStrategy(TemplateGenerationStrategy):
         files_to_index = [
             f for f in files_to_index if sources.exists(f, self.diagnosis.project.head)
         ]
-        if files_to_index:
-            self.index = indexer.run(version=self.diagnosis.project.head,
-                                         restrict_to_files=files_to_index)
+        if not files_to_index:
+            logger.warning("No files to index in IntegerOverflow template, skipping")
+            return
+        self.index = indexer.run(version=self.diagnosis.project.head,
+                                     restrict_to_files=files_to_index)
 
     @overrides
     def run(self) -> list[Diff]:
@@ -244,7 +254,7 @@ class IntegerOverflowStrategy(TemplateGenerationStrategy):
 
         self._set_index(location)
         if self.index is None:
-            logger.warning("Unexpected empty index in IntegerOverflow, skipping")
+            logger.warning("Unexpected failed index in IntegerOverflow, skipping")
             return []
 
         stmts = self.index.statements.at_line(location.file_line)
@@ -252,5 +262,5 @@ class IntegerOverflowStrategy(TemplateGenerationStrategy):
         if self.report.extra_info is not None:
             info_helper = self._parse_extra_info(self.report.extra_info)
             # TODO: consider some validity checking, though this shouldn't crash at least
-            return self._handle_with_info(list(stmts), info_helper, llm_helper)
+            return self._handle_with_info(list(stmts), location, info_helper, llm_helper)
         return self._handle_without_info(list(stmts), llm_helper)

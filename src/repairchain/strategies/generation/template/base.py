@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from repairchain.util import statements_in_function
+
 __all__ = ("TemplateGenerationStrategy",)
 
 import abc
@@ -79,7 +81,7 @@ class TemplateGenerationStrategy(PatchGenerationStrategy):
         if self.index is None:
             logger.warning("Unexpected empty index in template generation.")
             return []
-        declaring_stmts: list[kaskara.statements.Statement] = []
+        defining_stmts: list[kaskara.statements.Statement] = []
         for stmt in self.index.statements.at_line(frame_line):
             if not isinstance(stmt, kaskara.clang.analysis.ClangStatement):
                 continue
@@ -87,8 +89,8 @@ class TemplateGenerationStrategy(PatchGenerationStrategy):
             if stmt_kind != "DeclStmt" or stmt_kind != "BinaryOperator":
                 continue
             if varname in stmt.writes or varname in stmt.declares:
-                declaring_stmts.append(stmt)
-        return declaring_stmts
+                defining_stmts.append(stmt)
+        return defining_stmts
 
     def _get_potential_definitions(self,
                                     varname: str) -> list[kaskara.statements.Statement]:
@@ -97,10 +99,8 @@ class TemplateGenerationStrategy(PatchGenerationStrategy):
             return []
 
         allocated_stack = self.report.alloc_stack_trace
-        if allocated_stack is None:
-            return []
 
-        declaring_stmts: list[kaskara.statements.Statement] = []
+        defining_stmts: list[kaskara.statements.Statement] = []
 
         for frame in allocated_stack.frames:
             if frame.filename is None or frame.lineno is None or frame.file_line is None:
@@ -110,7 +110,80 @@ class TemplateGenerationStrategy(PatchGenerationStrategy):
             fn = self.index.functions.encloses(as_loc)
             if fn is None:
                 continue
-            declaring_stmts += self._one_frame_potential_definitions(varname, frame.file_line)
+            defining_stmts += self._one_frame_potential_definitions(varname, frame.file_line)
+
+        if len(defining_stmts) == 0:
+            logger.warning("No declaring statements found. returning empty list.")
+        return defining_stmts
+
+    def _one_stack_frame_potential_declarations(self,
+                                          varname: str,
+                                          frame_line: FileLine,
+                                          ) -> list[kaskara.statements.Statement]:
+        if self.index is None:
+            logger.warning("Unexpected empty index in template generation.")
+            return []
+        declaring_stmts: list[kaskara.statements.Statement] = []
+        for stmt in self.index.statements.at_line(frame_line):
+            if not isinstance(stmt, kaskara.clang.analysis.ClangStatement):
+                continue
+            stmt_kind = stmt.kind
+            if stmt_kind != "DeclStmt":
+                continue
+            if varname in stmt.writes or varname in stmt.declares:
+                declaring_stmts.append(stmt)
+        return declaring_stmts
+
+    def _one_function_potential_declarations(self,
+                                          varname: str,
+                                          location: StackFrame,
+                                          ) -> list[kaskara.statements.Statement]:
+        if self.index is None or location.lineno is None or location.filename is None:
+            logger.warning("Unexpected empty index or diagnosis in template generation.")
+            return []
+
+        baseloc = Location(location.lineno, location.offset if location.offset is not None else 0)
+        as_loc = FileLocation(location.filename, baseloc)
+        fn = self.index.functions.encloses(as_loc)
+        if fn is None:
+            return []
+
+        declaring_stmts: list[kaskara.statements.Statement] = []
+        stmts_in_fn = statements_in_function(self.index, fn)
+        for stmt in stmts_in_fn:
+            if stmt.location.location_range.start.line > location.lineno:
+                continue
+            if not isinstance(stmt, kaskara.clang.analysis.ClangStatement):
+                continue
+            stmt_kind = stmt.kind
+            if stmt_kind != "DeclStmt":
+                continue
+            if varname in stmt.writes or varname in stmt.declares:
+                declaring_stmts.append(stmt)
+        return declaring_stmts
+
+    def _get_potential_declarations(self,
+                                    error_location: StackFrame,
+                                    varname: str) -> list[kaskara.statements.Statement]:
+        if self.index is None:
+            logger.warning("Unexpected empty index in template generation.")
+            return []
+
+        declaring_stmts: list[kaskara.statements.Statement] = []
+
+        # try the fucntion where the erro triggerd first
+        if error_location.file_line is not None:
+            declaring_stmts += self._one_stack_frame_potential_declarations(varname, error_location.file_line)
+
+        for frame in self.report.alloc_stack_trace:
+            if frame.filename is None or frame.lineno is None or frame.file_line is None:
+                continue
+            baseloc = Location(frame.lineno, frame.offset if frame.offset is not None else 0)
+            as_loc = FileLocation(frame.filename, baseloc)
+            fn = self.index.functions.encloses(as_loc)
+            if fn is None:
+                continue
+            declaring_stmts += self._one_stack_frame_potential_declarations(varname, frame.file_line)
 
         if len(declaring_stmts) == 0:
             logger.warning("No declaring statements found. returning empty list.")
