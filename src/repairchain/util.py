@@ -11,6 +11,11 @@ import typing as t
 from dockerblade.stopwatch import Stopwatch
 from loguru import logger
 
+from repairchain.models.diff import (
+    Diff,
+    FileDiff,
+)
+
 if t.TYPE_CHECKING:
     import kaskara
     import kaskara.functions
@@ -34,6 +39,19 @@ def statements_in_function(
             results.append(statement)
 
     return results
+
+
+def add_prefix_to_diff(diff: Diff) -> Diff:
+    file_diffs = diff.file_diffs
+    file_diffs = [
+        FileDiff(
+            old_filename=f"a/{file_diff.old_filename}",
+            new_filename=f"b/{file_diff.new_filename}",
+            hunks=file_diff.hunks,
+        )
+        for file_diff in file_diffs
+    ]
+    return Diff(file_diffs)
 
 
 def strip_prefix(string: str, prefix: str) -> str:

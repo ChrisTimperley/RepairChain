@@ -1,0 +1,30 @@
+--- mock_vp.c
++++ mock_vp.c
+@@ -4,19 +4,20 @@
+ 
+ char items[3][10];
+ 
+-void func_a(){
++void func_a() {
+     char* buff;
+     int i = 0;
+-    do{
++    do {
+         printf("input item:");
+         buff = &items[i][0];
++        fgets(buff, sizeof(items[0]), stdin); // Use sizeof to automatically use the correct buffer size
++        buff[strcspn(buff, "\n")] = 0;
+         i++;
+-        fgets(buff, 40, stdin);
+-        buff[strcspn(buff, "\n")] = 0;
+-    }while(strlen(buff)!=0);
+-    i--;
++    } while (strlen(buff) != 0 && i < 3); // Ensure i doesn't exceed buffer limits
++    if (i > 0) {
++        i--;
++    }
+ }
+-
+ void func_b(){
+     char *buff;
+     printf("done adding items\n");
