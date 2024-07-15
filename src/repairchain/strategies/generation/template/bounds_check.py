@@ -128,6 +128,10 @@ class BoundsCheckStrategy(TemplateGenerationStrategy):
         filenames = [
             f.filename for f in functions_to_repair if sources.exists(f.filename, self.diagnosis.project.head)
         ]
+        if not filenames:
+            logger.warning("skipping BoundsCheckTemplate, no files to index, likely inadequate info from sanitizer")
+            return []
+
         self.index = indexer.run(version=self.diagnosis.project.head,
                                 restrict_to_files=filenames)
 

@@ -231,8 +231,9 @@ class IntegerOverflowStrategy(TemplateGenerationStrategy):
         files_to_index = [
             f for f in files_to_index if sources.exists(f, self.diagnosis.project.head)
         ]
-        self.index = indexer.run(version=self.diagnosis.project.head,
-                                     restrict_to_files=files_to_index)
+        if files_to_index:
+            self.index = indexer.run(version=self.diagnosis.project.head,
+                                         restrict_to_files=files_to_index)
 
     @overrides
     def run(self) -> list[Diff]:
@@ -243,7 +244,7 @@ class IntegerOverflowStrategy(TemplateGenerationStrategy):
 
         self._set_index(location)
         if self.index is None:
-            logger.warning("Unexpected failed index in IntegerOverflow, skipping")
+            logger.warning("Unexpected empty index in IntegerOverflow, skipping")
             return []
 
         stmts = self.index.statements.at_line(location.file_line)

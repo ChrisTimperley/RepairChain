@@ -162,6 +162,10 @@ class IncreaseSizeStrategy(TemplateGenerationStrategy):
         files_to_index = [
             f for f in filenames if sources.exists(f, self.diagnosis.project.head)
         ]
+        if not files_to_index:
+            logger.warning("skipping IncreaseSizeTemplate, no files to index, likely inadequate info from sanitizer")
+            return
+
         self.index = indexer.run(version=self.diagnosis.project.head,
                                      restrict_to_files=files_to_index)
 

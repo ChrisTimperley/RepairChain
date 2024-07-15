@@ -2,6 +2,7 @@
 import typing as t
 from dataclasses import dataclass
 
+from loguru import logger
 from overrides import overrides
 from sourcelocation.diff import Diff
 from sourcelocation.location import FileLocation
@@ -63,6 +64,10 @@ class InitializeMemoryStrategy(TemplateGenerationStrategy):
     @overrides
     def run(self) -> list[Diff]:
         self._set_index()
+        if self.index is None:
+            logger.warning("Skipping InitMemTemplate, failed to index.")
+            return []
+
         location = self._get_error_location(self.diagnosis)
         if location is None or location.file_line is None or self.index is None:
             return []
