@@ -49,7 +49,7 @@
             }
         },
         {
-            "name": "repair: templates: nginx",
+            "name": "generate: templates: nginx",
             "type": "debugpy",
             "args": ["generate", "project.json", "-o", "./patches"],
             "cwd": "${workspaceFolder}/examples/nginx",
@@ -82,6 +82,27 @@
                 "REPAIRCHAIN_WORKERS": "1",
                 "REPAIRCHAIN_LOG_LEVEL": "DEBUG",
             }
+        },
+        {
+            "name": "generate: templates mockcp",
+            "type": "debugpy",
+            "args": ["generate", "project.json", "-o", "./patches"],
+            "cwd": "${workspaceFolder}/examples/mock-cp",
+            "console": "integratedTerminal",
+            "module": "repairchain",
+            "request": "launch",
+            "showReturnValue": true,
+            "env": {
+                "REPAIRCHAIN_WORKERS": "1",
+                "REPAIRCHAIN_LOG_LEVEL": "DEBUG",
+                "REPAIRCHAIN_EVALUATION_CACHE": "./.caches/evaluation.pkl",
+                "REPAIRCHAIN_KASKARA_CACHE": "./.caches/kaskara.pkl",
+                "REPAIRCHAIN_SANITY_CHECK": "false",
+                "REPAIRCHAIN_ENABLE_REVERSION_REPAIR": "false",
+                "REPAIRCHAIN_ENABLE_YOLO_REPAIR": "false",
+                "REPAIRCHAIN_ENABLE_TEMPLATE_REPAIR": "true"
+            }
         }
+
     ]
 }
