@@ -379,7 +379,7 @@ def parse_java_stack_trace(line: str) -> StackFrame:
     try:
         lineno_int = int(lineno.strip()) if lineno is not None else None
     except ValueError:
-        lineno = None
+        lineno_int = None
 
     funcname = funcname.strip() if funcname is not None else None
     filename = filename.strip() if filename is not None else None
