@@ -23,17 +23,28 @@ class SequenceStrategy(PatchGenerationStrategy):
     def applies(cls, diagnosis: Diagnosis) -> bool:
         return True
 
+    def _run_strategy(self, strategy: PatchGenerationStrategy) -> t.Iterator[Diff]:
+        name = strategy.__class__.__name__
+        logger.info(f"generating patches with strategy: {name}...")
+        num_patches = 0
+        try:
+            for candidate in strategy.run():
+                # TODO check template patch limits
+                yield candidate
+                num_patches += 1
+        except Exception:  # noqa: BLE001
+            logger.exception(f"failed to generate patches with strategy: {name}")
+        else:
+            logger.info(f"generated {num_patches} patches with strategy: {name}")
+
     @overrides
     def run(self) -> t.Iterator[Diff]:
+        num_patches = 0
+
         for strategy in self.strategies:
-            num_patches_generated_by_strategy = 0
-            try:
-                name = strategy.__class__.__name__
-                logger.info(f"generating patches with strategy: {name}...")
-                for candidate in strategy.run():
-                    yield candidate
-                    num_patches_generated_by_strategy += 1
-            except Exception:  # noqa: BLE001
-                logger.exception(f"failed to generate patches with strategy: {name}")
-            else:
-                logger.info(f"generated {num_patches_generated_by_strategy} patches with strategy: {name}")
+            for patch in self._run_strategy(strategy):
+                # TODO check global patch limits
+                yield patch
+                num_patches += 1
+
+        logger.info(f"finished generating {num_patches} patches")
