@@ -77,7 +77,7 @@ class IntegerOverflowStrategy(TemplateGenerationStrategy):
             case BugType.SIGNED_INTEGER_OVERFLOW:
                 pass
             case _:
-                return True
+                return False
         location = cls._get_error_location(diagnosis)
         return location is not None
 
