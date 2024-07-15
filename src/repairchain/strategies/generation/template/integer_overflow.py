@@ -113,6 +113,7 @@ class IntegerOverflowStrategy(TemplateGenerationStrategy):
             declared_var,
             info_helper.problem_type,
             new_type,
+            5,
         )
         if new_decl_code is None:
             return
@@ -123,6 +124,7 @@ class IntegerOverflowStrategy(TemplateGenerationStrategy):
                 info_helper.problem_expr,
                 info_helper.problem_type,
                 new_type,
+                5,
             )
             if complete_repl is None:
                 continue
@@ -147,6 +149,7 @@ class IntegerOverflowStrategy(TemplateGenerationStrategy):
             info_helper.problem_expr,
             info_helper.problem_type,
             new_type,
+            5,
         )
 
         if new_expr_upcast is None:
@@ -159,6 +162,7 @@ class IntegerOverflowStrategy(TemplateGenerationStrategy):
                 varname,
                 info_helper.problem_type,
                 new_type,
+                5,
             )
 
             if new_decl_code is None:
@@ -221,7 +225,7 @@ class IntegerOverflowStrategy(TemplateGenerationStrategy):
             writes = frozenset(stmt.writes if hasattr(stmt, "writes") else [])
             for varname in writes:  # would be super cool to know the type, but who has the time, honestly.
                 # up cast
-                output = llm_helper.help_with_upcast_no_info(fn_src, stmt.content, varname)
+                output = llm_helper.help_with_upcast_no_info(fn_src, stmt.content, varname, 5)
                 if output is not None:
                     for line in output.code:
                         repl = Replacement(stmt.location, line.line)

@@ -75,7 +75,7 @@ class BoundsCheckStrategy(TemplateGenerationStrategy):
 
         reads = frozenset(stmt.reads if hasattr(stmt, "reads") else [])
         for varname in reads:  # TODO: consider type info when available
-            output = helper.help_with_bounds_check(fn_src, stmt.content, varname)
+            output = helper.help_with_bounds_check(fn_src, stmt.content, varname, 5)
             if output is None:
                 continue
             for line in output.code:

@@ -3,6 +3,8 @@ from __future__ import annotations
 import difflib
 import unicodedata
 
+from repairchain.models.project import ProjectKind
+
 __all__ = ("Util",)
 
 import json
@@ -103,6 +105,18 @@ class Util:
         return "\n".join(lines[start_line - 1:end_line])
 
     @staticmethod
+    def clean_start_annotations(lines: list[str]) -> list[str]:
+        # Find the position of the first non-annotation line
+        pos = 0
+        for i, line in enumerate(lines):
+            if not line.lstrip().startswith("@"):
+                pos = i
+                break
+
+        # Use slicing to get all lines from the first non-annotation line onward
+        return lines[pos:]
+
+    @staticmethod
     def extract_patches(diagnosis: Diagnosis, files: dict[str, str],
                         repaired_files: list[RepairedFileContents]) -> list[Diff]:
         # Apply patches and generate diffs
@@ -122,7 +136,13 @@ class Util:
 
             # TODO: create some test cases to check if there are one by off error
             # Replace the lines in the range with the modified code
-            modified_lines = lines[:file_lines.begin - 1] + modified_code.split("\n") + lines[file_lines.end + 1:]
+            clean_lines = modified_code.split("\n")
+
+            # remove annotations before function if project is Java
+            if diagnosis.project.kind == ProjectKind.JAVA:
+                clean_lines = Util.clean_start_annotations(clean_lines)
+
+            modified_lines = lines[:file_lines.begin - 1] + clean_lines + lines[file_lines.end + 1:]
 
             # Create the modified file content
             modified_file_content = "\n".join(modified_lines)
