@@ -41,16 +41,18 @@ class IncreaseSizeStrategy(TemplateGenerationStrategy):
     """
     llm: LLM
 
-    def _get_variables_written(self,
-                        stmt: kaskara.statements.Statement,
-                       ) -> frozenset[str]:
+    def _get_variables_written(
+        self,
+        stmt: kaskara.statements.Statement,
+    ) -> frozenset[str]:
         if isinstance(stmt, kaskara.clang.analysis.ClangStatement) and hasattr(stmt, "writes"):
             return frozenset(stmt.writes)
         return frozenset()
 
-    def _get_variables_read(self,
-                        stmt: kaskara.statements.Statement,
-                       ) -> frozenset[str]:
+    def _get_variables_read(
+        self,
+        stmt: kaskara.statements.Statement,
+    ) -> frozenset[str]:
         if isinstance(stmt, kaskara.clang.analysis.ClangStatement) and hasattr(stmt, "read"):
             return frozenset(stmt.read)
         return frozenset()
@@ -71,56 +73,50 @@ class IncreaseSizeStrategy(TemplateGenerationStrategy):
         self,
         stmt: kaskara.statements.Statement,
         varname: str,
-    ) -> list[Diff]:
-        repls: list[Diff] = []
-
+    ) -> t.Iterator[Diff]:
         # this statement should be a declaration statement, so all we need to do
         # is get a new one and replace it
         helper = CodeHelper(self.llm)
         if self.index is None:
             logger.warning("Unexpected incomplete diagnosis in bounds check template.")
-            return []
+            return
 
         stmt_loc = FileLocation(stmt.location.filename, stmt.location.start)
         fn = self.index.functions.encloses(stmt_loc)
         if fn is None:  # I believe this is possible for global decls
-            return []
+            return
         fn_src = self._fn_to_text(fn)
         output = helper.help_with_memory_allocation(fn_src, stmt.content, varname, 3)
         if output is None:
-            return []
+            return
         for line in output.code:
             repl = Replacement(stmt.location, line.line)
-            repls.append(self.diagnosis.project.sources.replacements_to_diff([repl]))
-        return repls
+            yield self.diagnosis.project.sources.replacements_to_diff([repl])
 
     def _generate_decrease_access(
         self,
         stmt: kaskara.statements.Statement,
         varname: str,
-    ) -> list[Diff]:
+    ) -> t.Iterator[Diff]:
         # current statement is at the error location
         # set a read variable to 0, or itself -1
         # prepend to error location
-        diffs: list[Diff] = []
-
         if self.index is None:
             logger.warning("Unexpected incomplete diagnosis in increase size template.")
-            return []
+            return
 
         new_code1 = TEMPLATE_DECREASE_VAR1.format(
-                    varname=varname,
-                    stmt_code=stmt.content,
-                )
+            varname=varname,
+            stmt_code=stmt.content,
+        )
         new_code2 = TEMPLATE_DECREASE_VAR2.format(
-                    varname=varname,
-                    stmt_code=stmt.content,
-                )
+            varname=varname,
+            stmt_code=stmt.content,
+        )
         repl1 = Replacement(stmt.location, new_code1)
         repl2 = Replacement(stmt.location, new_code2)
-        diffs.append(self.diagnosis.project.sources.replacements_to_diff([repl1]))  # noqa: FURB113
-        diffs.append(self.diagnosis.project.sources.replacements_to_diff([repl2]))
-        return diffs
+        yield self.diagnosis.project.sources.replacements_to_diff([repl1])
+        yield self.diagnosis.project.sources.replacements_to_diff([repl2])
 
     @classmethod
     @overrides
@@ -139,17 +135,12 @@ class IncreaseSizeStrategy(TemplateGenerationStrategy):
 
     @overrides
     def run(self) -> t.Iterator[Diff]:
-        yield from self.old_run()
-
-    def old_run(self) -> list[Diff]:
         both_traces = list(self.report.alloc_stack_trace.frames) + list(self.report.call_stack_trace.frames)
         self._set_index(both_traces)
 
         if self.index is None:
             logger.warning("Unexpected failed index in IncreaseSize, skipping")
-            return []
-
-        diffs: list[Diff] = []
+            return
 
         # either reallocate accessed/declared buffers
         for frame in self.diagnosis.sanitizer_report.alloc_stack_trace:
@@ -158,7 +149,8 @@ class IncreaseSizeStrategy(TemplateGenerationStrategy):
             stmts_at_alloc_frame = self.index.statements.at_line(frame.file_line)
             for stmt in stmts_at_alloc_frame:
                 for varname in self._get_variables_written(stmt):
-                    diffs += self._generate_new_declarations(stmt, varname)
+                    yield from self._generate_new_declarations(stmt, varname)
+
         # or decrease the access to a buffer
         for frame in self.diagnosis.sanitizer_report.call_stack_trace:
             if frame.file_line is None:
@@ -166,6 +158,4 @@ class IncreaseSizeStrategy(TemplateGenerationStrategy):
             stmts_at_call_frame = self.index.statements.at_line(frame.file_line)
             for stmt in stmts_at_call_frame:
                 for varname in self._get_variables_read(stmt):
-                    diffs += self._generate_decrease_access(stmt, varname)
-
-        return diffs
+                    yield from self._generate_decrease_access(stmt, varname)
