@@ -56,7 +56,9 @@ If empty lines are removed they must be marked with `-`.
 
 If you insert lines with `}` or `{` do not forget to mark them with `+`.
 
-Make minimal changes.
+Make minimal changes and maintain the functionality of the code.
+The bug is only in one function. Your patch can only edit the buggy function.
+Do not modify the code besides the hunk in the buggy function.
 
 An example that follows these instructions is the following:
 @@ ... @@

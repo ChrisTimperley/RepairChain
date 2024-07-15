@@ -163,7 +163,7 @@ class CodeHelper:
         }
         """
 
-    def _help_with_template(self, user_prompt: str) -> Code | None:
+    def _help_with_template(self, user_prompt: str) -> Code | None:  # noqa: PLR0915
         system_prompt = self._create_system_prompt()
 
         messages: MessagesIterable = []
@@ -171,6 +171,8 @@ class CodeHelper:
         user_message = ChatCompletionUserMessageParam(role="user", content=user_prompt)
         messages.append(system_message)
         messages.append(user_message)
+
+        current_messages = messages
 
         # TODO: code that we use in yolo_llm;  refactor later
         # claude-3.5-sonnet is not as good for JSON and requires some prefill
@@ -180,12 +182,12 @@ class CodeHelper:
                 llm_output = ""
                 if self.llm.model == "claude-3.5-sonnet":
                     llm_output += PREFILL_HELPER
-                    llm_call = self.llm._call_llm_json(messages)
+                    llm_call = self.llm._call_llm_json(current_messages)
                     if llm_call is None:
                         return None
                     llm_output += llm_call
                 else:
-                    llm_call = self.llm._call_llm_json(messages)
+                    llm_call = self.llm._call_llm_json(current_messages)
                     if llm_call is None:
                         return None
                     llm_output = llm_call
@@ -201,41 +203,44 @@ class CodeHelper:
                 return Code(code=patch_contents)
 
             except json.JSONDecodeError as e:
-                logger.info(f"Failed to decode JSON: {e}. Retrying {attempt + 1}/{retry_attempts}...")
-                messages.append(ChatCompletionAssistantMessageParam(role="assistant", content=llm_output))
+                logger.warning(f"Failed to decode JSON: {e}. Retrying {attempt + 1}/{retry_attempts}...")
+                current_messages = messages
+                current_messages.append(ChatCompletionAssistantMessageParam(role="assistant", content=llm_output))
                 error_message = (
                     f"The JSON is not valid. Failed to decode JSON: {e}."
                     "Please fix the issue and return a fixed JSON.")
-                messages.append(ChatCompletionUserMessageParam(role="user", content=error_message))
+                current_messages.append(ChatCompletionUserMessageParam(role="user", content=error_message))
 
                 if self.llm.model == "claude-3.5-sonnet":
                     # force a prefill for clause-3.5
                     prefill_message = ChatCompletionAssistantMessageParam(role="assistant", content=PREFILL_HELPER)
-                    messages.append(prefill_message)
+                    current_messages.append(prefill_message)
 
             except KeyError as e:
-                logger.info(f"Missing expected key in JSON data: {e}. Retrying {attempt + 1}/{retry_attempts}...")
-                messages.append(ChatCompletionAssistantMessageParam(role="assistant", content=llm_output))
+                logger.warning(f"Missing expected key in JSON data: {e}. Retrying {attempt + 1}/{retry_attempts}...")
+                current_messages = messages
+                current_messages.append(ChatCompletionAssistantMessageParam(role="assistant", content=llm_output))
                 error_message = (f"The JSON is not valid. Missing expected key in JSON data: {e}."
                                 "Please fix the issue and return a fixed JSON.")
-                messages.append(ChatCompletionUserMessageParam(role="user", content=error_message))
+                current_messages.append(ChatCompletionUserMessageParam(role="user", content=error_message))
 
                 if self.llm.model == "claude-3.5-sonnet":
                     # force a prefill for clause-3.5
                     prefill_message = ChatCompletionAssistantMessageParam(role="assistant", content=PREFILL_HELPER)
-                    messages.append(prefill_message)
+                    current_messages.append(prefill_message)
 
             except TypeError as e:
-                logger.info(f"Unexpected type encountered: {e}. Retrying {attempt + 1}/{retry_attempts}...")
-                messages.append(ChatCompletionAssistantMessageParam(role="assistant", content=llm_output))
+                logger.warning(f"Unexpected type encountered: {e}. Retrying {attempt + 1}/{retry_attempts}...")
+                current_messages = messages
+                current_messages.append(ChatCompletionAssistantMessageParam(role="assistant", content=llm_output))
                 error_message = (f"The JSON is not valid. Unexpected type encountered: {e}."
                                 "Please fix the issue and return a fixed JSON.")
-                messages.append(ChatCompletionUserMessageParam(role="user", content=error_message))
+                current_messages.append(ChatCompletionUserMessageParam(role="user", content=error_message))
 
                 if self.llm.model == "claude-3.5-sonnet":
                     # force a prefill for clause-3.5
                     prefill_message = ChatCompletionAssistantMessageParam(role="assistant", content=PREFILL_HELPER)
-                    messages.append(prefill_message)
+                    current_messages.append(prefill_message)
 
         return None
 
