@@ -89,6 +89,10 @@ class YoloLLMStrategy(PatchGenerationStrategy):
     files: dict[str, str]
     number_patches: int
 
+    @overrides
+    def describe(self) -> str:
+        return f"yolo[model={self.model}, patches_per_file={self.use_patches_per_file_strategy}]"
+
     @classmethod
     @overrides
     def applies(cls, diagnosis: Diagnosis) -> bool:
@@ -386,10 +390,10 @@ class YoloLLMStrategy(PatchGenerationStrategy):
             return llm_patches
         return self._query_llm(messages)
 
-    def _get_patches_per_file(self, code_summary: list[FunctionSummary] | None) -> list[Diff]:
+    def _get_patches_per_file(self, code_summary: list[FunctionSummary] | None) -> t.Iterator[Diff]:
         file_to_functions: dict[str, list[str]] = {}
         if self.diagnosis.implicated_functions_at_head is None:
-            return []
+            return
 
         for function in self.diagnosis.implicated_functions_at_head:
             file_to_functions.setdefault(function.filename, []).append(function.name)
@@ -401,42 +405,44 @@ class YoloLLMStrategy(PatchGenerationStrategy):
         system_prompt = self._create_system_prompt()
         sanitizer_prompt = self._create_sanitizer_report_prompt(code_summary)
 
-        patches: list[Diff] = []
         for file in self.files:
             logger.debug(f"looking for potential patches for file {file}")
             if file not in file_to_functions:
                 logger.error(f"we do not have the functions for file {file}")
                 continue
 
-            user_prompt = self._create_user_prompt(file_to_functions[file],
-                                                   sanitizer_prompt,
-                                                   self.number_patches)
+            user_prompt = self._create_user_prompt(
+                file_to_functions[file],
+                sanitizer_prompt,
+                self.number_patches,
+            )
 
             repaired_files: PatchFile | None = self._get_llm_output(user_prompt, system_prompt)
             if repaired_files is not None:
-                patches.extend(Util.extract_patches(self.diagnosis, self.files, repaired_files.patch))
+                patches = Util.extract_patches(self.diagnosis, self.files, repaired_files.patch)
+                for patch in patches:
+                    logger.debug(f"patch with model {self.model}:\n{patch}")
+                    yield patch
 
-        logger.info(f"found {len(patches)} candidate patches with model {self.model}")
-        for p in patches:
-            logger.debug(f"patch with model {self.model}:\n{p}")
-
-        return patches
-
-    def _get_patches_any_file(self, code_summary: list[FunctionSummary] | None) -> list[Diff]:
-
+    def _get_patches_any_file(
+        self,
+        code_summary: list[FunctionSummary] | None,
+    ) -> t.Iterator[Diff]:
         system_prompt = self._create_system_prompt()
         sanitizer_prompt = self._create_sanitizer_report_prompt(code_summary)
 
         if self.use_one_patch_for_iter:
             self.number_patches = 1
 
-        user_prompt = self._create_user_prompt(Util.implied_functions_to_str(self.diagnosis),
-                                               sanitizer_prompt,
-                                               self.number_patches)
+        user_prompt = self._create_user_prompt(
+            Util.implied_functions_to_str(self.diagnosis),
+            sanitizer_prompt,
+            self.number_patches,
+        )
 
         if self.number_patches == 0:
             logger.warning("some function is too large to repair as a whole")
-            return []  # function is too large to repair as a whole
+            return
 
         if self.number_patches != Util.number_patches:
             self.use_one_patch_for_iter = True
@@ -450,24 +456,22 @@ class YoloLLMStrategy(PatchGenerationStrategy):
 
         repaired_files: PatchFile | None = self._get_llm_output(user_prompt, system_prompt)
         if repaired_files is None:
-            return []
+            return
 
         patches: list[Diff] = Util.extract_patches(self.diagnosis, self.files, repaired_files.patch)
         logger.info(f"found {len(patches)} candidate patches with model {self.model}")
-        for p in patches:
-            logger.debug(f"patch with model {self.model}:\n{p}")
-        return patches
+        for patch in patches:
+            logger.debug(f"patch with model {self.model}:\n{patch}")
+            yield patch
 
     @overrides
     def run(self) -> t.Iterator[Diff]:
-        yield from self.old_run()
-
-    def old_run(self) -> list[Diff]:
         summary: ReportSummary = ReportSummary(self.model)
         code_summary: list[FunctionSummary] | None = None
         if self.use_report:
             code_summary = summary._get_llm_code_report(self.diagnosis)
 
         if self.use_patches_per_file_strategy:
-            return self._get_patches_per_file(code_summary)
-        return self._get_patches_any_file(code_summary)
+            yield from self._get_patches_per_file(code_summary)
+        else:
+            yield from self._get_patches_any_file(code_summary)
