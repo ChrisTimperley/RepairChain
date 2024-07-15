@@ -18,10 +18,29 @@ if t.TYPE_CHECKING:
 @dataclass
 class SequenceStrategy(PatchGenerationStrategy):
     strategies: t.Sequence[PatchGenerationStrategy]
+    max_patches: int
+    max_patches_for_one_strategy: int
 
     @classmethod
     def applies(cls, diagnosis: Diagnosis) -> bool:
         return True
+
+    @classmethod
+    def build(
+        cls,
+        diagnosis: Diagnosis,
+        strategies: t.Sequence[PatchGenerationStrategy],
+    ) -> t.Self:
+        # FIXME decide this limit!
+        max_patches = 100
+        max_patches_for_one_strategy = 20
+
+        return cls(
+            diagnosis=diagnosis,
+            strategies=strategies,
+            max_patches=max_patches,
+            max_patches_for_one_strategy=max_patches_for_one_strategy,
+        )
 
     def _run_strategy(self, strategy: PatchGenerationStrategy) -> t.Iterator[Diff]:
         name = strategy.__class__.__name__
@@ -29,7 +48,11 @@ class SequenceStrategy(PatchGenerationStrategy):
         num_patches = 0
         try:
             for candidate in strategy.run():
-                # TODO check template patch limits
+                if num_patches >= self.max_patches_for_one_strategy:
+                    logger.warning(
+                        f"reached max patches limit for strategy: {name} ({num_patches})",
+                    )
+                    break
                 yield candidate
                 num_patches += 1
         except Exception:  # noqa: BLE001
@@ -43,7 +66,11 @@ class SequenceStrategy(PatchGenerationStrategy):
 
         for strategy in self.strategies:
             for patch in self._run_strategy(strategy):
-                # TODO check global patch limits
+                if num_patches >= self.max_patches:
+                    logger.warning(
+                        f"reached max patches limit ({num_patches}) for all strategies",
+                    )
+                    break
                 yield patch
                 num_patches += 1
 

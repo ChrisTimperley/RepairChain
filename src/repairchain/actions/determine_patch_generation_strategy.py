@@ -112,6 +112,9 @@ def determine_patch_generation_strategy(
     else:
         logger.info("skipping template repair strategy (disabled)")
 
-    strategy = SequenceStrategy(diagnosis, strategies)
+    strategy = SequenceStrategy.build(
+        diagnosis=diagnosis,
+        strategies=strategies,
+    )
     logger.info(f"determined patch generation strategy: {strategy}")
     return strategy
