@@ -60,7 +60,7 @@ class PatchFile:
 
 @dataclass
 class Util:
-    retry_attempts: int = field(default=5)
+    retry_attempts: int = field(default=3)
     short_sleep: int = field(default=5)
     long_sleep: int = field(default=30)
     sanitizer_report_size: int = field(default=10000)
