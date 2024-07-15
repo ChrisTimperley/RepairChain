@@ -127,6 +127,9 @@ class Util:
             filename = patch.filename
             function_name = patch.function_name
 
+            if filename not in files:
+                continue
+
             lines = files[filename].split("\n")
 
             file_lines = Util.extract_begin_end_lines(diagnosis, function_name)
