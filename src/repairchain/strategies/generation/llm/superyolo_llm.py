@@ -187,6 +187,7 @@ class SuperYoloLLMStrategy(PatchGenerationStrategy):
         You are an expert security analyst.
         You can find security vulnerabilities and suggest patches to fix them.
         You always do minimal changes to the code.
+        You can assume that the bug is always located in a single function.
         You always provide a patch to the code by returning the entire modified file.
         """
 
@@ -195,6 +196,7 @@ class SuperYoloLLMStrategy(PatchGenerationStrategy):
         You are an expert security analyst.
         You can find security vulnerabilities and suggest patches to fix them.
         You always do minimal changes to the code.
+        You can assume that the bug is always located in a single function.
         You always provide a patch to the code in valid unified diffs format.
         """
 
