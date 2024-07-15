@@ -11,7 +11,20 @@ import typing as t
 from dockerblade.stopwatch import Stopwatch
 from loguru import logger
 
+if t.TYPE_CHECKING:
+    import kaskara
+    import kaskara.functions
+    import kaskara.statements
+
 T = t.TypeVar("T")
+
+
+def statements_in_function(
+    index: kaskara.analysis.Analysis,
+    function: kaskara.functions.Function,
+) -> list[kaskara.statements.Statement]:
+    """Returns a list of all statements in a given function."""
+    raise NotImplementedError
 
 
 def strip_prefix(string: str, prefix: str) -> str:
