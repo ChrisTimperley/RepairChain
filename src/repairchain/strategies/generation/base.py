@@ -16,6 +16,9 @@ if t.TYPE_CHECKING:
 class PatchGenerationStrategy(abc.ABC):
     diagnosis: Diagnosis
 
+    def describe(self) -> str:
+        return self.__class__.__name__
+
     @abc.abstractmethod
     def run(self) -> t.Iterator[Diff]:
         raise NotImplementedError

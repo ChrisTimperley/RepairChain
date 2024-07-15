@@ -43,7 +43,7 @@ class SequenceStrategy(PatchGenerationStrategy):
         )
 
     def _run_strategy(self, strategy: PatchGenerationStrategy) -> t.Iterator[Diff]:
-        name = strategy.__class__.__name__
+        name = strategy.describe()
         logger.info(f"generating patches with strategy: {name}...")
         num_patches = 0
         try:
