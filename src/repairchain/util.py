@@ -24,7 +24,16 @@ def statements_in_function(
     function: kaskara.functions.Function,
 ) -> list[kaskara.statements.Statement]:
     """Returns a list of all statements in a given function."""
-    raise NotImplementedError
+    results: list[kaskara.statements.Statement] = []
+
+    within_file = function.body_location.filename
+    within_range = function.body_location.location_range
+    for statement in index.statements.in_file(within_file):
+        statement_starts_at = statement.location.start
+        if statement_starts_at in within_range:
+            results.append(statement)
+
+    return results
 
 
 def strip_prefix(string: str, prefix: str) -> str:
