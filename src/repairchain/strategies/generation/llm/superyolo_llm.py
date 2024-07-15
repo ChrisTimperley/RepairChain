@@ -152,6 +152,10 @@ class SuperYoloLLMStrategy(PatchGenerationStrategy):
     number_patches: int
     whole_file: bool
 
+    @overrides
+    def describe(self) -> str:
+        return f"superyolo[model={self.model}, patches_per_file={self.whole_file}]"
+
     @classmethod
     @overrides
     def applies(cls, diagnosis: Diagnosis) -> bool:
@@ -223,8 +227,7 @@ class SuperYoloLLMStrategy(PatchGenerationStrategy):
         models_for_prefill = ["claude-3.5-sonnet", "gemini-1.5-pro"]
         return model in models_for_prefill
 
-    def _get_llm_output_diffs(self, file: str) -> list[Diff]:
-        diffs: list[Diff] = []
+    def _get_llm_output_diffs(self, file: str) -> t.Iterator[Diff]:
         system_prompt = self._create_system_prompt_diffs()
         user_prompt = self._create_user_prompt_diffs(self.files[file], file)
 
@@ -244,7 +247,6 @@ class SuperYoloLLMStrategy(PatchGenerationStrategy):
 
         attempt = 0
         while attempt < self.number_patches:
-
             llm_output = ""
             if self._prefill_check(self.model):
                 llm_call = self.llm._simple_call_llm(messages)
@@ -268,13 +270,17 @@ class SuperYoloLLMStrategy(PatchGenerationStrategy):
             patch_contents = Util.apply_patch(original_contents, llm_output)
 
             if not patch_contents:
-                logger.debug(f"Failed to generate a candidate patch "
-                                f"{attempt + 1} / {self.number_patches} "
-                                f"with model {self.model}")
+                logger.debug(
+                    f"Failed to generate a candidate patch "
+                    f"{attempt + 1} / {self.number_patches} "
+                    f"with model {self.model}",
+                )
             else:
-                logger.debug(f"Successfully generated a candidate patch "
-                                f"{attempt + 1} / {self.number_patches} "
-                                f"with model {self.model}")
+                logger.debug(
+                    f"Successfully generated a candidate patch "
+                    f"{attempt + 1} / {self.number_patches} "
+                    f"with model {self.model}",
+                )
                 # Generate the diff
                 diff = difflib.unified_diff(
                     original_contents.splitlines(keepends=True),
@@ -286,12 +292,14 @@ class SuperYoloLLMStrategy(PatchGenerationStrategy):
                 # Convert the diff to a string and add to the diffs list
                 diff_patch = "".join(diff)
                 logger.info(f"Model {self.model} generated a diff patch:\n{diff_patch}\n")
-                diffs.append(Diff.from_unidiff(diff_patch))
+                yield Diff.from_unidiff(diff_patch)
 
-            messages.append(ChatCompletionAssistantMessageParam(role="assistant",
-                                                                    content=llm_output))
-            messages.append(ChatCompletionUserMessageParam(role="user",
-                                                            content="Can you get me a different patch?"))
+            messages.append(
+                ChatCompletionAssistantMessageParam(role="assistant", content=llm_output),
+            )
+            messages.append(
+                ChatCompletionUserMessageParam(role="user", content="Can you get me a different patch?"),
+            )
 
             if self._prefill_check(self.model):
                 # force a prefill for claude-3.5
@@ -300,12 +308,8 @@ class SuperYoloLLMStrategy(PatchGenerationStrategy):
 
             attempt += 1
 
-        logger.info(f"found {len(diffs)} candidate patches with model {self.model}")
-        return diffs
-
     # TODO: a lot of code duplication; refactor later
-    def _get_llm_output_file(self, file: str) -> list[Diff]:
-        diffs: list[Diff] = []
+    def _get_llm_output_file(self, file: str) -> t.Iterator[Diff]:
         system_prompt = self._create_system_prompt_file()
         user_prompt = self._create_user_prompt_file(self.files[file], file)
 
@@ -324,7 +328,6 @@ class SuperYoloLLMStrategy(PatchGenerationStrategy):
 
         attempt = 0
         while attempt < self.number_patches:
-
             llm_output = ""
             if self._prefill_check(self.model):
                 llm_call = self.llm._simple_call_llm(messages)
@@ -348,15 +351,19 @@ class SuperYoloLLMStrategy(PatchGenerationStrategy):
             original_contents = self.files[file]
             patch_lines = llm_output.split("\n")
             if len(patch_lines) < 2:  # noqa: PLR2004
-                logger.debug(f"Failed to generate a candidate patch "
-                                f"{attempt + 1} / {self.number_patches} "
-                                f"with model {self.model}")
+                logger.debug(
+                    f"Failed to generate a candidate patch "
+                    f"{attempt + 1} / {self.number_patches} "
+                    f"with model {self.model}",
+                )
             else:
                 patch_lines = Util.remove_starting_and_trailing_lines(patch_lines, "<code>", "</code>")
                 patch_contents = "\n".join(patch_lines)
-                logger.debug(f"Successfully generated a candidate patch "
-                                f"{attempt + 1} / {self.number_patches} "
-                                f"with model {self.model}")
+                logger.debug(
+                    f"Successfully generated a candidate patch "
+                    f"{attempt + 1} / {self.number_patches} "
+                    f"with model {self.model}",
+                )
                 # Generate the diff
                 diff = difflib.unified_diff(
                     original_contents.splitlines(keepends=True),
@@ -365,15 +372,17 @@ class SuperYoloLLMStrategy(PatchGenerationStrategy):
                     tofile=file,
                 )
 
-                # Convert the diff to a string and add to the diffs list
+                # Convert the diff to a string and yield
                 diff_patch = "".join(diff)
                 logger.info(f"Model {self.model} generated a diff patch:\n{diff_patch}\n")
-                diffs.append(Diff.from_unidiff(diff_patch))
+                yield Diff.from_unidiff(diff_patch)
 
-            messages.append(ChatCompletionAssistantMessageParam(role="assistant",
-                                                                    content=llm_output))
-            messages.append(ChatCompletionUserMessageParam(role="user",
-                                                            content="Can you get me a different patch?"))
+            messages.append(
+                ChatCompletionAssistantMessageParam(role="assistant", content=llm_output),
+            )
+            messages.append(
+                ChatCompletionUserMessageParam(role="user", content="Can you get me a different patch?"),
+            )
 
             if self._prefill_check(self.model):
                 # force a prefill for claude-3.5
@@ -381,11 +390,7 @@ class SuperYoloLLMStrategy(PatchGenerationStrategy):
 
             attempt += 1
 
-        logger.info(f"found {len(diffs)} candidate patches with model {self.model}")
-        return diffs
-
-    def _get_llm_output(self) -> list[Diff]:
-        diffs = []
+    def _get_llm_output(self) -> t.Iterator[Diff]:
         for file in self.files:
             tokens_file = Util.count_tokens(self.files[file], self.model)
             if tokens_file * 1.25 > Util.limit_llm_output:
@@ -395,16 +400,11 @@ class SuperYoloLLMStrategy(PatchGenerationStrategy):
 
             if self.whole_file:
                 logger.info(f"SuperYolo using whole file approach for {file}")
-                diffs.extend(self._get_llm_output_file(file))
+                yield from self._get_llm_output_file(file)
             else:
                 logger.info(f"SuperYolo using diff approach for {file}")
-                diffs.extend(self._get_llm_output_diffs(file))
-
-        return diffs
+                yield from self._get_llm_output_diffs(file)
 
     @overrides
     def run(self) -> t.Iterator[Diff]:
-        yield from self.old_run()
-
-    def old_run(self) -> list[Diff]:
-        return self._get_llm_output()
+        yield from self._get_llm_output()
