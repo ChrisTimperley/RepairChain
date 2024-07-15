@@ -27,6 +27,27 @@
             }
         },
         {
+            "name": "nginx: repair",
+            "type": "debugpy",
+            "args": ["repair", "project.json", "--save-to-dir", "./patches"],
+            "cwd": "${workspaceFolder}/examples/nginx",
+            "console": "integratedTerminal",
+            "module": "repairchain",
+            "request": "launch",
+            "showReturnValue": true,
+            "env": {
+                "REPAIRCHAIN_WORKERS": "1",
+                "REPAIRCHAIN_LOG_LEVEL": "DEBUG",
+                "REPAIRCHAIN_MINIMIZE_FAILURE": "true",
+                "REPAIRCHAIN_EVALUATION_CACHE": "./.caches/evaluation.pkl",
+                "REPAIRCHAIN_KASKARA_CACHE": "./.caches/kaskara.pkl",
+                "REPAIRCHAIN_SANITY_CHECK": "false",
+                "REPAIRCHAIN_ENABLE_REVERSION_REPAIR": "true",
+                "REPAIRCHAIN_ENABLE_YOLO_REPAIR": "false",
+                "REPAIRCHAIN_ENABLE_TEMPLATE_REPAIR": "false"
+            }
+        },
+        {
             "name": "mock-cp: generate: templates",
             "type": "debugpy",
             "args": ["generate", "project.json", "-o", "./patches"],
