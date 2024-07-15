@@ -263,23 +263,35 @@ class ProjectContainer:
             time_limit=time_limit,
             environment=env,
         )
-        return self._check_pov_outcome(outcome)
+        return self._check_pov_outcome(outcome, time_limit)
 
-    def _check_pov_outcome(self, outcome: dockerblade.CompletedProcess) -> bool:
+    def _check_pov_outcome(
+        self,
+        outcome: dockerblade.CompletedProcess,
+        time_limit: float,
+    ) -> bool:
         """Checks the outcome of a PoV execution.
 
         Arguments:
         ---------
         outcome: dockerblade.CompletedProcess
             The outcome of the PoV execution.
+        time_limit: float
+            The time limit in seconds that was used for the PoV execution.
 
         Returns:
         -------
         bool
-            :code:`True` if no sanitizers were triggered, :code:`False` otherwise.
+            :code:`True` if no sanitizers were triggered and the time limit
+            was not reached, :code:`False` otherwise.
         """
         assert isinstance(outcome.output, str)
         logger.trace(f"checking PoV output: {outcome.output}")
+
+        if outcome.duration >= time_limit:
+            logger.warning("PoV execution exceeded time limit")
+            return False
+
         detected_sanitizer = SanitizerReport._find_sanitizer(outcome.output)
         logger.trace(f"detected sanitizer: {detected_sanitizer}")
         return detected_sanitizer is Sanitizer.UNKNOWN
