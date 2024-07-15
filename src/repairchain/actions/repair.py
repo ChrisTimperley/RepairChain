@@ -87,17 +87,23 @@ def repair(
     settings = project.settings
     diagnosis = diagnose(project)
 
-    if settings.enable_reversion_repair:
-        logger.info("attempting to repair via minimal reversion...")
-        yield from _repair_with_minimal_reversion(diagnosis, stop_early=stop_early)
-        logger.info("finished attempting to repair via minimal reversion")
+    def _run() -> t.Iterator[Diff]:
+        if settings.enable_reversion_repair:
+            logger.info("attempting to repair via minimal reversion...")
+            yield from _repair_with_minimal_reversion(diagnosis, stop_early=stop_early)
+            logger.info("finished attempting to repair via minimal reversion")
 
-    if settings.enable_yolo_repair:
-        logger.info("attempting to repair via YOLO...")
-        yield from _repair_with_yolo(diagnosis, stop_early=stop_early)
-        logger.info("finished attempting to repair via YOLO")
+        if settings.enable_yolo_repair:
+            logger.info("attempting to repair via YOLO...")
+            yield from _repair_with_yolo(diagnosis, stop_early=stop_early)
+            logger.info("finished attempting to repair via YOLO")
 
-    if settings.enable_template_repair:
-        logger.info("attempting to repair via templates...")
-        yield from _repair_with_templates(diagnosis, stop_early=stop_early)
-        logger.info("finished attempting to repair via templates")
+        if settings.enable_template_repair:
+            logger.info("attempting to repair via templates...")
+            yield from _repair_with_templates(diagnosis, stop_early=stop_early)
+            logger.info("finished attempting to repair via templates")
+
+    for patch in _run():
+        yield patch
+        if stop_early:
+            return
