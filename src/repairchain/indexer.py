@@ -14,8 +14,6 @@ import kaskara.clang.analyser
 from dockerblade.stopwatch import Stopwatch
 from loguru import logger
 
-from repairchain.util import strip_prefix
-
 if t.TYPE_CHECKING:
     import git
 
@@ -132,11 +130,11 @@ class KaskaraIndexer:
             raise RuntimeError(message) from err
         version_string = version_string.strip()
         logger.debug(f"reported bear version: {version_string}")
-        version_string = strip_prefix("bear ", version_string).strip()
+        version_string = version_string.strip().split(" ")[1]
         version_parts = version_string.split(".")
         major_version = version_parts[0].strip()
         logger.debug(f"major bear version: {major_version}")
-        prefix = f"{bear_path} -- " if major_version == "3" else bear_path
+        prefix = f"{bear_path} --" if major_version == "3" else bear_path
         logger.debug(f"using bear prefix: {prefix}")
         return prefix
 
@@ -175,7 +173,11 @@ class KaskaraIndexer:
         )
         logger.debug(f"using kaskara project: {kaskara_project}")
 
-        with project.provision(version=version) as container:
+        # only rebuild the project if we're using Java (to be safe)
+        # FIXME using string because of circular import + lack of time
+        rebuild = project.kind.value == "java"
+
+        with project.provision(version=version, rebuild=rebuild) as container:
             if project.kind in {"c", "kernel"}:
                 self._ensure_compile_commands_exists(container)
 

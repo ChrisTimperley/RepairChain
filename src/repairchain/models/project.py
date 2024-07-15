@@ -256,11 +256,13 @@ class Project:
         version: git.Commit | None = None,
         diff: Diff | None = None,
         build_jobs: int = 1,
+        rebuild: bool = True,
     ) -> t.Iterator[ProjectContainer]:
         with ProjectContainer.provision(
             project=self,
             version=version,
             diff=diff,
             build_jobs=build_jobs,
+            rebuild=rebuild,
         ) as container:
             yield container

@@ -38,6 +38,7 @@ class ProjectContainer:
         version: git.Commit | None = None,
         diff: Diff | None = None,
         build_jobs: int = 1,
+        rebuild: bool = True,  # noqa: FBT002
     ) -> t.Iterator[t.Self]:
         """Constructs a ready-to-use container for the project at a given version with an optional patch.
 
@@ -52,6 +53,8 @@ class ProjectContainer:
             The patch to apply to the project, if any.
         build_jobs: int
             The number of jobs to use (i.e., NPROC_VAL) for building the project.
+        rebuild: bool
+            If :code:`False`, the container is not rebuilt even if a version or patch is given.
         """
         with project.docker_daemon.provision(
             image=project.image,
@@ -69,7 +72,7 @@ class ProjectContainer:
                 container.checkout(version=version, clean_before=True)
             if diff:
                 container.patch(diff)
-            if version or diff:
+            if rebuild and (version or diff):
                 container.build(jobs=build_jobs)
             yield container
 
