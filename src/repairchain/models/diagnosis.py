@@ -19,12 +19,16 @@ if t.TYPE_CHECKING:
 @dataclass
 class Diagnosis:
     project: Project = field(repr=False)
-    bug_type: BugType
+    sanitizer_report: SanitizerReport
     index_at_head: kaskara.analysis.Analysis | None = field(repr=False)
     index_at_crash_version: kaskara.analysis.Analysis | None = field(repr=False)
     implicated_functions_at_head: list[kaskara.functions.Function] | None = field(repr=False)
     implicated_functions_at_crash_version: list[kaskara.functions.Function] | None = field(repr=False)
     implicated_diff: Diff
+
+    @property
+    def bug_type(self) -> BugType:
+        return self.sanitizer_report.bug_type
 
     def is_complete(self) -> bool:
         """Returns whether the diagnosis has full information."""
@@ -51,10 +55,6 @@ class Diagnosis:
         if self.implicated_functions_at_crash_version is None:
             return set(self.implicated_diff.files)
         return {f.filename for f in self.implicated_functions_at_crash_version}
-
-    @property
-    def sanitizer_report(self) -> SanitizerReport:
-        return self.project.report
 
     def _functions_to_dict(self, functions: list[kaskara.functions.Function]) -> list[dict[str, t.Any]]:
         return [

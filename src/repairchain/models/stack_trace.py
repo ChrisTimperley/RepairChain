@@ -7,6 +7,9 @@ from pathlib import Path
 import kaskara
 from sourcelocation.fileline import FileLine
 
+if t.TYPE_CHECKING:
+    from repairchain.sources import ProjectSources
+
 
 @dataclass
 class StackFrame:
@@ -48,28 +51,12 @@ class StackFrame:
             function = function.name
         return self.funcname == function
 
-    def normalize_file_paths(self, prefix_path: Path) -> None:
+    def normalize_file_paths(self, sources: ProjectSources) -> None:
         if self.filename is None:
             return
-        file_path = Path(self.filename)
-
-        # Convert both paths to absolute paths
-        file_path_abs = file_path.resolve()
-
-        try:
-            old_prefix_index = file_path_abs.parts.index(prefix_path.name)
-        except ValueError:
-            return
-
-        try:
-            # Construct the relative path starting from the old prefix
-            relative_parts = file_path_abs.parts[old_prefix_index + 1:]
-            new_path = Path(*relative_parts)
-            # Join the new prefix with the relative path
-            self.filename = str(new_path)
-        except IndexError:
-            pass
-        return
+        maybe_abs_path = Path(self.filename)
+        if normalized_path := sources.obtain_relative_path(maybe_abs_path):
+            self.filename = str(normalized_path)
 
 
 @dataclass
@@ -119,9 +106,9 @@ class StackTrace(t.Sequence[StackFrame]):
         """Returns the set of file names in the stack trace."""
         return {frame.filename for frame in self.frames if frame.filename is not None}
 
-    def normalize_file_paths(self, path: Path) -> None:
+    def normalize_file_paths(self, sources: ProjectSources) -> None:
         for frame in self.frames:
-            frame.normalize_file_paths(path)
+            frame.normalize_file_paths(sources)
 
 
 def extract_location_symbolized(line: str) -> tuple[str, int | None, int | None]:

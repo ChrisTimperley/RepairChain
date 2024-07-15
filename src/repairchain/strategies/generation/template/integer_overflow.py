@@ -248,8 +248,8 @@ class IntegerOverflowStrategy(TemplateGenerationStrategy):
 
         stmts = self.index.statements.at_line(location.file_line)
 
-        if self.diagnosis.project.report.extra_info is not None:
-            info_helper = self._parse_extra_info(self.diagnosis.project.report.extra_info)
+        if self.report.extra_info is not None:
+            info_helper = self._parse_extra_info(self.report.extra_info)
             # TODO: consider some validity checking, though this shouldn't crash at least
             return self._handle_with_info(list(stmts), info_helper, llm_helper)
         return self._handle_without_info(list(stmts), llm_helper)
