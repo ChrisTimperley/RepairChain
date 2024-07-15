@@ -279,6 +279,36 @@ def parse_memsan(memsan_output: str) -> tuple[str, StackFrame | None, StackTrace
     )
 
 
+def _extract_location_ubsan(line: str) -> tuple[str, int | None, int | None]:
+    """Special handling for ubsan locations.
+
+    It's possible this could be folded into regular location extraction, but I don't want to
+    risk it so close to the deadline.
+    """
+    filename = line
+    lineno: int | None = None
+    offset: int | None = None
+    offsetstr = ""
+    if ":" in line:
+        filename, _, linenostr = line.partition(":")
+        if ":" in linenostr:
+            line, _, offsetstr = linenostr.partition(":")
+        elif " " in linenostr:
+            line, _, offsetstr = linenostr.partition(" ")
+
+    try:
+        lineno = int(line)
+    except ValueError:
+        lineno = None
+    try:
+        if " " in offsetstr:
+            offsetstr, _, _ = offsetstr.partition(" ")
+        offset = int(offsetstr)
+    except ValueError:
+        offset = None
+    return filename, lineno, offset
+
+
 def parse_ubsan(ubsan_output: str) -> tuple[str, StackFrame | None, StackTrace, StackTrace]:
     """Parse ubsan info.
 
@@ -290,17 +320,24 @@ def parse_ubsan(ubsan_output: str) -> tuple[str, StackFrame | None, StackTrace, 
     filename: str | None = None
     lineno: int | None = None
     offset: int | None = None
+    funcname: str | None = None
+
     extra_information = ""
 
     for line in ubsan_output.splitlines():
         stripped = line.strip()
         if "SUMMARY: UndefinedBehaviorSanitizer: undefined-behavior" in stripped:
+            if " in " in line:
+                _, _, funcname = line.partition(" in ")
+
             _, _, location = stripped.partition("undefined-behavior ")
-            filename, lineno, offset = extract_location_symbolized(location)
+            # special handling ubsan reports
+
+            filename, lineno, offset = _extract_location_ubsan(location)
         if "runtime error:" in stripped:
             _, _, extra_information = stripped.partition("error: ")
     frame = StackFrame(
-        funcname=None,
+        funcname=funcname,
         filename=filename,
         lineno=lineno,
         offset=offset,
