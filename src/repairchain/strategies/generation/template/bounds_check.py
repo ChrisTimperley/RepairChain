@@ -73,7 +73,6 @@ class BoundsCheckStrategy(TemplateGenerationStrategy):
         fn = self.index.functions.encloses(stmt_loc)
         if fn is None:
             return []
-
         fn_src = self._fn_to_text(fn)
 
         reads = frozenset(stmt.reads if hasattr(stmt, "reads") else [])
@@ -131,7 +130,6 @@ class BoundsCheckStrategy(TemplateGenerationStrategy):
         if not filenames:
             logger.warning("skipping BoundsCheckTemplate, no files to index, likely inadequate info from sanitizer")
             return []
-
         self.index = indexer.run(version=self.diagnosis.project.head,
                                 restrict_to_files=filenames)
 

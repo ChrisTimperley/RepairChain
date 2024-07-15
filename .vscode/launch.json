@@ -101,7 +101,7 @@
                 "REPAIRCHAIN_ENABLE_REVERSION_REPAIR": "false",
                 "REPAIRCHAIN_ENABLE_YOLO_REPAIR": "false",
                 "REPAIRCHAIN_ENABLE_TEMPLATE_REPAIR": "true"
-            }
+                        }
         }
 
     ]
