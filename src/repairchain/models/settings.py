@@ -109,9 +109,9 @@ class Settings:
 
         fetch_int("workers", "REPAIRCHAIN_WORKERS", default=1)
         fetch_int("time_limit", "REPAIRCHAIN_TIME_LIMIT", default=3600)
-        fetch_int("build_time_limit", "REPAIRCHAIN_BUILD_TIME_LIMIT", default=120)
-        fetch_int("regression_time_limit", "REPAIRCHAIN_REGRESSION_TIME_LIMIT", default=120)
-        fetch_int("pov_time_limit", "REPAIRCHAIN_POV_TIME_LIMIT", default=60)
+        fetch_int("build_time_limit", "REPAIRCHAIN_BUILD_TIME_LIMIT", default=300)
+        fetch_int("regression_time_limit", "REPAIRCHAIN_REGRESSION_TIME_LIMIT", default=300)
+        fetch_int("pov_time_limit", "REPAIRCHAIN_POV_TIME_LIMIT", default=180)
         fetch_bool("stop_early", "REPAIRCHAIN_STOP_EARLY", default=True)
         fetch_bool("minimize_failure", "REPAIRCHAIN_MINIMIZE_FAILURE", default=True)
         fetch_bool("sanity_check", "REPAIRCHAIN_SANITY_CHECK", default=True)
