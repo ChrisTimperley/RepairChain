@@ -1,3 +1,4 @@
+src/repairchain/strategies/generation/llm/llm.py
 from __future__ import annotations
 
 import time
@@ -57,6 +58,9 @@ class LLM:
                     return None
                 return llm_output
 
+            except openai.APIConnectionError as e:
+                logger.warning(f"Connection error: {e}. Retrying {attempt + 1}/{retry_attempts}...")
+                time.sleep(Util.short_sleep)  # brief wait before retrying
             except openai.APITimeoutError as e:
                 logger.warning(f"API timeout error: {e}. Retrying {attempt + 1}/{retry_attempts}...")
                 time.sleep(Util.short_sleep)  # brief wait before retrying
@@ -65,7 +69,7 @@ class LLM:
                 time.sleep(Util.short_sleep)  # brief wait before retrying
             except openai.RateLimitError as e:
                 logger.warning(f"Rate limit error: {e}. Retrying {attempt + 1}/{retry_attempts}...")
-                time.sleep(Util.long_sleep)  # wait longer before retrying
+                time.sleep(Util.short_sleep * (attempt + 1))  # long wait before retrying
             except openai.UnprocessableEntityError as e:
                 logger.warning(f"Unprocessable entity error: {e}. Retrying {attempt + 1}/{retry_attempts}...")
                 time.sleep(Util.short_sleep)  # brief wait before retrying
@@ -99,6 +103,9 @@ class LLM:
                     return None
                 return llm_output
 
+            except openai.APIConnectionError as e:
+                logger.warning(f"Connection error: {e}. Retrying {attempt + 1}/{retry_attempts}...")
+                time.sleep(Util.short_sleep)  # brief wait before retrying
             except openai.APITimeoutError as e:
                 logger.warning(f"API timeout error: {e}. Retrying {attempt + 1}/{retry_attempts}...")
                 time.sleep(Util.short_sleep)  # brief wait before retrying
@@ -107,7 +114,7 @@ class LLM:
                 time.sleep(Util.short_sleep)  # brief wait before retrying
             except openai.RateLimitError as e:
                 logger.warning(f"Rate limit error: {e}. Retrying {attempt + 1}/{retry_attempts}...")
-                time.sleep(Util.long_sleep)  # wait longer before retrying
+                time.sleep(Util.short_sleep * (attempt + 1))  # long wait before retrying
             except openai.UnprocessableEntityError as e:
                 logger.warning(f"Unprocessable entity error: {e}. Retrying {attempt + 1}/{retry_attempts}...")
                 time.sleep(Util.short_sleep)  # brief wait before retrying
