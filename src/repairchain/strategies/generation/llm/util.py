@@ -1,4 +1,4 @@
-gfrom __future__ import annotations
+from __future__ import annotations
 
 import difflib
 import subprocess
@@ -195,8 +195,8 @@ class Util:
 
             # # Convert the diff to a string and add to the diffs list
             diff_patch2 = "".join(diff)
-            diff_patch = diff_patch.replace("/tmp/file1.java",filename)
-            diff_patch = diff_patch.replace("/tmp/file2.java",filename)
+            diff_patch = diff_patch.replace("/tmp/file1.java", filename)  # noqa: S108
+            diff_patch = diff_patch.replace("/tmp/file2.java", filename)  # noqa: S108
             logger.info(f"difflib=\n{diff_patch2}")
             logger.info(f"diffcmd=\n{diff_patch}")
 
