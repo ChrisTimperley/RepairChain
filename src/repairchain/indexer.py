@@ -130,6 +130,7 @@ class KaskaraIndexer:
         except dockerblade.exceptions.CalledProcessError as err:
             message = "failed to determine bear version"
             raise RuntimeError(message) from err
+        logger.debug(f"reported bear version: {version_string}")
         version_string = strip_prefix("bear ", version_string).strip()
         version_parts = version_string.split(".")
         major_version = version_parts[0]
