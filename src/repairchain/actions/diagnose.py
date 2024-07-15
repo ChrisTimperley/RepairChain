@@ -14,6 +14,7 @@ from repairchain.actions.localize_diff import diff_to_functions
 from repairchain.actions.map_functions import map_functions
 from repairchain.models.diagnosis import Diagnosis
 from repairchain.models.diff import Diff
+from repairchain.models.sanitizer_report import SanitizerReport
 
 T = t.TypeVar("T")
 
@@ -67,6 +68,7 @@ def _index_and_localize(partial_diagnosis: Diagnosis) -> Diagnosis:
     project = partial_diagnosis.project
     triggering_commit = project.triggering_commit
     implicated_diff = partial_diagnosis.implicated_diff
+    sanitizer_report = partial_diagnosis.sanitizer_report
 
     crash_version_implicated_files = implicated_diff.files
     logger.info(
@@ -108,7 +110,7 @@ def _index_and_localize(partial_diagnosis: Diagnosis) -> Diagnosis:
 
     return Diagnosis(
         project=project,
-        bug_type=project.report.bug_type,
+        sanitizer_report=sanitizer_report,
         index_at_head=index_at_head,
         index_at_crash_version=index_at_crash_version,
         implicated_diff=implicated_diff,
@@ -118,7 +120,9 @@ def _index_and_localize(partial_diagnosis: Diagnosis) -> Diagnosis:
 
 
 def diagnose(project: Project) -> Diagnosis:
-    logger.info(f"bug type from sanitizer report: {project.report.bug_type}")
+    # parse the sanitizer output
+    sanitizer_report = SanitizerReport.build(project)
+    logger.info(f"bug type from sanitizer report: {sanitizer_report.bug_type}")
 
     implicated_diff = project.original_implicated_diff
 
@@ -137,7 +141,7 @@ def diagnose(project: Project) -> Diagnosis:
 
     diagnosis = Diagnosis(
         project=project,
-        bug_type=project.report.bug_type,
+        sanitizer_report=sanitizer_report,
         implicated_diff=implicated_diff,
         index_at_head=None,
         index_at_crash_version=None,

@@ -25,7 +25,9 @@ from loguru import logger
 
 if t.TYPE_CHECKING:
     from collections.abc import Callable
-    from pathlib import Path
+
+    from repairchain.models.project import Project
+    from repairchain.sources import ProjectSources
 
 
 def parse_stack_frame_simple(line: str) -> StackFrame | None:
@@ -405,7 +407,7 @@ class SanitizerReport:
     # to set a default empty stack trace in build and that's dumb.
     call_stack_trace: StackTrace
     alloc_stack_trace: StackTrace
-    bug_type: BugType = BugType.UNKNOWN
+    bug_type: BugType = field(default=BugType.UNKNOWN)
     error_location: StackFrame | None = field(default=None)
     extra_info: str | None = field(default=None)
 
@@ -429,11 +431,16 @@ class SanitizerReport:
         return Sanitizer.UNKNOWN
 
     @classmethod
-    def from_report_text(cls, text: str) -> t.Self:
+    def build(cls, project: Project) -> t.Self:
+        text = project.sanitizer_output
+
         sanitizer = cls._find_sanitizer(text)
         logger.info(f"determined sanitizer from report text: {sanitizer}")
+
         bug_type = determine_bug_type(text, sanitizer)
         logger.info(f"determined bug type from report text: {bug_type}")
+
+        # build a partial report
         report = cls(
             contents=text,
             call_stack_trace=StackTrace([]),
@@ -445,8 +452,6 @@ class SanitizerReport:
         if sanitizer not in sanitizer_to_report_parser:
             return report
 
-        # TODO need to deal with stack traces that may contain a mix of relative
-        # and absolute paths
         try:
             parser_func = sanitizer_to_report_parser[sanitizer]
             (report.extra_info,
@@ -456,21 +461,14 @@ class SanitizerReport:
 
         # if we can't parse the report, just return the report without the stack trace
         except Exception:  # noqa: BLE001
-            logger.exception("failed to parse sanitizer report")
+            logger.exception("failed to fully parse sanitizer report")
+        else:
+            report.normalize_paths(project.sources)
 
         return report
 
-    @classmethod
-    def load(cls, path: Path) -> t.Self:
-        if not path.exists():
-            message = f"sanitizer report not found at {path}"
-            raise FileNotFoundError(message)
-
-        contents = path.read_text()
-        return cls.from_report_text(contents)
-
-    def normalize_paths(self, path: Path) -> None:
-        self.alloc_stack_trace.normalize_file_paths(path)
-        self.call_stack_trace.normalize_file_paths(path)
+    def normalize_paths(self, sources: ProjectSources) -> None:
+        self.alloc_stack_trace.normalize_file_paths(sources)
+        self.call_stack_trace.normalize_file_paths(sources)
         if self.error_location is not None:
-            self.error_location.normalize_file_paths(path)
+            self.error_location.normalize_file_paths(sources)
