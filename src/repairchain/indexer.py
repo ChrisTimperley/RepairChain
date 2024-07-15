@@ -133,7 +133,7 @@ class KaskaraIndexer:
         version_string = strip_prefix("bear ", version_string).strip()
         version_parts = version_string.split(".")
         major_version = version_parts[0]
-        return "bear -- " if major_version == "3" else "bear"
+        return f"{bear_path} -- " if major_version == "3" else bear_path
 
     def _generate_compile_commands_via_bear(self, container: ProjectContainer) -> None:
         num_build_jobs = self.project.settings.workers
