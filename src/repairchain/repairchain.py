@@ -106,5 +106,9 @@ def run(
         with patch_filename.open("w") as file:
             file.write(diff_content)
 
+        if stop_early:
+            logger.info("stopping patch generation early")
+            break
+
     if num_patches_found == 0:
         logger.info("no patches found")
