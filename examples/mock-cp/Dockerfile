@@ -22,3 +22,7 @@ COPY ./mock-cp-src/exemplar_only/cpv_1/blobs/sample_solve.bin /work/repair/blobs
 
 # we also need to bake kaskara-clang into the image
 COPY --from=christimperley/kaskara:cpp /opt/kaskara /opt/kaskara
+
+# simulate location of bear
+RUN mkdir -p /opt/bear/bin \
+ && mv /usr/bin/bear /opt/bear/bin/bear
