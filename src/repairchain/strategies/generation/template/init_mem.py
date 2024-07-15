@@ -9,6 +9,7 @@ from sourcelocation.location import FileLocation
 
 from repairchain.models.bug_type import BugType
 from repairchain.models.diagnosis import Diagnosis
+from repairchain.models.project import ProjectKind
 from repairchain.models.replacement import Replacement
 from repairchain.strategies.generation.llm.helper_code import CodeHelper
 from repairchain.strategies.generation.llm.llm import LLM
@@ -34,6 +35,11 @@ class InitializeMemoryStrategy(TemplateGenerationStrategy):
     @classmethod
     @overrides
     def applies(cls, diagnosis: Diagnosis) -> bool:
+        match diagnosis.project.kind:
+            case ProjectKind.JAVA:
+                return False
+            case _:
+                pass
         match diagnosis.sanitizer_report.bug_type:
             case BugType.INVALID_FREE:
                 pass
