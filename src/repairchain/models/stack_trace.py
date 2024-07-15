@@ -121,16 +121,18 @@ def extract_location_symbolized(line: str) -> tuple[str, int | None, int | None]
         if ":" in linenostr:
             line, _, offsetstr = linenostr.partition(":")
     try:
-        lineno = int(line)
+        lineno = int(line.strip())
     except ValueError:
         lineno = None
 
     try:
         if " " in offsetstr:
             offsetstr, _, _ = offsetstr.partition(" ")
-        offset = int(offsetstr)
+        offset = int(offsetstr.strip())
     except ValueError:
         offset = None
+    filename = filename.strip() if filename is not None else None
+
     return filename, lineno, offset
 
 
@@ -169,6 +171,8 @@ def extract_stack_frame_from_line_not_symbolized(line: str) -> StackFrame:
     line = line.lstrip()
     if "+" in line:
         funcname, _, bytes_offset = line.partition("+")
+    funcname = funcname.strip() if funcname is not None else None
+    bytes_offset = bytes_offset.strip() if bytes_offset is not None else None
 
     return StackFrame(
         funcname=funcname,
