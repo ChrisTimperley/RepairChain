@@ -51,7 +51,7 @@
         {
             "name": "repair: templates: nginx",
             "type": "debugpy",
-            "args": ["repair", "project.json", "--save-to-dir", "./patches"],
+            "args": ["generate", "project.json", "-o", "./patches"],
             "cwd": "${workspaceFolder}/examples/nginx",
             "console": "integratedTerminal",
             "module": "repairchain",
