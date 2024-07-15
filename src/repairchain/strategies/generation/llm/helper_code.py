@@ -263,40 +263,40 @@ class CodeHelper:
         )
         return self._help_with_template(user_prompt)
 
-    def help_with_bounds_check(self, code: str, line: str, varname: str) -> Code | None:
+    def help_with_bounds_check(self, code: str, line: str, varname: str, num_patches: int) -> Code | None:
         user_prompt = CONTEXT_BOUNDS.format(
             code=code,
             line=line,
             varname=varname,
-            number_patches=5,
+            number_patches=num_patches,
         )
         return self._help_with_template(user_prompt)
 
-    def help_with_upcast_no_info(self, code: str, line: str, varname: str) -> Code | None:
+    def help_with_upcast_no_info(self, code: str, line: str, varname: str, num_patches: int) -> Code | None:
         user_prompt = CONTEXT_UPCAST_NO_HELPER.format(
             code=code,
             line=line,
             varname=varname,
-            number_patches=5,
+            number_patches=num_patches,
         )
         return self._help_with_template(user_prompt)
 
-    def help_with_upcast_decl(self, code: str, decl: str, type_str: str, uptype: str) -> Code | None:
+    def help_with_upcast_decl(self, code: str, decl: str, type_str: str, uptype: str, num_patches: int) -> Code | None:
         user_prompt = CONTEXT_UPCAST_HELPER_DECL.format(
             code=code,
             decl=decl,
             type_str=type_str,
             uptype=uptype,
-            number_patches=5,
+            number_patches=num_patches,
         )
         return self._help_with_template(user_prompt)
 
-    def help_with_upcast_expr(self, code: str, expression: str, type_str: str, uptype: str) -> Code | None:
+    def help_with_upcast_expr(self, code: str, exp: str, type_str: str, uptype: str, num_patches: int) -> Code | None:
         user_prompt = CONTEXT_UPCAST_HELPER_EXPR.format(
             code=code,
-            expression=expression,
+            expression=exp,
             type_str=type_str,
             uptype=uptype,
-            number_patches=5,
+            number_patches=num_patches,
         )
         return self._help_with_template(user_prompt)
