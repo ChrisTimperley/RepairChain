@@ -44,7 +44,7 @@ class BoundsCheckStrategy(TemplateGenerationStrategy):
         if diagnosis.implicated_functions_at_head is None:
             logger.warning("skipping template repair strategy (diagnosis is incomplete)")
             return False
-        if diagnosis.sanitizer_report.call_stack_trace is None:
+        if not diagnosis.sanitizer_report.call_stack_trace:
             logger.warning("skipping template repair strategy (no call stack)")
             return False
         return True
