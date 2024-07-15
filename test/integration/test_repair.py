@@ -20,7 +20,7 @@ def test_reversion_repair(
     settings.enable_template_repair = False
     settings.enable_reversion_repair = True
     settings.enable_yolo_repair = False
-    with example_project_factory(example) as project:
+    with example_project_factory(example, settings) as project:
         found_patches = list(repair(project))
         assert found_patches
 
@@ -41,7 +41,7 @@ def test_template_repair(
     settings.enable_template_repair = True
     settings.enable_reversion_repair = False
     settings.enable_yolo_repair = False
-    with example_project_factory(example) as project:
+    with example_project_factory(example, settings) as project:
         found_patches = list(repair(project))
         assert found_patches
 
@@ -62,7 +62,7 @@ def test_yolo_repair(
     settings.enable_template_repair = False
     settings.enable_reversion_repair = False
     settings.enable_yolo_repair = True
-    with example_project_factory(example) as project:
+    with example_project_factory(example, settings) as project:
         found_patches = list(repair(project))
         assert found_patches
 
@@ -84,6 +84,6 @@ def test_super_yolo_repair(
     settings.enable_reversion_repair = False
     settings.enable_yolo_repair = True
     settings.enable_kaskara = False
-    with example_project_factory(example) as project:
+    with example_project_factory(example, settings) as project:
         found_patches = list(repair(project))
         assert found_patches
