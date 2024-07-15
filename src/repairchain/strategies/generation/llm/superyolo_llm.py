@@ -246,16 +246,17 @@ class SuperYoloLLMStrategy(PatchGenerationStrategy):
             messages.append(prefill_message)
 
         attempt = 0
+        current_messages = list(messages)
         while attempt < self.number_patches:
             llm_output = ""
             if self._prefill_check(self.model):
-                llm_call = self.llm._simple_call_llm(messages)
+                llm_call = self.llm._simple_call_llm(current_messages)
                 if llm_call is None:
                     attempt += 1
                     continue
                 llm_output = PREFILL_CLAUDE + llm_call
             else:
-                llm_call = self.llm._simple_call_llm(messages)
+                llm_call = self.llm._simple_call_llm(current_messages)
                 if llm_call is None:
                     attempt += 1
                     continue
@@ -294,17 +295,18 @@ class SuperYoloLLMStrategy(PatchGenerationStrategy):
                 logger.info(f"Model {self.model} generated a diff patch:\n{diff_patch}\n")
                 yield Diff.from_unidiff(diff_patch)
 
-            messages.append(
+            current_messages = list(messages)
+            current_messages.append(
                 ChatCompletionAssistantMessageParam(role="assistant", content=llm_output),
             )
-            messages.append(
+            current_messages.append(
                 ChatCompletionUserMessageParam(role="user", content="Can you get me a different patch?"),
             )
 
             if self._prefill_check(self.model):
                 # force a prefill for claude-3.5
                 prefill_message = ChatCompletionAssistantMessageParam(role="assistant", content=PREFILL_CLAUDE)
-                messages.append(prefill_message)
+                current_messages.append(prefill_message)
 
             attempt += 1
 
@@ -327,16 +329,17 @@ class SuperYoloLLMStrategy(PatchGenerationStrategy):
             messages.append(ChatCompletionAssistantMessageParam(role="assistant", content=PREFILL_CLAUDE))
 
         attempt = 0
+        current_messages = list(messages)
         while attempt < self.number_patches:
             llm_output = ""
             if self._prefill_check(self.model):
-                llm_call = self.llm._simple_call_llm(messages)
+                llm_call = self.llm._simple_call_llm(current_messages)
                 if llm_call is None:
                     attempt += 1
                     continue
                 llm_output = PREFILL_CLAUDE + llm_call
             else:
-                llm_call = self.llm._simple_call_llm(messages)
+                llm_call = self.llm._simple_call_llm(current_messages)
                 if llm_call is None:
                     attempt += 1
                     continue
@@ -377,16 +380,17 @@ class SuperYoloLLMStrategy(PatchGenerationStrategy):
                 logger.info(f"Model {self.model} generated a diff patch:\n{diff_patch}\n")
                 yield Diff.from_unidiff(diff_patch)
 
-            messages.append(
+            current_messages = list(messages)
+            current_messages.append(
                 ChatCompletionAssistantMessageParam(role="assistant", content=llm_output),
             )
-            messages.append(
+            current_messages.append(
                 ChatCompletionUserMessageParam(role="user", content="Can you get me a different patch?"),
             )
 
             if self._prefill_check(self.model):
                 # force a prefill for claude-3.5
-                messages.append(ChatCompletionAssistantMessageParam(role="assistant", content=PREFILL_CLAUDE))
+                current_messages.append(ChatCompletionAssistantMessageParam(role="assistant", content=PREFILL_CLAUDE))
 
             attempt += 1
 

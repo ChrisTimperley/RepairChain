@@ -367,8 +367,9 @@ class YoloLLMStrategy(PatchGenerationStrategy):
         if self.use_one_patch_for_iter:
             llm_patches: PatchFile = PatchFile([])
             attempt = 0
+            current_messages = list(messages)
             while attempt < Util.number_patches:
-                local_patch = self._query_llm(messages)
+                local_patch = self._query_llm(current_messages)
                 if local_patch is not None:
                     llm_patches.patch.extend(local_patch.patch)
                     logger.debug(f"Successfully generated patch "
@@ -377,10 +378,15 @@ class YoloLLMStrategy(PatchGenerationStrategy):
                     last_llm_output = ChatCompletionAssistantMessageParam(role="assistant",
                                                                           content=local_patch.to_json())
                     logger.debug(f"Last LLM output: {local_patch.to_json()}")
-                    messages.append(last_llm_output)
+                    current_messages = list(messages)
+                    current_messages.append(last_llm_output)
                     user_new_patch = ChatCompletionUserMessageParam(role="user",
                                                                     content="Can you get me a different patch?")
-                    messages.append(user_new_patch)
+                    current_messages.append(user_new_patch)
+                    if self.model == "claude-3.5-sonnet":
+                        # force a prefill for clause-3.5
+                        prefill_message = ChatCompletionAssistantMessageParam(role="assistant", content=PREFILL_YOLO)
+                        current_messages.append(prefill_message)
                 else:
                     logger.debug(f"Failed to generate patch "
                                  f"{attempt + self.number_patches} / {Util.number_patches} "
