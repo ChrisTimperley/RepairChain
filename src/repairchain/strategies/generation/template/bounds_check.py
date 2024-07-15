@@ -60,17 +60,17 @@ class BoundsCheckStrategy(TemplateGenerationStrategy):
     def _generate_for_statement(
         self,
         stmt: kaskara.statements.Statement,
-    ) -> list[Diff]:
+    ) -> t.Iterator[Diff]:
         if self.index is None:
             logger.warning("Unexpected incomplete diagnosis in bounds check template.")
-            return []
-        diffs: list[Diff] = []
+            return
+
         helper = CodeHelper(self.llm)
 
         stmt_loc = FileLocation(stmt.location.filename, stmt.location.start)
         fn = self.index.functions.encloses(stmt_loc)
         if fn is None:
-            return []
+            return
         fn_src = self._fn_to_text(fn)
 
         reads = frozenset(stmt.reads if hasattr(stmt, "reads") else [])
@@ -80,31 +80,26 @@ class BoundsCheckStrategy(TemplateGenerationStrategy):
                 continue
             for line in output.code:
                 repl = Replacement(stmt.location, line.line)
-                diffs.append(self.diagnosis.project.sources.replacements_to_diff([repl]))
-        return diffs
+                diff = self.diagnosis.project.sources.replacements_to_diff([repl])
+                yield diff
 
-    def _generate_for_function(self,
-                               function: kaskara.functions.Function,
-                               stack_trace: StackTrace) -> list[Diff]:
-        diffs: list[Diff] = []
+    def _generate_for_function(
+        self,
+        function: kaskara.functions.Function,
+        stack_trace: StackTrace,
+    ) -> t.Iterator[Diff]:
         if self.index is None:
             logger.warning("Unexpected incomplete diagnosis in bounds check template.")
-            return []
+            return
 
         for frame in stack_trace.restrict_to_function(function):
             if frame is None or frame.file_line is None:
                 continue
             for statement in self.index.statements.at_line(frame.file_line):
-                diffs += self._generate_for_statement(statement)
-
-        return diffs
+                yield from self._generate_for_statement(statement)
 
     @overrides
     def run(self) -> t.Iterator[Diff]:
-        yield from self.old_run()
-
-    def old_run(self) -> list[Diff]:
-        diffs: list[Diff] = []
         both_traces = list(self.report.alloc_stack_trace.frames) + list(self.report.call_stack_trace.frames)
         self._set_index(both_traces)
 
@@ -112,7 +107,7 @@ class BoundsCheckStrategy(TemplateGenerationStrategy):
 
         if implicated_functions is None or len(self.report.call_stack_trace) == 0:
             logger.warning("incomplete diagnosis info in bounds check strategy, skipping")
-            return []
+            return
 
         logger.debug(f"implicated_functions: {len(implicated_functions)}")
 
@@ -126,5 +121,4 @@ class BoundsCheckStrategy(TemplateGenerationStrategy):
         ]
 
         for function in functions_to_repair:
-            diffs += self._generate_for_function(function, stack_trace)
-        return diffs
+            yield from self._generate_for_function(function, stack_trace)
