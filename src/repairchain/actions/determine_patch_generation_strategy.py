@@ -6,14 +6,18 @@ from repairchain.strategies.generation.template.increase_size import IncreaseSiz
 from repairchain.strategies.generation.template.init_mem import InitializeMemoryStrategy
 from repairchain.strategies.generation.template.integer_overflow import IntegerOverflowStrategy
 
-__all__ = ("determine_patch_generation_strategy",)
+__all__ = (
+    "choose_all_patch_strategies",
+    "choose_minimal_reversion_strategies",
+    "choose_template_strategies",
+    "choose_yolo_strategies",
+)
 
 import typing as t
 
 from loguru import logger
 
 from repairchain.strategies.generation.reversion import MinimalPatchReversion
-from repairchain.strategies.generation.sequence import SequenceStrategy
 from repairchain.strategies.generation.template.bounds_check import BoundsCheckStrategy
 
 if t.TYPE_CHECKING:
@@ -21,10 +25,12 @@ if t.TYPE_CHECKING:
     from repairchain.strategies.generation import PatchGenerationStrategy
     from repairchain.strategies.generation.template.base import TemplateGenerationStrategy
 
-AVAILABLE_TEMPLATES: list[type[TemplateGenerationStrategy]] = [BoundsCheckStrategy,
-                       IncreaseSizeStrategy,
-                       InitializeMemoryStrategy,
-                       IntegerOverflowStrategy]
+AVAILABLE_TEMPLATES: list[type[TemplateGenerationStrategy]] = [
+    BoundsCheckStrategy,
+    IncreaseSizeStrategy,
+    InitializeMemoryStrategy,
+    IntegerOverflowStrategy,
+]
 
 
 def _build_yolo_strategies_with_kaskara_indices(
@@ -76,9 +82,13 @@ def _build_yolo_strategies_without_kaskara_indices(
     return strategies
 
 
-def _determine_yolo_strategies(
-    diagnosis: Diagnosis,
-) -> list[PatchGenerationStrategy]:
+def choose_yolo_strategies(diagnosis: Diagnosis) -> list[PatchGenerationStrategy]:
+    if not diagnosis.project.settings.enable_yolo_repair:
+        logger.info("skipping yolo repair strategy (disabled)")
+        return []
+
+    logger.info("choosing yolo repair strategies...")
+
     if diagnosis.is_complete():
         logger.info("using yolo repair strategy with full kaskara indices")
         return _build_yolo_strategies_with_kaskara_indices(diagnosis)
@@ -87,34 +97,33 @@ def _determine_yolo_strategies(
     return _build_yolo_strategies_without_kaskara_indices(diagnosis)
 
 
-def determine_patch_generation_strategy(
-    diagnosis: Diagnosis,
-) -> PatchGenerationStrategy:
-    logger.info("determining patch generation strategy...")
-    settings = diagnosis.project.settings
-    strategies: list[PatchGenerationStrategy] = []
-
-    if settings.enable_reversion_repair:
-        logger.info("using reversion repair strategy")
-        strategies.append(MinimalPatchReversion.build(diagnosis))
-    else:
+def choose_minimal_reversion_strategies(diagnosis: Diagnosis) -> list[PatchGenerationStrategy]:
+    if not diagnosis.project.settings.enable_reversion_repair:
         logger.info("skipping reversion repair strategy (disabled)")
+        return []
 
-    if settings.enable_yolo_repair:
-        logger.info("using yolo repair strategies")
-        strategies += _determine_yolo_strategies(diagnosis)
-    else:
-        logger.info("skipping yolo repair strategy (disabled)")
+    logger.info("using reversion repair strategy")
+    strategy = MinimalPatchReversion.build(diagnosis)
+    return [strategy]
 
-    if settings.enable_template_repair:
-        logger.info("attempting template repair strategies")
-        strategies += [tstrat.build(diagnosis) for tstrat in AVAILABLE_TEMPLATES if tstrat.applies(diagnosis)]
-    else:
+
+def choose_template_strategies(diagnosis: Diagnosis) -> list[PatchGenerationStrategy]:
+    if not diagnosis.project.settings.enable_template_repair:
         logger.info("skipping template repair strategy (disabled)")
+        return []
 
-    strategy = SequenceStrategy.build(
-        diagnosis=diagnosis,
-        strategies=strategies,
-    )
-    logger.info(f"determined patch generation strategy: {strategy}")
-    return strategy
+    strategies: list[PatchGenerationStrategy] = []
+    for template in AVAILABLE_TEMPLATES:
+        if template.applies(diagnosis):
+            strategy = template.build(diagnosis)
+            strategies.append(strategy)
+    return strategies
+
+
+def choose_all_patch_strategies(diagnosis: Diagnosis) -> list[PatchGenerationStrategy]:
+    logger.info("choosing patch generation strategies...")
+    strategies: list[PatchGenerationStrategy] = []
+    strategies += choose_minimal_reversion_strategies(diagnosis)
+    strategies += choose_yolo_strategies(diagnosis)
+    strategies += choose_template_strategies(diagnosis)
+    return strategies

@@ -35,6 +35,9 @@ class SequenceStrategy(PatchGenerationStrategy):
         max_patches = 100
         max_patches_for_one_strategy = 20
 
+        description = "\n".join(f"* {s.describe()}" for s in strategies)
+        logger.info(f"using sequence strategy with the following sub-strategies:\n{description}")
+
         return cls(
             diagnosis=diagnosis,
             strategies=strategies,

@@ -19,6 +19,12 @@ def repair(
 
     If `stop_early` is True, the repair process will stop as soon as a valid patch is found.
     """
+    # TODO generate with patch reversion first
+
+    # TODO generate with YOLO second
+
+    # TODO generate with LLM templates third
+
     candidates = generate(project)
     yield from validate(
         project,

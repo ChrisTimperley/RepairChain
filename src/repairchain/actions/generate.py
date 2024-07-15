@@ -4,8 +4,9 @@ __all__ = ("generate",)
 
 import typing as t
 
-from repairchain.actions.determine_patch_generation_strategy import determine_patch_generation_strategy
+from repairchain.actions.determine_patch_generation_strategy import choose_all_patch_strategies
 from repairchain.actions.diagnose import diagnose
+from repairchain.strategies.generation.sequence import SequenceStrategy
 
 if t.TYPE_CHECKING:
     from repairchain.models.diff import Diff
@@ -13,7 +14,11 @@ if t.TYPE_CHECKING:
 
 
 def generate(project: Project) -> list[Diff]:
-    """Generates a list of candidate patches for the given project."""
+    """Generates a complete list of all candidate patches for the given project."""
     diagnosis = diagnose(project)
-    patch_generator = determine_patch_generation_strategy(diagnosis)
-    return list(patch_generator.run())
+    strategies = choose_all_patch_strategies(diagnosis)
+    generator = SequenceStrategy.build(
+        diagnosis=diagnosis,
+        strategies=strategies,
+    )
+    return list(generator.run())
