@@ -1,7 +1,9 @@
-from __future__ import annotations
+gfrom __future__ import annotations
 
 import difflib
+import subprocess
 import unicodedata
+from pathlib import Path
 
 from repairchain.models.project import ProjectKind
 
@@ -64,7 +66,7 @@ class Util:
     short_sleep: int = field(default=5)
     long_sleep: int = field(default=30)
     sanitizer_report_size: int = field(default=10000)
-    number_patches: int = field(default=10)
+    number_patches: int = field(default=2)
     limit_llm_output: int = field(default=4096)
 
     @staticmethod
@@ -117,6 +119,25 @@ class Util:
         return lines[pos:]
 
     @staticmethod
+    def normalize_encoding(text: str, encoding: str = "utf-8") -> str:
+        """Normalize the encoding of a text."""
+        if isinstance(text, str):
+            # Encode to bytes and decode back to string
+            return text.encode(encoding).decode(encoding)
+        return text
+
+    @staticmethod
+    def save_to_file(content: str, filename: str) -> None:
+        path = Path(filename)
+        with path.open("w", encoding="utf-8") as file:
+            file.write(content)
+
+    @staticmethod
+    def generate_diff(file1: str, file2: str) -> str:
+        result = subprocess.run(["diff", "-u", file1, file2], capture_output=True, text=True, check=False)   # noqa: S607
+        return result.stdout
+
+    @staticmethod
     def extract_patches(diagnosis: Diagnosis, files: dict[str, str],
                         repaired_files: list[RepairedFileContents]) -> list[Diff]:
         # Apply patches and generate diffs
@@ -126,6 +147,9 @@ class Util:
             modified_code = patch.code
             filename = patch.filename
             function_name = patch.function_name
+
+            if filename not in files:
+                continue
 
             lines = files[filename].split("\n")
 
@@ -147,16 +171,35 @@ class Util:
             # Create the modified file content
             modified_file_content = "\n".join(modified_lines)
 
+            modified_file_content = Util.normalize_encoding(modified_file_content)
+            old_file_content = Util.normalize_encoding(files[filename])
+
+            logger.info(f"old_file=\n{old_file_content}")
+            logger.info(f"new_file=\n{modified_file_content}")
+
+            file1_path = "/tmp/file1.java"  # noqa: S108
+            file2_path = "/tmp/file2.java"  # noqa: S108
+
+            Util.save_to_file(old_file_content, file1_path)
+            Util.save_to_file(modified_file_content, file2_path)
+
+            diff_patch = Util.generate_diff(file1_path, file2_path)
+
             # Generate the diff
             diff = difflib.unified_diff(
-                files[filename].splitlines(keepends=True),
+                old_file_content.splitlines(keepends=True),
                 modified_file_content.splitlines(keepends=True),
                 fromfile=filename,
                 tofile=filename,
             )
 
-            # Convert the diff to a string and add to the diffs list
-            diff_patch = "".join(diff)
+            # # Convert the diff to a string and add to the diffs list
+            diff_patch2 = "".join(diff)
+            diff_patch = diff_patch.replace("/tmp/file1.java",filename)
+            diff_patch = diff_patch.replace("/tmp/file2.java",filename)
+            logger.info(f"difflib=\n{diff_patch2}")
+            logger.info(f"diffcmd=\n{diff_patch}")
+
             diffs.append(Diff.from_unidiff(diff_patch))
 
         return diffs
