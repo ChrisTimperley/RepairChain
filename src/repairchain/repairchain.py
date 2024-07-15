@@ -16,6 +16,7 @@ from repairchain.actions.generate import generate as _generate
 from repairchain.actions.repair import repair
 from repairchain.actions.validate import validate as _validate
 from repairchain.models.diff import Diff
+from repairchain.util import add_prefix_to_diff
 
 if t.TYPE_CHECKING:
     from pathlib import Path
@@ -75,7 +76,7 @@ def validate(
         stop_early=stop_early,
     )):
         patch_filename = save_patches_to_dir / f"{patch_no}.diff"
-        diff_content = str(patch)
+        diff_content = str(add_prefix_to_diff(patch))
         with patch_filename.open("w") as file:
             file.write(diff_content)
 
@@ -102,7 +103,7 @@ def run(
         num_patches_found += 1
         patch_filename = save_patches_to_dir / f"{patch_no}.diff"
         logger.info(f"patch found: {patch_filename}")
-        diff_content = str(patch)
+        diff_content = str(add_prefix_to_diff(patch))
         with patch_filename.open("w") as file:
             file.write(diff_content)
 
