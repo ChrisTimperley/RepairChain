@@ -184,9 +184,6 @@ class Project:
         with sanitizer_report_path.open("r") as file:
             sanitizer_output = file.read()
 
-        # sanitizer_text = SanitizerReport.load(sanitizer_report_path)
-        # sanitizer_report.normalize_paths(docker_repository_path)
-
         with dockerblade.DockerDaemon(url=docker_url) as docker_daemon:
             project = cls(
                 docker_daemon=docker_daemon,
