@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from loguru import logger
 from overrides import overrides
 from sourcelocation.diff import Diff
+from sourcelocation.fileline import FileLine
 from sourcelocation.location import FileLocation
 
 from repairchain.models.bug_type import BugType
@@ -50,21 +51,42 @@ class InitializeMemoryStrategy(TemplateGenerationStrategy):
         location = cls._get_error_location(diagnosis)
         return location is not None
 
+    def _generate_for_one_frame(self,
+                                error_stmt_str: str,
+                                fn_src: str,
+                                frame_line: FileLine,
+                                helper: CodeHelper) -> t.Iterator[Diff]:
+        """Generate replacements for one frame in the allocation stack.
+
+        error_stmt_str refers to the statement at the error location.
+        """
+        if self.index is None:
+            return
+
+        stmts_at_frame = self.index.statements.at_line(frame_line)
+        for alloc_stmt in stmts_at_frame:
+            output = helper.help_with_memory_initialization(fn_src, error_stmt_str, alloc_stmt.content, 2)
+
+            if output is None:
+                continue
+            for line in output.code:
+                replacement_str = alloc_stmt.content + "\n" + line.line
+                repl = Replacement(alloc_stmt.location, replacement_str)
+                yield self.diagnosis.project.sources.replacements_to_diff([repl])
+
     @overrides
     def run(self) -> t.Iterator[Diff]:
         location = self._get_error_location(self.diagnosis)
 
-        if location is None:
+        if location is None or location.file_line is None:
             logger.warning("Skipping InitMemTemplate, cannot index empty location.")
             return
 
-        self._set_index([location])
+        frames_to_consider = list(self.report.alloc_stack_trace.frames)
+        frames_to_consider.append(location)
+        self._set_index(frames_to_consider)
         if self.index is None:
             logger.warning("Skipping InitMemTemplate, failed to index.")
-            return
-
-        location = self._get_error_location(self.diagnosis)
-        if location is None or location.file_line is None or self.index is None:
             return
 
         helper = CodeHelper(self.llm)
@@ -77,13 +99,7 @@ class InitializeMemoryStrategy(TemplateGenerationStrategy):
             if fn is None:
                 continue
             fn_src = self._fn_to_text(fn)
-            output = helper.help_with_memory_initialization(fn_src, stmt.content, 5)
-
-            if output is None:
-                continue
-
-            for line in output.code:
-                combine = line.line + "\n" + stmt.content
-                repl = Replacement(stmt.location, combine)
-                diff = self.diagnosis.project.sources.replacements_to_diff([repl])
-                yield diff
+            for frame in frames_to_consider:
+                if frame.file_line is None:
+                    continue
+                yield from self._generate_for_one_frame(stmt.content, fn_src, frame.file_line, helper)
