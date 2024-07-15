@@ -46,25 +46,21 @@ class InitializeMemoryStrategy(TemplateGenerationStrategy):
 
     @overrides
     def run(self) -> t.Iterator[Diff]:
-        yield from self.old_run()
-
-    def old_run(self) -> list[Diff]:
         location = self._get_error_location(self.diagnosis)
 
         if location is None:
             logger.warning("Skipping InitMemTemplate, cannot index empty location.")
-            return []
+            return
 
         self._set_index([location])
         if self.index is None:
             logger.warning("Skipping InitMemTemplate, failed to index.")
-            return []
+            return
 
         location = self._get_error_location(self.diagnosis)
         if location is None or location.file_line is None or self.index is None:
-            return []
+            return
 
-        diffs: list[Diff] = []
         helper = CodeHelper(self.llm)
 
         stmts_at_error_location = self.index.statements.at_line(location.file_line)
@@ -83,6 +79,5 @@ class InitializeMemoryStrategy(TemplateGenerationStrategy):
             for line in output.code:
                 combine = line.line + "\n" + stmt.content
                 repl = Replacement(stmt.location, combine)
-                diffs.append(self.diagnosis.project.sources.replacements_to_diff([repl]))
-
-        return diffs
+                diff = self.diagnosis.project.sources.replacements_to_diff([repl])
+                yield diff
