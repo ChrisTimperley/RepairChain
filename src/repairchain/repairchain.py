@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from repairchain.util import diff_to_git_diff
+
 __all__ = (
     "diagnose",
     "generate",
@@ -102,7 +104,7 @@ def run(
         num_patches_found += 1
         patch_filename = save_patches_to_dir / f"{patch_no}.diff"
         logger.info(f"patch found: {patch_filename}")
-        diff_content = str(patch)
+        diff_content = diff_to_git_diff(project, patch)
         with patch_filename.open("w") as file:
             file.write(diff_content)
 

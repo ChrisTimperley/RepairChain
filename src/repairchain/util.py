@@ -1,5 +1,11 @@
 from __future__ import annotations
 
+import contextlib
+import subprocess
+import tempfile
+from contextlib import suppress
+from pathlib import Path
+
 __all__ = (
     "dd_maximize",
     "dd_minimize",
@@ -8,6 +14,7 @@ __all__ = (
 
 import typing as t
 
+import git
 from dockerblade.stopwatch import Stopwatch
 from loguru import logger
 
@@ -16,7 +23,71 @@ if t.TYPE_CHECKING:
     import kaskara.functions
     import kaskara.statements
 
+    from repairchain.models.diff import Diff
+    from repairchain.models.project import Project
+
 T = t.TypeVar("T")
+
+
+@contextlib.contextmanager
+def write_diff_to_file(diff: Diff) -> t.Iterator[Path]:
+    """Writes the given diff to a temporary file and yields the path to that file."""
+    temp_patch_path = Path(tempfile.mkstemp(suffix=".diff")[1])
+    contents = str(diff)
+    try:
+        with temp_patch_path.open("w", encoding="utf-8") as temp_patch_file:
+            temp_patch_file.write(contents)
+        yield temp_patch_path
+    finally:
+        temp_patch_path.unlink()
+
+
+def restore_to_head(project: Project) -> None:
+    repo = project.repository
+    restore_to = repo.head.commit.hexsha
+    with suppress(git.exc.GitCommandError):
+        repo.git.rebase("--abort")
+    with suppress(git.exc.GitCommandError):
+        repo.git.merge("--abort")
+    with suppress(git.exc.GitCommandError):
+        repo.git.clean("-xdf")
+    with suppress(git.exc.GitCommandError):
+        pass
+    try:
+        logger.debug(f"restoring to: {restore_to}")
+        repo.git.reset(restore_to)
+    except repo.git.exc.GitCommandError:
+        logger.exception(f"failed to restore git repo to: {restore_to}")
+
+
+def apply_patch(project: Project, patch: Diff) -> None:
+    # make a commit consisting of only the minimized undo
+    repo_path = Path.resolve(project.local_repository_path)
+    with write_diff_to_file(patch) as temp_patch_path:
+        command_args = [
+                "patch",
+                "-u",
+                "-p0",
+                "-i",
+                str(temp_patch_path),
+                "-d",
+                str(repo_path),
+        ]
+        logger.debug(f"applying patch: {command_args}")
+        subprocess.run(
+                command_args,
+                check=True,
+                stdin=subprocess.DEVNULL,
+            )
+
+
+def diff_to_git_diff(
+        project: Project,
+        patch: Diff,
+) -> str:
+    restore_to_head(project)
+    apply_patch(project, patch)
+    return str(project.repository.git.diff())
 
 
 def statements_in_function(
