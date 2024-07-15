@@ -126,7 +126,7 @@ class BoundsCheckStrategy(TemplateGenerationStrategy):
         sources: ProjectSources = self.diagnosis.project.sources
         indexer: KaskaraIndexer = self.diagnosis.project.indexer
         filenames = [
-            f for f in stack_trace.filenames() if sources.exists(f, self.diagnosis.project.head)
+            f.filename for f in functions_to_repair if sources.exists(f.filename, self.diagnosis.project.head)
         ]
         self.index = indexer.run(version=self.diagnosis.project.head,
                                 restrict_to_files=filenames)
