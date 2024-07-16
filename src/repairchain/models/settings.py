@@ -71,6 +71,7 @@ class Settings:
     enable_yolo_repair: bool = field(default=True)
     enable_template_repair: bool = field(default=True)
     log_to_file: Path | None = field(default=None)
+    log_level: str = field(default="DEBUG")
     generate_compile_commands: bool = field(default=True)
     kernel_backtrace_path: Path | None = field(default=None)
 
@@ -131,5 +132,6 @@ class Settings:
         fetch("litellm_url", "AIXCC_LITELLM_HOSTNAME", default="http://0.0.0.0:4000")
         fetch("litellm_key", "LITELLM_KEY", default="sk-1234")
         fetch("litellm_model", "LITELLM_MODEL", default="oai-gpt-4o")
+        fetch("log_level", "REPAIRCHAIN_LOG_LEVEL", default="DEBUG")
 
         return cls(**kwargs)
