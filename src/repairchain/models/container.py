@@ -132,6 +132,7 @@ class ProjectContainer:
         self._shell.check_call(
             command,
             cwd=str(self.project.docker_repository_path),
+            time_limit=60,
         )
 
     def build(
