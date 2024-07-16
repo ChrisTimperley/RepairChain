@@ -83,9 +83,10 @@ class ProjectContainer:
     def clean(self) -> None:
         """Runs the equivalent of `make clean` inside the container."""
         project = self.project
-        self._shell.check_call(
+        self._shell.run(
             project.clean_command,
             cwd=str(project.docker_repository_path),
+            time_limit=60,
         )
 
     def patch(self, patch: Diff) -> None:
