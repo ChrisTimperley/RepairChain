@@ -10,10 +10,17 @@ import typing as t
 
 from dockerblade.stopwatch import Stopwatch
 from loguru import logger
+from sourcelocation.diff import (
+    DeletedLine,
+    FileHunk,
+    HunkLine,
+    InsertedLine,
+)
 
 from repairchain.models.diff import (
     Diff,
     FileDiff,
+    Hunk,
 )
 
 if t.TYPE_CHECKING:
@@ -22,6 +29,34 @@ if t.TYPE_CHECKING:
     import kaskara.statements
 
 T = t.TypeVar("T")
+
+
+def revert_diff(diff: Diff) -> Diff:
+    def revert_hunk_line(line: HunkLine) -> HunkLine:
+        match line:
+            case InsertedLine(content):
+                return DeletedLine(content)
+            case DeletedLine(content):
+                return InsertedLine(content)
+        return line
+
+    def revert_hunk(hunk: Hunk) -> Hunk:
+        return Hunk(
+            old_start_at=hunk.old_start_at,
+            new_start_at=hunk.new_start_at,
+            lines=[revert_hunk_line(line) for line in hunk.lines],
+        )
+
+    def revert_file_hunk(file_hunk: FileHunk) -> FileHunk:
+        return FileHunk(
+            old_filename=file_hunk.old_filename,
+            new_filename=file_hunk.new_filename,
+            hunk=revert_hunk(file_hunk.hunk),
+        )
+
+    return Diff.from_file_hunks([
+        revert_file_hunk(file_hunk) for file_hunk in list(diff.file_hunks)
+    ])
 
 
 def statements_in_function(

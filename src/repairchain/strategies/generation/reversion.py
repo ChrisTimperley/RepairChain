@@ -17,7 +17,7 @@ from repairchain.actions.commit_to_diff import commit_to_diff
 from repairchain.models.diff import Diff
 from repairchain.models.patch_outcome import PatchOutcome
 from repairchain.strategies.generation.base import PatchGenerationStrategy
-from repairchain.util import dd_minimize
+from repairchain.util import dd_minimize, revert_diff
 
 if t.TYPE_CHECKING:
     from sourcelocation.diff import FileHunk
@@ -80,12 +80,7 @@ class MinimalPatchReversion(PatchGenerationStrategy):
 
     def _compute_reverse_diff(self) -> Diff:
         """Computes a diff that reverses the changes introduced by the triggering commit."""
-        unidiff = self.project.repository.git.diff(
-            self.triggering_commit,
-            self.triggering_commit_parent,
-            unified=True,
-        )
-        return Diff.from_unidiff(unidiff).strip(1)
+        return revert_diff(self.project.original_implicated_diff)
 
     def _minimize_reverse_diff(self, reverse_diff: Diff) -> Diff:
         """Minimizes the reverse diff to the smallest possible diff that still undoes the triggering commit."""
