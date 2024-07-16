@@ -10,7 +10,8 @@ __all__ = (
     "choose_all_patch_strategies",
     "choose_minimal_reversion_strategies",
     "choose_template_strategies",
-    "choose_yolo_strategies",
+    "choose_yolo_strategies_early",
+    "choose_yolo_strategies_late",
 )
 
 import typing as t
@@ -35,54 +36,63 @@ AVAILABLE_TEMPLATES: list[type[TemplateGenerationStrategy]] = [
 
 def _build_yolo_strategies_with_kaskara_indices(
     diagnosis: Diagnosis,
+    start_strategy: bool,
 ) -> list[PatchGenerationStrategy]:
     strategies: list[PatchGenerationStrategy] = []
 
-    # try different models
-    # - note that claude has some issues with JSON format and needs to requery
-    for model in ("oai-gpt-4o", "claude-3.5-sonnet"):
+    if start_strategy:
         # and try:
         # (a) use all files in context and ask for multiple patches at once (preferred)
         # (b) use a single file as context and ask for one patch at a time
         for use_patches_per_file_strategy in (True, False):
             strategy = YoloLLMStrategy.build(
                 diagnosis=diagnosis,
-                model=model,
+                model="oai-gpt-4o",
                 use_patches_per_file_strategy=use_patches_per_file_strategy,
             )
             strategies.append(strategy)
+    else:
+        # limited claude use since it has issues with JSON
+        yolo_claude35 = YoloLLMStrategy.build(
+            diagnosis=diagnosis,
+            model="claude-3.5-sonnet",
+            use_patches_per_file_strategy=True,
+        )
+        strategies.append(yolo_claude35)
 
-    # gpt4-turbo is much more expensive, so we only try one strategy
-    yolo_gpt4_turbo = YoloLLMStrategy.build(
-        diagnosis=diagnosis,
-        model="oai-gpt-4-turbo",
-        use_patches_per_file_strategy=True,
-    )
-    strategies.append(yolo_gpt4_turbo)
+        # super-yolo has a different prompt and may give diversity
+        super_yolo = SuperYoloLLMStrategy.build(
+            diagnosis=diagnosis,
+            model="oai-gpt-4o",
+            whole_file=False,
+        )
+        strategies.append(super_yolo)
 
     return strategies
 
 
 def _build_yolo_strategies_without_kaskara_indices(
     diagnosis: Diagnosis,
+    start_strategy: bool,
 ) -> list[PatchGenerationStrategy]:
     strategies: list[PatchGenerationStrategy] = []
+    whole_file = not start_strategy
     for model in ("oai-gpt-4o", "claude-3.5-sonnet"):
         # vary:
         # (a) try to generate the entire file
         # (b) unified diffs as patches
-        for whole_file in (True, False):
-            strategy = SuperYoloLLMStrategy.build(
-                diagnosis=diagnosis,
-                model=model,
-                whole_file=whole_file,
-            )
-            strategies.append(strategy)
+        strategy = SuperYoloLLMStrategy.build(
+            diagnosis=diagnosis,
+            model=model,
+            whole_file=whole_file,
+        )
+        strategies.append(strategy)
 
     return strategies
 
 
-def choose_yolo_strategies(diagnosis: Diagnosis) -> list[PatchGenerationStrategy]:
+# FIXME: reduce code duplication
+def choose_yolo_strategies_early(diagnosis: Diagnosis) -> list[PatchGenerationStrategy]:
     if not diagnosis.project.settings.enable_yolo_repair:
         logger.info("skipping yolo repair strategy (disabled)")
         return []
@@ -91,10 +101,25 @@ def choose_yolo_strategies(diagnosis: Diagnosis) -> list[PatchGenerationStrategy
 
     if diagnosis.is_complete():
         logger.info("using yolo repair strategy with full kaskara indices")
-        return _build_yolo_strategies_with_kaskara_indices(diagnosis)
+        return _build_yolo_strategies_with_kaskara_indices(diagnosis, start_strategy=True)
 
     logger.warning("using super yolo repair strategy (diagnosis is incomplete)")
-    return _build_yolo_strategies_without_kaskara_indices(diagnosis)
+    return _build_yolo_strategies_without_kaskara_indices(diagnosis, start_strategy=True)
+
+
+def choose_yolo_strategies_late(diagnosis: Diagnosis) -> list[PatchGenerationStrategy]:
+    if not diagnosis.project.settings.enable_yolo_repair:
+        logger.info("skipping yolo repair strategy (disabled)")
+        return []
+
+    logger.info("choosing yolo repair strategies...")
+
+    if diagnosis.is_complete():
+        logger.info("using yolo repair strategy with full kaskara indices")
+        return _build_yolo_strategies_with_kaskara_indices(diagnosis, start_strategy=False)
+
+    logger.warning("using super yolo repair strategy (diagnosis is incomplete)")
+    return _build_yolo_strategies_without_kaskara_indices(diagnosis, start_strategy=False)
 
 
 def choose_minimal_reversion_strategies(diagnosis: Diagnosis) -> list[PatchGenerationStrategy]:
@@ -123,7 +148,8 @@ def choose_template_strategies(diagnosis: Diagnosis) -> list[PatchGenerationStra
 def choose_all_patch_strategies(diagnosis: Diagnosis) -> list[PatchGenerationStrategy]:
     logger.info("choosing patch generation strategies...")
     strategies: list[PatchGenerationStrategy] = []
+    strategies += choose_yolo_strategies_early(diagnosis)
+    strategies += choose_yolo_strategies_late(diagnosis)
     strategies += choose_minimal_reversion_strategies(diagnosis)
-    strategies += choose_yolo_strategies(diagnosis)
     strategies += choose_template_strategies(diagnosis)
     return strategies

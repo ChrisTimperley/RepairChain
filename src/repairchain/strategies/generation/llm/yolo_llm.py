@@ -15,6 +15,7 @@ from openai.types.chat import (
 from overrides import overrides
 
 from repairchain.actions import commit_to_diff
+from repairchain.models.project import ProjectKind
 from repairchain.strategies.generation.base import PatchGenerationStrategy
 from repairchain.strategies.generation.llm.llm import LLM
 from repairchain.strategies.generation.llm.summarize_code import FunctionSummary, ReportSummary
@@ -401,8 +402,19 @@ class YoloLLMStrategy(PatchGenerationStrategy):
         if self.diagnosis.implicated_functions_at_head is None:
             return
 
+        logger.debug(f"functions to consider: {self.diagnosis.implicated_functions_at_head}")
+
         for function in self.diagnosis.implicated_functions_at_head:
             file_to_functions.setdefault(function.filename, []).append(function.name)
+
+        logger.debug(f"filenames to consider: {file_to_functions.keys()}")
+
+        # sort files
+        filenames: list[str] = list(self.files.keys())
+        if self.diagnosis.project.kind in {ProjectKind.C, ProjectKind.KERNEL}:
+            filenames = sorted(filenames, key=lambda x: (0 if x.endswith(".c") else (1 if x.endswith(".h") else 2), x))
+        else:
+            filenames = sorted(filenames, key=lambda x: (0 if x.endswith(".java") else 1))
 
         # ask for one patch at each time
         self.use_one_patch_for_iter = True
@@ -411,10 +423,10 @@ class YoloLLMStrategy(PatchGenerationStrategy):
         system_prompt = self._create_system_prompt()
         sanitizer_prompt = self._create_sanitizer_report_prompt(code_summary)
 
-        for file in self.files:
+        for file in filenames:
             logger.debug(f"looking for potential patches for file {file}")
             if file not in file_to_functions:
-                logger.error(f"we do not have the functions for file {file}")
+                logger.warning(f"skipping file {file}")
                 continue
 
             user_prompt = self._create_user_prompt(
