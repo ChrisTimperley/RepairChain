@@ -90,10 +90,17 @@ def run(
     settings = project.settings
 
     if settings.log_to_file:
+        log_level = settings.log_level
         settings.log_to_file.parent.mkdir(exist_ok=True, parents=True)
+
+        logger.enable("kaskara")
+        if log_level == "TRACE":
+            logger.enable("dockerblade")
+            logger.enable("sourcelocation")
+
         logger.add(
             sink=settings.log_to_file,
-            level="DEBUG",
+            level=log_level,
         )
 
     save_patches_to_dir.mkdir(exist_ok=True, parents=True)
