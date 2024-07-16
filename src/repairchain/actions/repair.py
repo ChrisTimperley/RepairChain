@@ -7,7 +7,8 @@ from loguru import logger
 from repairchain.actions.determine_patch_generation_strategy import (
     choose_minimal_reversion_strategies,
     choose_template_strategies,
-    choose_yolo_strategies,
+    choose_yolo_strategies_early,
+    choose_yolo_strategies_late,
 )
 from repairchain.actions.diagnose import diagnose
 from repairchain.actions.validate import validate
@@ -51,14 +52,26 @@ def _repair_with_minimal_reversion(
     )
 
 
-def _repair_with_yolo(
+def _repair_with_yolo_early(
     diagnosis: Diagnosis,
     *,
     stop_early: bool = True,
 ) -> t.Iterator[Diff]:
     yield from _repair_with_strategy_picker(
         diagnosis,
-        choose_yolo_strategies,
+        choose_yolo_strategies_early,
+        stop_early=stop_early,
+    )
+
+
+def _repair_with_yolo_late(
+    diagnosis: Diagnosis,
+    *,
+    stop_early: bool = True,
+) -> t.Iterator[Diff]:
+    yield from _repair_with_strategy_picker(
+        diagnosis,
+        choose_yolo_strategies_late,
         stop_early=stop_early,
     )
 
@@ -89,14 +102,19 @@ def repair(
 
     def _run() -> t.Iterator[Diff]:
         if settings.enable_yolo_repair:
-            logger.info("attempting to repair via YOLO...")
-            yield from _repair_with_yolo(diagnosis, stop_early=stop_early)
-            logger.info("finished attempting to repair via YOLO")
+            logger.info("attempting to repair via YOLO (early)...")
+            yield from _repair_with_yolo_early(diagnosis, stop_early=stop_early)
+            logger.info("finished attempting to repair via YOLO (early)")
 
         if settings.enable_reversion_repair:
             logger.info("attempting to repair via minimal reversion...")
             yield from _repair_with_minimal_reversion(diagnosis, stop_early=stop_early)
             logger.info("finished attempting to repair via minimal reversion")
+
+        if settings.enable_yolo_repair:
+            logger.info("attempting to repair via YOLO (late)...")
+            yield from _repair_with_yolo_late(diagnosis, stop_early=stop_early)
+            logger.info("finished attempting to repair via YOLO (late)")
 
         if settings.enable_template_repair:
             logger.info("attempting to repair via templates...")
