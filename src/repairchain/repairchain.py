@@ -91,15 +91,28 @@ def run(
 
     if settings.log_to_file:
         log_level = settings.log_level
-        settings.log_to_file.parent.mkdir(exist_ok=True, parents=True)
+        log_to_file = settings.log_to_file
+        log_to_directory = log_to_file.parent
+        log_to_directory.mkdir(exist_ok=True, parents=True)
 
         logger.enable("kaskara")
         if log_level == "TRACE":
             logger.enable("dockerblade")
             logger.enable("sourcelocation")
 
+        # if the file already exists, create a new one by appending a number
+        if log_to_file.is_file():
+            log_no = 0
+
+            # count the number of files that start with the same name
+            for existing_log_file in log_to_directory.iterdir():
+                if existing_log_file.name.startswith(log_to_file.name):
+                    log_no += 1
+
+            log_to_file = log_to_directory / f"{log_to_file.name}.{log_no}"
+
         logger.add(
-            sink=settings.log_to_file,
+            sink=log_to_file,
             level=log_level,
         )
 
