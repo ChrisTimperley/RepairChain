@@ -173,11 +173,9 @@ class KaskaraIndexer:
         )
         logger.debug(f"using kaskara project: {kaskara_project}")
 
-        # only rebuild the project if we're using Java (to be safe)
-        # FIXME using string because of circular import + lack of time
-        rebuild = project.kind.value == "java"
-
-        with project.provision(version=version, rebuild=rebuild) as container:
+        # we only need to re-build the code if we're analyzing a C-based project
+        # that doesn't have compile_commands.json
+        with project.provision(version=version, rebuild=False) as container:
             if project.kind in {"c", "kernel"}:
                 self._ensure_compile_commands_exists(container)
 
