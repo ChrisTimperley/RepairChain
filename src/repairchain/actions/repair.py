@@ -102,9 +102,9 @@ def repair(
 
     def _run() -> t.Iterator[Diff]:
         if settings.enable_yolo_repair:
-            logger.info("attempting to repair via YOLO (early)...")
+            logger.info("attempting to repair via (early) YOLO...")
             yield from _repair_with_yolo_early(diagnosis, stop_early=stop_early)
-            logger.info("finished attempting to repair via YOLO (early)")
+            logger.info("finished attempting to repair via (early) YOLO")
 
         if settings.enable_reversion_repair:
             logger.info("attempting to repair via minimal reversion...")
@@ -112,9 +112,9 @@ def repair(
             logger.info("finished attempting to repair via minimal reversion")
 
         if settings.enable_yolo_repair:
-            logger.info("attempting to repair via YOLO (late)...")
+            logger.info("attempting to repair via (late) YOLO...")
             yield from _repair_with_yolo_late(diagnosis, stop_early=stop_early)
-            logger.info("finished attempting to repair via YOLO (late)")
+            logger.info("finished attempting to repair via (late) YOLO")
 
         if settings.enable_template_repair:
             logger.info("attempting to repair via templates...")
