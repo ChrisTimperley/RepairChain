@@ -57,11 +57,11 @@ class LLM:
                     return None
                 return llm_output
 
-            except openai.APIConnectionError as e:
-                logger.warning(f"Connection error: {e}. Retrying {attempt + 1}/{retry_attempts}...")
-                time.sleep(Util.short_sleep)  # brief wait before retrying
             except openai.APITimeoutError as e:
                 logger.warning(f"API timeout error: {e}. Retrying {attempt + 1}/{retry_attempts}...")
+                time.sleep(Util.short_sleep)  # brief wait before retrying
+            except openai.APIConnectionError as e:
+                logger.warning(f"Connection error: {e}. Retrying {attempt + 1}/{retry_attempts}...")
                 time.sleep(Util.short_sleep)  # brief wait before retrying
             except openai.InternalServerError as e:
                 logger.warning(f"Internal server error: {e}. Retrying {attempt + 1}/{retry_attempts}...")
@@ -102,11 +102,11 @@ class LLM:
                     return None
                 return llm_output
 
-            except openai.APIConnectionError as e:
-                logger.warning(f"Connection error: {e}. Retrying {attempt + 1}/{retry_attempts}...")
-                time.sleep(Util.short_sleep)  # brief wait before retrying
             except openai.APITimeoutError as e:
                 logger.warning(f"API timeout error: {e}. Retrying {attempt + 1}/{retry_attempts}...")
+                time.sleep(Util.short_sleep)  # brief wait before retrying
+            except openai.APIConnectionError as e:
+                logger.warning(f"Connection error: {e}. Retrying {attempt + 1}/{retry_attempts}...")
                 time.sleep(Util.short_sleep)  # brief wait before retrying
             except openai.InternalServerError as e:
                 logger.warning(f"Internal server error: {e}. Retrying {attempt + 1}/{retry_attempts}...")

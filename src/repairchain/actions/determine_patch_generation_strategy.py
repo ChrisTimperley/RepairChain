@@ -38,27 +38,32 @@ def _build_yolo_strategies_with_kaskara_indices(
 ) -> list[PatchGenerationStrategy]:
     strategies: list[PatchGenerationStrategy] = []
 
-    # try different models
-    # - note that claude has some issues with JSON format and needs to requery
-    for model in ("oai-gpt-4o", "claude-3.5-sonnet"):
-        # and try:
-        # (a) use all files in context and ask for multiple patches at once (preferred)
-        # (b) use a single file as context and ask for one patch at a time
-        for use_patches_per_file_strategy in (True, False):
-            strategy = YoloLLMStrategy.build(
-                diagnosis=diagnosis,
-                model=model,
-                use_patches_per_file_strategy=use_patches_per_file_strategy,
-            )
-            strategies.append(strategy)
+    # and try:
+    # (a) use all files in context and ask for multiple patches at once (preferred)
+    # (b) use a single file as context and ask for one patch at a time
+    for use_patches_per_file_strategy in (True, False):
+        strategy = YoloLLMStrategy.build(
+            diagnosis=diagnosis,
+            model="oai-gpt-4o",
+            use_patches_per_file_strategy=use_patches_per_file_strategy,
+        )
+        strategies.append(strategy)
 
-    # gpt4-turbo is much more expensive, so we only try one strategy
-    yolo_gpt4_turbo = YoloLLMStrategy.build(
+    # limited claude use since it has issues with JSON
+    yolo_claude35 = YoloLLMStrategy.build(
         diagnosis=diagnosis,
-        model="oai-gpt-4-turbo",
+        model="claude-3.5-sonnet",
         use_patches_per_file_strategy=True,
     )
-    strategies.append(yolo_gpt4_turbo)
+    strategies.append(yolo_claude35)
+
+    # super-yolo has a different prompt and may give diversity
+    super_yolo = SuperYoloLLMStrategy.build(
+        diagnosis=diagnosis,
+        model="oai-gpt-4o",
+        whole_file=False,
+    )
+    strategies.append(super_yolo)
 
     return strategies
 

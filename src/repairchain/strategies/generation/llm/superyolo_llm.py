@@ -14,6 +14,7 @@ from overrides import overrides
 
 from repairchain.actions import commit_to_diff
 from repairchain.models.diff import Diff
+from repairchain.models.project import ProjectKind
 from repairchain.strategies.generation.base import PatchGenerationStrategy
 from repairchain.strategies.generation.llm.llm import LLM
 from repairchain.strategies.generation.llm.util import MessagesIterable, Util
@@ -182,7 +183,7 @@ class SuperYoloLLMStrategy(PatchGenerationStrategy):
             llm=llm,
             diff=diff,
             files=files,
-            number_patches=Util.number_patches,
+            number_patches=Util.number_patches // 2,  # reduce since we ask per file
             whole_file=whole_file,
         )
 
@@ -395,9 +396,17 @@ class SuperYoloLLMStrategy(PatchGenerationStrategy):
             attempt += 1
 
     def _get_llm_output(self) -> t.Iterator[Diff]:
+        filenames: list[str] = list(self.files.keys())
+        # generate patches for .c files and .java files first
+        if self.diagnosis.project.kind in {ProjectKind.C, ProjectKind.KERNEL}:
+            filenames = sorted(filenames, key=lambda x: (0 if x.endswith(".c") else (1 if x.endswith(".h") else 2), x))
+        else:
+            filenames = sorted(filenames, key=lambda x: (0 if x.endswith(".java") else 1))
+
+        logger.debug(f"files changed in the Git commit {filenames}")
         for file in self.files:
             tokens_file = Util.count_tokens(self.files[file], self.model)
-            if tokens_file * 1.25 > Util.limit_llm_output:
+            if tokens_file * 1.2 > Util.limit_llm_output:
                 logger.warning(f"File {file} is too large for SuperYolo whole file approach")
                 if self.whole_file:
                     continue

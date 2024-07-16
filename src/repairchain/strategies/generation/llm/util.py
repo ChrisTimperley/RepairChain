@@ -128,6 +128,7 @@ class Util:
             function_name = patch.function_name
 
             if filename not in files:
+                logger.warning(f"incorrect filename: {filename}")
                 continue
 
             lines = files[filename].split("\n")
